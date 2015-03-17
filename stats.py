@@ -3,7 +3,6 @@ usage="""a module to compute basic statistics of skymaps"""
 import healpy as hp
 import numpy as np
 
-
 #=================================================
 #
 # general helper methods
