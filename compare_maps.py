@@ -18,6 +18,8 @@ parser.add_option("-v", "--verbose", default=False, action="store_true")
 
 parser.add_option("-d", "--degrees", default=False, action="store_true")
 
+parser.add_option("", "--dMAP", default=False, action="store_true", help="compute the angular separation between maximum a posteriori points")
+
 parser.add_option("", "--fidelity", default=False, action="store_true", help="compute the fidelity between maps")
 parser.add_option("", "--symKL", default=False, action="store_true", help="compute symmetric KLdivergence between maps")
 parser.add_option("", "--mse", default=False, action="store_true", help="compute the mean square error between maps")
@@ -39,14 +41,14 @@ if opts.graceid:
         from ligo.gracedb.rest import GraceDb
         gracedb = gracedb = GraceDb(opts.gdb_url)
 
-if opts.graceid and len(opts.gracedb)!=len(args):
+if opts.graceid and len(opts.graceid)!=len(args):
         raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
 
 opts.credible_interval = sorted(opts.credible_interval)
 
 maps = {}
 if opts.graceid:
-	for gid, arg in args:
+	for gid, arg in zip(opts.graceid, args):
 		label, fits = arg.split(",")
 		maps[label] = {"fits":fits, "graceid":gid}
 else:
@@ -86,6 +88,7 @@ for label in labels:
         d['post'] = post
         d['npix'] = npix
         d['nside'] = nside
+	d['estang'] = stats.estang(post, nside=nside)
 
 #=================================================
 ### iterate through pairs and compute statistics
@@ -123,6 +126,11 @@ for ind, label1 in enumerate(labels):
 		messages = []
 	
 		### compute statistics
+		if opts.dMAP:
+			t1, p1 = d1['estang']
+			t2, p2 = d2['estang']
+			messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
+
 		if opts.fidelity:
 			messages.append( "fidelity : %.5f"%(stats.fidelity(post1, post2)) )
 
@@ -159,7 +167,9 @@ for ind, label1 in enumerate(labels):
 			print "\t", message
 
 		if opts.graceid: ### upload to gracedb
-			for gid in list(set(gid1, gid2)): ### if gid's are identical, only report once
+			for gid in set([gid1, gid2]): ### if gid's are identical, only report once
+				if opts.verbose:
+					print "uploading to GraceID :", gid
 				for message in messages:
 					if opts.tag_as_sky_loc:
 			                        gracedb.writeLog(gid, message="(%s,%s) : %s"%(label1, label2, message), filename=None, tagname="sky_loc")
