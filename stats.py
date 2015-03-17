@@ -9,12 +9,26 @@ import numpy as np
 # general helper methods
 #
 #=================================================
-def cos_dtheta(theta1, phi1, theta2, phi2):
+def cos_dtheta(theta1, phi1, theta2, phi2, safe=False):
 	"""
 	computes the angular separation between two points
 	support arrays assuming they all have the same shape
+	if safe: 
+		we check to make sure that numerical error doesn't put out outside the range of cosine
 	"""
-	return np.cos(theta1)*np.cos(theta2) + np.sin(theta1)*np.sin(theta2)*np.cos(phi1-phi2)
+	cosdtheta = np.cos(theta1)*np.cos(theta2) + np.sin(theta1)*np.sin(theta2)*np.cos(phi1-phi2)
+
+	if safe:
+		if isinstance(cosdtheta, np.ndarray):
+			cosdtheta[cosdtheta<-1] = -1
+			cosdtheta[cosdtheta>1] = 1
+		else:
+			if cosdtheta < -1:
+				cosdtheta = -1
+			elif cosdtheta > 1:
+				cosdtheta = 1
+
+	return cosdtheta
 
 #=================================================
 #
@@ -100,15 +114,15 @@ def searched_area(posterior, theta, phi, nside=None, nest=False, degrees=False):
 	return np.sum(posterior>=posterior[ipix])*hp.nside2pixarea(nside, degrees=degrees)
 
 ###
-def est_cos_dtheta(posterior, theta, phi):
+def est_cos_dtheta(posterior, theta, phi, safe=False):
 	"""
 	returns the angular separation between the maximum of the posterior and theta, phi
 	"""
 	t, p = estang(posterior)
-	return cos_dtheta(theta, phi, t, p)
+	return cos_dtheta(theta, phi, t, p, safe=safe)
 
 ###
-def min_cos_dtheta(posterior, theta, phi, nside=None, nest=False):
+def min_cos_dtheta(posterior, theta, phi, nside=None, nest=False, safe=False):
 	"""
 	computes the maximum angular separation between any point in the area with p > p(theta, phi) and the estimated position
 	"""
@@ -120,10 +134,10 @@ def min_cos_dtheta(posterior, theta, phi, nside=None, nest=False):
 
 	t, p = estang(posterior)
 
-	return np.min(cos_dtheta(thetas, phis, t, p))
+	return np.min(cos_dtheta(thetas, phis, t, p, safe=safe))
 
 ###
-def min_all_cos_dtheta(pix, nside, nest=False):
+def min_all_cos_dtheta(pix, nside, nest=False, safe=False):
 	"""
 	computes the maximum angular separation between any two pixels within pix=[ipix,ipix,...]
 	"""
@@ -132,7 +146,7 @@ def min_all_cos_dtheta(pix, nside, nest=False):
 	for i, (t1, p1) in enumerate(zip(thetas, phis)[:-1]):
 		t2 = thetas[i+1:] 
 		p2 = phis[i+1:]
-		c = np.amin(cos_dtheta(t1,p1,t2,p2))
+		c = np.amin(cos_dtheta(t1,p1,t2,p2,safe=safe))
 		if c < min_c:
 			min_c = c
 	return min_c
