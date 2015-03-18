@@ -4,11 +4,12 @@ author = "R. Essick (reed.essick@ligo.org), A. Urban (aurban@uwm.edu)"
 
 #=================================================
 
+from math import ceil, floor
 import json
 
 import subprocess
 
-from ligo.gracedb.rest import GraceDB
+from ligo.gracedb.rest import GraceDb
 
 import ConfigParser
 from optparse import OptionParser
@@ -29,43 +30,75 @@ graceid = args[0]
 
 #=================================================
 
+if opts.verbose: 
+	print "reading config from", opts.config
+
 config = ConfigParser.SafeConfigParser()
 config.read(opts.config)
 
 ### used to upload summary files and tag them to GraceDB
 gdburl = config.get('general', 'gdb_url')
-tag_as_sky_loc = config.getbool('general', 'tag_as_sky_loc')
+tag_as_sky_loc = config.getboolean('general', 'tag_as_sky_loc')
+
+### instantiate gracedb interface
+if opts.verbose: 
+	print "instantiating connection to GraceDb :", gdburl
+gracedb = gracedb = GraceDb( gdburl )
+
+#=================================================
 
 ### get universal options for all executables
-universal_cmd = " ".join(" -c %.3f "%conf for conf in config.get('general', 'credible_interval') )
-if config.getbool('general', 'degrees'):
+universal_cmd = " ".join(" -c %s "%(conf) for conf in config.get('general', 'credible_interval').split() )
+if config.getboolean('general', 'degrees'):
 	universal_cmd += " --degrees "
 
 #=================================================
-### get time for this GraceID
-gevent = json.loads( gracedb.event(graceid).read() )
+### grab gracedb events and their files!
+gdb_entries = {}
 
-#=================================================
+#========================
+### get time for this GraceID
+if opts.verbose: 
+	print "reading data for :", graceid
+
+gdb_entries[graceid] = gracedb.event(graceid).json()
+
+#========================
 ### get neighbors from GraceDB
+
+t = float(gdb_entries[graceid]['gpstime'])
 
 ### pull time windows from config file
 p_dt = config.getfloat('general', '+dt')
 m_dt = config.getfloat('general', '-dt')
 
 ### get time from GraceDB event
-### query taken from A. Urban's raven/grace.py module
-neighbors = [ json.load( _.read() ) for _ in list(gracedb.events( "%d..%d"%(t-m_dt, t+p_dt) )) ]
+if opts.verbose: 
+	print "searching for neighbors within [%.5f, %.5f]"%(t+m_dt, t+p_dt)
+gdb_entries.update( dict( (gdb_entry['graceid'], gdb_entry) for gdb_entry in gracedb.events( "%d..%d"%(floor(t+m_dt), ceil(t+p_dt)) ) if gdb_entry['graceid']!=graceid ) )
+
 ### downselect this based on event type?
+
+if opts.verbose:
+	print "\tfound %d neighbors"%(len(gdb_entries)-1)
+	for gid in gdb_entries.keys():
+		if gid != graceid:
+			print "\t\t", gid 
 
 #=================================================
 ### need to query GraceDB to get fits files from events (including neighbors).
 
-''' ### stolen from A. Urban's raven/grace.py module
-def get_fits(gw_event):
-    """ Downloads and unzips .fits file from gracedb into the 
-        current working directory """
-    os.system('gracedb download ' + gw_event.graceid + ' skymap.fits.gz')
-'''
+if opts.verbose:
+	print "querying for files"
+
+todo = {}
+for gid in gdb_entries.keys():
+	files = gracedb.files(gid).json()
+	fits = [ _ for _ in files if _.endswith("fits") or _.endswith("fits.gz") ]
+	todo.update( dict( (gid, fit) for fit in fits ) )
+
+
+### need to define a standard filename to determine whether we have analyzed a given fits file!
 
 #=================================================
 ### need to define labels, graceid's, etc and pass them along to other executables
