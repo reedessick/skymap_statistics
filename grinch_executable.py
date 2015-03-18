@@ -55,6 +55,7 @@ m_dt = config.getfloat('general', '-dt')
 ### get time from GraceDB event
 ### query taken from A. Urban's raven/grace.py module
 neighbors = [ json.load( _.read() ) for _ in list(gracedb.events( "%d..%d"%(t-m_dt, t+p_dt) )) ]
+### downselect this based on event type?
 
 #=================================================
 ### need to query GraceDB to get fits files from events (including neighbors).
