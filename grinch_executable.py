@@ -4,14 +4,17 @@ author = "R. Essick (reed.essick@ligo.org), A. Urban (aurban@uwm.edu)"
 
 #=================================================
 
-from ligo.gracedb.rest import GraceDB
+import json
 
 import subprocess
+
+from ligo.gracedb.rest import GraceDB
 
 import ConfigParser
 from optparse import OptionParser
 
 #=================================================
+
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
@@ -29,12 +32,18 @@ graceid = args[0]
 config = ConfigParser.SafeConfigParser()
 config.read(opts.config)
 
+### used to upload summary files and tag them to GraceDB
 gdburl = config.get('general', 'gdb_url')
 tag_as_sky_loc = config.getbool('general', 'tag_as_sky_loc')
 
-degrees = config.getbool('general', 'degrees')
+### get universal options for all executables
+universal_cmd = " ".join(" -c %.3f "%conf for conf in config.get('general', 'credible_interval') )
+if config.getbool('general', 'degrees'):
+	universal_cmd += " --degrees "
 
-credible_intervals = config.get('general', 'credible_interval').split()
+#=================================================
+### get time for this GraceID
+gevent = json.loads( gracedb.event(graceid).read() )
 
 #=================================================
 ### get neighbors from GraceDB
@@ -44,25 +53,8 @@ p_dt = config.getfloat('general', '+dt')
 m_dt = config.getfloat('general', '-dt')
 
 ### get time from GraceDB event
-
-### get neighbors, then downselect?
-''' ### stolen from A. Urban's raven/grace.py module
-    def search(self, tl, th):
-        """ Search for coincident GW events happening within a window
-            of [-tl, +th] seconds in gpstime """
-        start, end = self.gpstime + tl, self.gpstime + th
-        arg = '%s..%d' % (start, end)
-
-        # return list of graceids of coincident events
-        try:
-            return list(gracedb.events(arg))
-        except HTTPError:
-            import sys
-            print "Problem accessing GraCEDb while calling gracedb_events.grace.GW.search()"
-            raise HTTPError
-            sys.exit(1)
-
-'''
+### query taken from A. Urban's raven/grace.py module
+neighbors = [ json.load( _.read() ) for _ in list(gracedb.events( "%d..%d"%(t-m_dt, t+p_dt) )) ]
 
 #=================================================
 ### need to query GraceDB to get fits files from events (including neighbors).
@@ -76,10 +68,27 @@ def get_fits(gw_event):
 
 #=================================================
 ### need to define labels, graceid's, etc and pass them along to other executables
+### with current work flow, how do we prevent multiple entries/redundant processing?
+### 	how do we control that when we don't know what each executable does when launching (desireable for code simplicity?)
 
 ### only launch analyze_maps.py on the graceid specified as an argument
-
 ### launch compare_maps on all graceids, including neighbors
+### launch these in parallel?
+
+# iterate over executables
+for section, cmd in config.items('executables'):
+	if not config.has_section(section): ### check that section exists!
+		raise ValueError("no section \"%s\" in %s"%(section, opts.config) )
+
+	### extract options and build cmd
+	cmd = "%s %s %s"%(cmd, universal_cmd, " ".join(" --%s "%option for option, boolean in config.items(section) if bool(boolean)))
+
+	if opts.verbose:
+		print cmd
+
+	### add "dont_wait" functionality?
+#	proc = subprocess.Popen(cmd.split())
+#	proc.wait()
 
 """
 don't upload information from within analyze and compare, but rather dump the statements into text files.
@@ -87,5 +96,4 @@ upload/tag those text files?
 
 this will let us check whether we need to analyze particular files associated with a given event, or whether that has already been done?
 """
-
 
