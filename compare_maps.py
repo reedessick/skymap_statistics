@@ -172,9 +172,9 @@ for ind, label1 in enumerate(labels):
 					print "uploading to GraceID :", gid
 				for message in messages:
 					if opts.tag_as_sky_loc:
-			                        gracedb.writeLog(gid, message="(%s,%s) : %s"%(label1, label2, message), filename=None, tagname="sky_loc")
+			                        gracedb.writeLog(gid, message="%s,%s : %s"%(label1, label2, message), filename=None, tagname="sky_loc")
 					else:
-						gracedb.writeLog(gid, message="(%s,%s) : %s"%(label1, label2, message), filename=None)
+						gracedb.writeLog(gid, message="%s,%s : %s"%(label1, label2, message), filename=None)
 			
 
 		

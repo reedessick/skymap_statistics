@@ -98,7 +98,7 @@ for ind, arg in enumerate(args):
 			max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta(CR, nside, nest=NEST, safe=True))
 			messages.append( "%s: max(dtheta) = %.3f %s"%(header, max_dtheta, unit) )
 
-		if not opts.no_disjoint_regions:
+		if not opts.no_credible_interval_disjoint_regions:
 			sizes = sorted([len(_)*pixarea for _ in stats.__into_modes(nside, CR, nest=NEST)])
 			messages.append( "%s: disjoint regions : (%s) %s"%(header, ", ".join(["%.3f"%x for x in sizes]), areaunit ) )
 
