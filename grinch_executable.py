@@ -4,7 +4,11 @@ author = "R. Essick (reed.essick@ligo.org), A. Urban (aurban@uwm.edu)"
 
 #=================================================
 
+import os
+
 from math import ceil, floor
+
+from collections import defaultdict
 import json
 
 import subprocess
@@ -36,9 +40,8 @@ if opts.verbose:
 config = ConfigParser.SafeConfigParser()
 config.read(opts.config)
 
-### used to upload summary files and tag them to GraceDB
+### used to upload summary files to GraceDB
 gdburl = config.get('general', 'gdb_url')
-tag_as_sky_loc = config.getboolean('general', 'tag_as_sky_loc')
 
 ### instantiate gracedb interface
 if opts.verbose: 
@@ -47,87 +50,166 @@ gracedb = gracedb = GraceDb( gdburl )
 
 #=================================================
 
+if opts.verbose:
+	print "setting up command lines"
+
 ### get universal options for all executables
 universal_cmd = " ".join(" -c %s "%(conf) for conf in config.get('general', 'credible_interval').split() )
 if config.getboolean('general', 'degrees'):
 	universal_cmd += " --degrees "
+universal_cmd += " --gdb-url %s "%gdburl
+
+### build analyze command line
+analyze_cmd = config.get('executables','analyze_maps') + universal_cmd
+if config.has_option('analyze_maps', 'pvalue'):
+	analyze_cmd += " --pvalue %s"%(config.get('analyze_maps','pvalue'))
+if config.getboolean('analyze_maps', 'entropy'):
+	analyze_cmd += " --entropy "
+if config.getboolean('analyze_maps', 'no_credible_interval_dtheta'):
+	analyze_cmd += " --no-credible-interval-dtheta "
+if config.getboolean('analyze_maps', 'no_credible_interval_disjoint_regions'):
+	analyze_cmd += " --no-credible-interval-disjoint-regions "
+if config.getboolean('analyze_maps', 'tag_as_sky_loc'):
+	analyze_cmd += " --tag-as-sky-loc "
+
+### build compare command line 
+compare_cmd = config.get('executables','compare_maps') + universal_cmd
+if config.getboolean('compare_maps', 'dMAP'):
+	compare_cmd += " --dMAP "
+if config.getboolean('compare_maps', 'symKL'):
+	compare_cmd += " --symKL "
+if config.getboolean('compare_maps', 'mse'):
+	compare_cmd += " --mse "
+if config.getboolean('compare_maps', 'peak_snr'):
+	compare_cmd += " --peak-snr "
+if config.getboolean('compare_maps', 'structural_similarity'):
+	compare_cmd += " --structural-similarity "
+if config.getboolean('compare_maps', 'pearson'):
+	compare_cmd += " --pearson "
+if config.getboolean('compare_maps', 'dot'):
+	compare_cmd += " --dot "
+if config.getboolean('compare_maps', 'tag_as_sky_loc'):
+	compare_cmd += " --tag-as-sky-loc "
 
 #=================================================
-### grab gracedb events and their files!
-gdb_entries = {}
 
-#========================
-### get time for this GraceID
-if opts.verbose: 
-	print "reading data for :", graceid
+names = [] ### list of files that need to be cleaned up after we're done
 
-gdb_entries[graceid] = gracedb.event(graceid).json()
+#=================================================
+### analyze_maps
+### only run on the graceid supplied through arguments!
+#=================================================
 
-#========================
-### get neighbors from GraceDB
+if opts.verbose:
+	print "determining which fits files for %s need to be analyzed"%graceid
 
+gdb_entries = { graceid : gracedb.event( graceid ).json() }
+
+fits = [ _ for _ in gracedb.files( graceid ).json().keys() if _.endswith("fits") or _.endswith("fits.gz") ]
+analyzed = set()
+
+### get log entries and sort them by relevant fits files
+for log in gracedb.logs( graceid ).json()['log']:
+	for fit in fits:
+		if "%s-%s : "%(graceid, fit) in log:
+			analyzed.add( fit )
+
+### download files to local directory
+for fit in [ fit for fit in fits if fit not in analyzed ]:
+	name = "%s-%s"%(graceid, fit)
+	if opts.verbose:
+		print "\tdownloading %s from %s to %s"%(fit, graceid, name)
+	file_obj = open(name, "w")
+	file_obj.write( gracedb.files( graceid, fit ).read() )
+	file_obj.close()
+	names.append( name )
+
+	### add them to analyze command
+	analyze_cmd += " %s,%s --graceid %s "%(name, name, graceid)
+		
+### launch analyze command!
+if opts.verbose:
+	print analyze_cmd
+#proc = subprocess.Popen(analyze_cmd.split())
+#proc.wait() # block!
+if opts.verbose:
+	print "\tdone!"
+
+#=================================================
+### compare_maps
+### run over neighbors!
+#=================================================	
+
+### find neighbors
 t = float(gdb_entries[graceid]['gpstime'])
-
-### pull time windows from config file
 p_dt = config.getfloat('general', '+dt')
 m_dt = config.getfloat('general', '-dt')
 
-### get time from GraceDB event
-if opts.verbose: 
-	print "searching for neighbors within [%.5f, %.5f]"%(t+m_dt, t+p_dt)
+if opts.verbose:
+	print "finding neighbors within [%.5f, %.5f]"%(t+m_dt, t+p_dt)
+
 gdb_entries.update( dict( (gdb_entry['graceid'], gdb_entry) for gdb_entry in gracedb.events( "%d..%d"%(floor(t+m_dt), ceil(t+p_dt)) ) if gdb_entry['graceid']!=graceid ) )
-
-### downselect this based on event type?
+graceids = sorted(gdb_entries.keys())
 
 if opts.verbose:
-	print "\tfound %d neighbors"%(len(gdb_entries)-1)
-	for gid in gdb_entries.keys():
+	print "\tfound %d neighbors"%(len(graceids)-1)
+	for gid in graceids:
 		if gid != graceid:
-			print "\t\t", gid 
+			print "\t\t",gid
+	print "determining which pairs or maps need to be compared"
 
-#=================================================
-### need to query GraceDB to get fits files from events (including neighbors).
+### get fits files from neighbors
+fits = [ (graceid, fit) for fit in fits ]
+for gid in graceids:
+	if gid != graceid:
+		fits += [ (gid, _) for _ in gracedb.files( gid ).json().keys() if _.endswith("fits") or _.endswith("fits.gz") ]
 
-if opts.verbose:
-	print "querying for files"
+### figure out which pairs have already happened
+compared = defaultdict( int )
+for gid in graceids:
+	for log in gracedb.logs(gid).json()['log']:
+		for ind, (gid1,fit1) in enumerate(fits):
+			for (gid2,fit2) in fits[ind+1:]:
+				compared[(gid1,fit1, gid2,fit2)] += "%s-%s,%s-%s : "%(gid1,fit1, gid2,fit2) in log
 
-todo = {}
-for gid in gdb_entries.keys():
-	files = gracedb.files(gid).json()
-	fits = [ _ for _ in files if _.endswith("fits") or _.endswith("fits.gz") ]
-	todo.update( dict( (gid, fit) for fit in fits ) )
+### download files to local directory
+compare_cmds = []
+for ind,  (gid1, fit1) in enumerate(fits):
+	for gid2, fit2 in fits[ind+1:]:
+		if compared[(gid1,fit1, gid2,fit2)] == 0: ### no log messages found
+			name1 = "%s-%s"%(gid1,fit1)
+			if name1 not in names:
+				if opts.verbose:
+					print "\tdownloading %s from %s to %s"%(fit1, gid1, name1)
+				file_obj = open(name1, "w")
+				file_obj.write( gracedb.files( gid1, fit1).read() )
+				file_obj.close()
+				names.append( name1 )
 
+			name2 = "%s-%s"%(gid2,fit2)
+			if name2 not in names:
+				if opts.verbose:
+					print "\tdownloading %s from %s to %s"%(fit2, gid2, name2)
+				file_obj = open(name2, "w")
+				file_obj.write( gracedb.files( gid2, fit2).read() )
+				file_obj.close()
+				names.append( name2 )
 
-### need to define a standard filename to determine whether we have analyzed a given fits file!
+			### add to compare command
+			compare_cmds.append( compare_cmd + " %s,%s --graceid %s %s,%s --graceid %s "%(name1,name1, gid1, name2,name2, gid2) )
 
-#=================================================
-### need to define labels, graceid's, etc and pass them along to other executables
-### with current work flow, how do we prevent multiple entries/redundant processing?
-### 	how do we control that when we don't know what each executable does when launching (desireable for code simplicity?)
-
-### only launch analyze_maps.py on the graceid specified as an argument
-### launch compare_maps on all graceids, including neighbors
-### launch these in parallel?
-
-# iterate over executables
-for section, cmd in config.items('executables'):
-	if not config.has_section(section): ### check that section exists!
-		raise ValueError("no section \"%s\" in %s"%(section, opts.config) )
-
-	### extract options and build cmd
-	cmd = "%s %s %s"%(cmd, universal_cmd, " ".join(" --%s "%option for option, boolean in config.items(section) if bool(boolean)))
-
+### launch commands
+for compare_command in compare_cmds:
 	if opts.verbose:
-		print cmd
+		print compare_command
+#	proc = subprocess.Popen(compare_command.split()
+#	proc.wait() # block!
+	if opts.verbose:
+		print "\tdone!"
 
-	### add "dont_wait" functionality?
-#	proc = subprocess.Popen(cmd.split())
-#	proc.wait()
-
-"""
-don't upload information from within analyze and compare, but rather dump the statements into text files.
-upload/tag those text files?
-
-this will let us check whether we need to analyze particular files associated with a given event, or whether that has already been done?
-"""
-
+#=================================================
+### clean up files
+for name in names:
+	if opts.verbose:
+		print "removing", name
+	os.remove( name )
