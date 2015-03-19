@@ -265,6 +265,24 @@ def fidelity(posterior1, posterior2):
 	return np.sum( (posterior1*posterior2)**0.5 )
 
 ###
+def indep_joint_entropy(posterior1, posterior2, base=2.0):
+	"""
+	return entropy(posterior1*posterior2, base=base)
+	"""
+	joint = posterior1*posterior2
+	joint /= np.sum(joint)
+	return entropy(joint, base=base)
+
+###
+def indep_joint_entropy(posterior1, posterior2, base=2.0):
+	"""
+	return information(posterior1*posterior2, base=base)
+	"""
+	joint = posterior1*posterior2
+	joint /= np.sum(joint)
+	return information(joint, base=base)
+
+###
 def KLdivergence(posterior1, posterior2, base=2.0):
 	"""
 	computes the Kullback-Leibler divergence

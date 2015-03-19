@@ -21,6 +21,8 @@ parser.add_option("-d", "--degrees", default=False, action="store_true")
 parser.add_option("", "--dMAP", default=False, action="store_true", help="compute the angular separation between maximum a posteriori points")
 
 parser.add_option("", "--fidelity", default=False, action="store_true", help="compute the fidelity between maps")
+parser.add_option("", "--joint-entropy", default=False, action="store_true", help="compute joint entropy between maps")
+
 parser.add_option("", "--symKL", default=False, action="store_true", help="compute symmetric KLdivergence between maps")
 parser.add_option("", "--mse", default=False, action="store_true", help="compute the mean square error between maps")
 parser.add_option("", "--peak-snr", default=False, action="store_true", help="compute peak snr between maps")
@@ -116,13 +118,13 @@ for ind, label1 in enumerate(labels):
 
 		if nside2 > nside:
 			if opts.verbose:
-				print "resampling %s : %d -> %d"%(label2, nside2, nside1)
-			post1 = stats.resample(post2, nside1)
+				print "\tresampling %s : %d -> %d"%(label2, nside2, nside1)
+			post2 = stats.resample(post2, nside1)
 		elif nside1 > nside:
 			if opts.verbose:
-				print "resampling %s : %d -> %d"%(label1, nside1, nside2)
-			post2 = stats.resample(post1, nside2)
-	
+				print "\tresampling %s : %d -> %d"%(label1, nside1, nside2)
+			post1 = stats.resample(post1, nside2)
+
 		messages = []
 	
 		### compute statistics
@@ -134,6 +136,9 @@ for ind, label1 in enumerate(labels):
 		if opts.fidelity:
 			messages.append( "fidelity : %.5f"%(stats.fidelity(post1, post2)) )
 
+		if opts.joint_entropy:
+			messages.append( "joint entropy : %.5f %s"%(pixarea * 2**(stats.indep_joint_entropy(post1, post2, base=2.0)), areaunit) )
+
 		if opts.symKL:
 			messages.append( "symmetric KL divergence : %.5f"%stats.symmetric_KLdivergence(post1, post2) )
 
@@ -144,7 +149,7 @@ for ind, label1 in enumerate(labels):
 			messages.append( "peak SNR : (%.5f, %.5f)"%(stats.peak_snr(post1, post2)) )
 
 		if opts.structural_similarity:
-			messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2) )
+			messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.min(np.mean(post1),np.mean(post2)), c2=0.01*np.min(np.var(post1), np.var(post2)) ) )
 
 		if opts.pearson:
 			messages.append( "pearson : %.5f"%stats.pearson(post1, post2) )
