@@ -31,6 +31,8 @@ parser.add_option("", "--graceid", default=[], type="string", action="append", h
 parser.add_option('', '--gdb-url', default='https://gracedb.ligo.org/api', type='string')
 parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
 
+parser.add_option("", "--skip-gracedb-upload", default=False, action="store_true")
+
 opts, args = parser.parse_args()
 
 if opts.graceid:
@@ -107,14 +109,13 @@ for ind, arg in enumerate(args):
 
 	if opts.graceid: ### upload to GraceDB
 		gid = opts.graceid[ind] 
-		if opts.verbose:
+		if opts.verbose and (not opts.skip_gracedb_upload):
 			print "uploading to GraceID :", gid
 		for message in messages:
-			if opts.tag_as_sky_loc:
-				gracedb.writeLog(gid, message="%s : %s"%(label, message), filename=None, tagname="sky_loc")
-			else:
-				gracedb.writeLog(gid, message="%s : %s"%(label, message), filename=None)
-
+			if not opts.skip_gracedb_upload:
+  				if opts.tag_as_sky_loc:
+					gracedb.writeLog(gid, message="%s : %s"%(label, message), filename=None, tagname="sky_loc")
+				else:
+					gracedb.writeLog(gid, message="%s : %s"%(label, message), filename=None)
 		
-
 

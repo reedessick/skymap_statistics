@@ -29,6 +29,9 @@ parser.add_option("-c", "--config", default="grinch_config.ini", type="string")
 parser.add_option("", "--analyze", default=False, action="store_true")
 parser.add_option("", "--compare", default=False, action="store_true")
 
+parser.add_option("", "--skip-gracedb-upload", default=False, action="store_true")
+parser.add_option("", "--keep-maps", default=False, action="store_true")
+
 opts, args = parser.parse_args()
 
 if len(args)!= 1:
@@ -55,7 +58,7 @@ gdburl = config.get('general', 'gdb_url')
 ### instantiate gracedb interface
 if opts.verbose: 
 	print "instantiating connection to GraceDb :", gdburl
-gracedb = gracedb = GraceDb( gdburl )
+gracedb = GraceDb( gdburl )
 
 #=================================================
 
@@ -107,6 +110,12 @@ if config.getboolean('compare_maps', 'dot'):
 	compare_cmd += " --dot "
 if config.getboolean('compare_maps', 'tag_as_sky_loc'):
 	compare_cmd += " --tag-as-sky-loc "
+
+
+if opts.skip_gracedb_upload:
+	analyze_cmd += " --skip-gracedb-upload"
+	compare_cmd += " --skip-gracedb-upload"
+
 
 #=================================================
 
@@ -166,7 +175,7 @@ if opts.compare:
 	if opts.verbose:
 		print "finding neighbors within [%.5f, %.5f]"%(t+m_dt, t+p_dt)
 
-	gdb_entries.update( dict( (gdb_entry['graceid'], gdb_entry) for gdb_entry in gracedb.events( "%d..%d"%(floor(t+m_dt), ceil(t+p_dt)) ) if gdb_entry['graceid']!=graceid ) )
+	gdb_entries.update( dict( (gdb_entry['graceid'], gdb_entry) for gdb_entry in gracedb.events( "%d .. %d"%(floor(t+m_dt), ceil(t+p_dt)) ) if gdb_entry['graceid']!=graceid ) )
 	graceids = sorted(gdb_entries.keys()) ### sorting assures the correct ordering within dictionary keys
 
 	if opts.verbose:
@@ -230,9 +239,10 @@ if opts.compare:
 
 #=================================================
 ### clean up files
-for name in names:
-	if opts.verbose:
-		print "removing", name
-	os.remove( name )
+if not opts.keep_maps:
+	for name in names:
+		if opts.verbose:
+			print "removing", name
+		os.remove( name )
 
 
