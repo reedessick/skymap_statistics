@@ -15,6 +15,7 @@ from optparse import OptionParser
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
+parser.add_option("-V", "--Verbose", default=False, action="store_true")
 
 parser.add_option("-d", "--degrees", default=False, action="store_true")
 
@@ -40,6 +41,8 @@ parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
 parser.add_option("", "--skip-gracedb-upload", default=False, action="store_true")
 
 opts, args = parser.parse_args()
+
+opts.verbose = opts.verbose or opts.Verbose
 
 if opts.graceid:
         from ligo.gracedb.rest import GraceDb
@@ -131,41 +134,64 @@ for ind, label1 in enumerate(labels):
 	
 		### compute statistics
 		if opts.dMAP:
+			if opts.Verbose:
+				print "\t\tdMAP"
 			t1, p1 = d1['estang']
 			t2, p2 = d2['estang']
 			messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
 
 		if opts.fidelity:
+			if opts.Verbose:
+				print "\t\tfidelity"
 			messages.append( "fidelity : %.5f"%(stats.fidelity(post1, post2)) )
 
 		if opts.joint_entropy:
+			if opts.Verbose:
+				print "\t\tjoint_entropy"
 			messages.append( "joint entropy : %.5f %s"%(pixarea * 2**(stats.indep_joint_entropy(post1, post2, base=2.0)), areaunit) )
 
 		if opts.symKL:
+			if opts.Verbose:
+				print "\t\tsymKL"
 			messages.append( "symmetric KL divergence : %.5f"%stats.symmetric_KLdivergence(post1, post2) )
 
 		if opts.mse:
+			if opts.Verbose:
+				print "\t\tmse"
 			messages.append( "mean square error : %.5e"%stats.mse(post1, post2) )
 
 		if opts.peak_snr:
+			if opts.Verbose:
+				print "\t\tpeak_snr"
 			messages.append( "peak SNR : (%.5f, %.5f)"%(stats.peak_snr(post1, post2)) )
 
 		if opts.structural_similarity:
+			if opts.Verbose:
+				print "\t\tstructural_similarity"
 			messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.min(np.mean(post1),np.mean(post2)), c2=0.01*np.min(np.var(post1), np.var(post2)) ) )
 
 		if opts.pearson:
+			if opts.Verbose:
+				print "\t\tpearson"
 			messages.append( "pearson : %.5f"%stats.pearson(post1, post2) )
 
 		if opts.dot:
+			if opts.Verbose:
+				print "\t\tdot"
 			messages.append( "dot : %.5f"%stats.dot(post1, post2) )
 
-		
+		if opts.Verbose:
+			print "\t\tCredible Regions"
 		for conf, pix1, pix2 in zip(opts.credible_interval, stats.credible_region(post1, opts.credible_interval), stats.credible_region(post2, opts.credible_interval) ):
+			if opts.Verbose:
+				print "\t\tCR: %.6f"%(conf)
 			header = "%.3f %s CR"%(conf*100, "%")
 
 			messages.append( "%s : %s = %.3f %s"%(header, label1, pixarea*len(pix1) , areaunit) )
 			messages.append( "%s : %s = %.3f %s"%(header, label2, pixarea*len(pix2) , areaunit) )
 
+			if opts.Verbose:
+				print "\t\tgeometric_overlap"
 			i, u = stats.geometric_overlap(pix1, pix2, nside=nside, degrees=opts.degrees)
 			messages.append( "%s : intersection = %.3f %s"%(header, i, areaunit) )
 			messages.append( "%s : union = %.3f %s"%(header, u, areaunit) )

@@ -15,6 +15,7 @@ from optparse import OptionParser
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
+parser.add_option("-V", "--Verbose", default=False, action="store_true")
 
 parser.add_option("-d", "--degrees", default=False, action="store_true")
 
@@ -34,6 +35,8 @@ parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
 parser.add_option("", "--skip-gracedb-upload", default=False, action="store_true")
 
 opts, args = parser.parse_args()
+
+opts.verbose = opts.verbose or opts.Verbose
 
 if opts.graceid:
 	from ligo.gracedb.rest import GraceDb
@@ -81,26 +84,38 @@ for ind, arg in enumerate(args):
 
 	### compute statistics and report them
 	if opts.pvalue:
+		if opts.Verbose:
+			print "\t\tpvalue"
 		pvalue = stats.p_value(post, theta, phi, nside=nside)
 		messages.append( "cdf(%s) = %.3f %s"%(opts.pvalue, pvalue*100, "%") )
 		
 	# entropy -> size
 	if opts.entropy:
+		if opts.Verbose:
+			print "\t\tentropy"
 		entropy = pixarea * 2**(stats.entropy(post, base=2.0))
 		messages.append( "entropy = %.3f %s"%(entropy, areaunit) )
 
 	# CR -> size, max(dtheta)
+	if opts.Verbose:
+		print "\t\tCredible Regions"
 	cr = {}
 	for CR, conf in zip(stats.credible_region(post, opts.credible_interval), opts.credible_interval):
+		if opts.Verbose:
+			print "\t\tCR : %.6f"%(conf)
 		header = "%.3f %s CR"%(conf*100, "%")
 		size = pixarea*len(CR)
 		messages.append( "%s: size = %.3f %s"%(header, size, areaunit) )
 
 		if not opts.no_credible_interval_dtheta:
+			if opts.Verbose:
+				print "\t\t\tmax_dtheta"
 			max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta(CR, nside, nest=NEST, safe=True))
 			messages.append( "%s: max(dtheta) = %.3f %s"%(header, max_dtheta, unit) )
 
 		if not opts.no_credible_interval_disjoint_regions:
+			if opts.Verbose:
+				print "\t\t\tdisjoint_regions"
 			sizes = sorted([len(_)*pixarea for _ in stats.__into_modes(nside, CR, nest=NEST)])
 			messages.append( "%s: disjoint regions : (%s) %s"%(header, ", ".join(["%.3f"%x for x in sizes]), areaunit ) )
 
