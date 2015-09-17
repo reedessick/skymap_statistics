@@ -82,6 +82,8 @@ for ind, arg in enumerate(args):
 
 	pixarea = hp.nside2pixarea(nside, degrees=opts.degrees)
 
+        print "\tpixarea=%.6f %s"%(pixarea, areaunit)
+
 	### compute statistics and report them
 	if opts.pvalue:
 		if opts.Verbose:
