@@ -116,19 +116,25 @@ for ind, label1 in enumerate(labels):
 			gid2 = d2['graceid']
 
 		print "%s vs %s"%(label1, label2)
-		
+
 		### resample if needed
-		nside = min(nside1, nside)
+		nside = min(nside1, nside2)
 		pixarea = hp.nside2pixarea(nside, degrees=opts.degrees)
 
 		if nside2 > nside:
 			if opts.verbose:
-				print "\tresampling %s : %d -> %d"%(label2, nside2, nside1)
-			post2 = stats.resample(post2, nside1)
+				print "\tresampling %s : %d -> %d"%(label2, nside2, nside)
+			post2 = stats.resample(post2, nside)
 		elif nside1 > nside:
 			if opts.verbose:
-				print "\tresampling %s : %d -> %d"%(label1, nside1, nside2)
-			post1 = stats.resample(post1, nside2)
+				print "\tresampling %s : %d -> %d"%(label1, nside1, nside)
+			post1 = stats.resample(post1, nside)
+
+		pixarea = hp.nside2pixarea( nside, degrees=opts.degrees )
+
+		if opts.verbose:
+			print "\tnside : %d"%(nside)
+			print "\tpixare : %.6f %s"%(pixarea, areaunit)
 
 		messages = []
 	
