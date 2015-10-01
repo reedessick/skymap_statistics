@@ -26,9 +26,12 @@ parser.add_option("-v", "--verbose", default=False, action="store_true")
 
 parser.add_option("-c", "--credible-interval", default=[], type='float', action='append', help='compute the overlap and intersection of the credible intervals reported in the maps')
 
+<<<<<<< HEAD
 parser.add_option("-H", "--figheight", default=5, type="float")
 parser.add_option("-W", "--figwidth", default=9, type="float")
 
+=======
+>>>>>>> changed some options and naming conventions
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
 parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB!")
