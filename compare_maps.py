@@ -102,7 +102,7 @@ for label in labels:
 
 for ind, label1 in enumerate(labels):
 	d1 = maps[label1]
-	post1 = d1['post']
+	Post1 = d1['post']
 	nside1 = d1['nside']
 	if opts.graceid:
 		gid1 = d1['graceid']
@@ -110,7 +110,7 @@ for ind, label1 in enumerate(labels):
 	for label2 in labels[ind+1:]:
 
 		d2 = maps[label2]
-		post2 = d2['post']
+		Post2 = d2['post']
 		nside2 = d2['nside']
 		if opts.graceid:
 			gid2 = d2['graceid']
@@ -124,11 +124,15 @@ for ind, label1 in enumerate(labels):
 		if nside2 > nside:
 			if opts.verbose:
 				print "\tresampling %s : %d -> %d"%(label2, nside2, nside)
-			post2 = stats.resample(post2, nside)
-		elif nside1 > nside:
+			post2 = stats.resample(Post2[:], nside)
+		else:
+			post2 = Post2[:]
+		if nside1 > nside:
 			if opts.verbose:
 				print "\tresampling %s : %d -> %d"%(label1, nside1, nside)
-			post1 = stats.resample(post1, nside)
+			post1 = stats.resample(Post1[:], nside)
+		else:
+			post1 = Post1
 
 		pixarea = hp.nside2pixarea( nside, degrees=opts.degrees )
 
