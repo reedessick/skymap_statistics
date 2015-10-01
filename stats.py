@@ -417,3 +417,15 @@ def geometric_overlap(pix1, pix2, nside, degrees=False):
         intersection = np.sum( posterior1*posterior2 )
         return intersection*pixarea, (np.sum(posterior1+posterior2) - intersection)*pixarea
 
+###
+def spotcheck(posterior1, posterior2, conf):
+	"""
+	finds the confidence regions corresonding to conf in posterior1 and computes the contained probability in posterior2, and vice versa
+	assumes posetrior1 and posterior2 have the same nside and ordering
+        return np.sum( posterior2[ credible_region(posterior1, conf) ] ), np.sum( posterior1[ credible_region(posterior2, conf) ] )
+	"""
+	if isinstance(conf, (int,float)):
+		conf = np.array([conf])
+	return [np.sum(posterior2[pix]) for pix in credible_region(posterior1, conf) ], [np.sum(posterior1[pix]) for pix in credible_region(posterior2, conf) ]
+
+
