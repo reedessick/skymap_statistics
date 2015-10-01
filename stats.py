@@ -188,63 +188,38 @@ def __into_boarders(nside, pix, nest=False):
         truth = np.zeros((npix,),bool)
         truth[pix] = True
 
+	abstruth = truth[:]
+
         pixnums = np.arange(npix) ### convenient array we establish once
 
-	raise StandardError( "WRITE ME" )
-
-	### adapt the mode-finding algorithm to find boarders instead of just disjoint sets!
-
-        modes = []
+        boarders = []
         while truth.any():
                 ipix = pixnums[truth][0] ### take the first pixel
                 truth[ipix] = False ### remove it from the global set
-                mode = [ipix]
+                boarder = []
                 to_check = [ipix] ### add it to the list of things to check
 
                 while len(to_check): # there are pixels in this mode we have to check
                         ipix = to_check.pop() # take one pixel from those to be checked.
-
+			isinterior = True
                         for neighbour in hp.get_all_neighbours(nside, ipix, nest=nest):# get neighbors as rtheta, rphi
 
                                 if neighbour == -1: ### when neighbour == -1, there is no corresponding pixel in this direction
                                         pass
-                                # try to find pixel in skymap
-                                elif truth[neighbour]: ### pixel in the set and has not been visited before
-                                        truth[neighbour] = False ### remove neighbour from global set
-#                                       truth[neighbour] = 0 ### remove neighbour from global set
-                                        mode.append( neighbour ) ### add to this mode
-                                        to_check.append( neighbour ) ### add to list of things to check
-                                else: ### pixel not in the set or has been visited before
-                                        pass
-                modes.append( mode )
+				else:
+					isinterior *= abstruth[neighbour] ### check to see if the neighbor is in the set
+					                                  ### we don't care if it has already been visited.
+	                                # try to find pixel in skymap
+        	                        if truth[neighbour]: ### pixel in the set and has not been visited before
+                	                        truth[neighbour] = False ### remove neighbour from global set
+                                	        to_check.append( neighbour ) ### add to list of things to check
+	                                else: ### pixel not in the set or has been visited before
+        	                                pass
+			if not isinterior:
+				boarder.append( ipix )
+                boarders.append( boarder )
 
-        return modes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        return boarders
 
 ###
 def num_modes(posterior, theta, phi, nside=None, nest=False):
