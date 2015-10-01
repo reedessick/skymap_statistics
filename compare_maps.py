@@ -31,6 +31,8 @@ parser.add_option("", "--structural-similarity", default=False, action="store_tr
 parser.add_option("", "--pearson", default=False, action="store_true", help="compute pearson correlation coefficient between maps")
 parser.add_option("", "--dot", default=False, action="store_true", help="compute normalized dot product between maps")
 
+parser.add_option("-s", "--spotcheck", default=[], type="float", action="append", help="compute spot check at these confidence levels")
+
 parser.add_option("-c", "--credible-interval", default=[], type='float', action='append', help='compute the overlap and intersection of the credible intervals reported in the maps')
 
 parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB!")
@@ -138,7 +140,7 @@ for ind, label1 in enumerate(labels):
 
 		if opts.verbose:
 			print "\tnside : %d"%(nside)
-			print "\tpixare : %.6f %s"%(pixarea, areaunit)
+			print "\tpixarea : %.6f %s"%(pixarea, areaunit)
 
 		messages = []
 	
@@ -189,6 +191,13 @@ for ind, label1 in enumerate(labels):
 			if opts.Verbose:
 				print "\t\tdot"
 			messages.append( "dot : %.5f"%stats.dot(post1, post2) )
+
+		if opts.spotcheck:
+			if opts.Verbose:
+				print "\t\tspotcheck"
+			p12, p21 = stats.spotcheck(post1, post2, opts.spotcheck)
+			for conf, a, b in zip( opts.spotcheck, p12, p21 ):
+				messages.append( "spotcheck %.3f %s: (%.5f, %.5f)"%(conf*100, "%", a, b) )
 
 		if opts.Verbose:
 			print "\t\tCredible Regions"

@@ -160,14 +160,15 @@ def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
 	"""
 	Npix = len(pix)
 	### check to see if more than half the sky is filled
-	if Npix*hp.nside2pixare( nside ) > 2*np.pi:
+	if Npix*hp.nside2pixarea( nside ) > 2*np.pi:
 		return -1 
 	### check to see if the antipode of any point is in the set
 	npix =  hp.nside2npix( nside )
 	selected = np.zeros( npix, dtype=bool )
 	selected[pix] = True
-	antipodes = np.zeros_like( selected, dtype=bool )
-	antipodes[ hp.vec2pix( -hp.pix2vec( nside, pix, nest=nest ), nest=nest ) ] = True ### reflection -> antipode
+	antipodes = np.zeros_like( selected )
+	vec = -np.array(hp.pix2vec( nside, pix, nest=nest )) ### reflect vectors
+	antipodes[ hp.vec2pix( nside, vec[0], vec[1], vec[2], nest=nest ) ] = True ### reflection -> antipode
 	                                                            ### reflection accomplished in cartesian coords
 	if np.sum( selected*antipodes ): ### point and it's antipode are in the set
 		return -1 ### could be in error by the pixel size...
