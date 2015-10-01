@@ -139,6 +139,7 @@ def min_cos_dtheta(posterior, theta, phi, nside=None, nest=False, safe=False):
 def min_all_cos_dtheta(pix, nside, nest=False, safe=False):
 	"""
 	computes the maximum angular separation between any two pixels within pix=[ipix,ipix,...]
+	does this by direct comparison (N^2 computation) between pixel centers
 	"""
 	min_c = 1.0
 	thetas, phis = hp.pix2ang(nside, pix)
@@ -149,6 +150,100 @@ def min_all_cos_dtheta(pix, nside, nest=False, safe=False):
 		if c < min_c:
 			min_c = c
 	return min_c
+
+###
+def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
+	"""
+	computes the maximum angular separation between any two pixels within pix=[ipix,ipix,...]
+	does this with a boarder-to-boarder search after checking some other things
+	this could be in error up to the pixel size (hopefully small)
+	"""
+	Npix = len(pix)
+	### check to see if more than half the sky is filled
+	if Npix*hp.nside2pixare( nside ) > 2*np.pi:
+		return -1 
+	### check to see if the antipode of any point is in the set
+	npix =  hp.nside2npix( nside )
+	selected = np.zeros( npix, dtype=bool )
+	selected[pix] = True
+	antipodes = np.zeros_like( selected, dtype=bool )
+	antipodes[ hp.vec2pix( -hp.pix2vec( nside, pix, nest=nest ), nest=nest ) ] = True ### reflection -> antipode
+	                                                            ### reflection accomplished in cartesian coords
+	if np.sum( selected*antipodes ): ### point and it's antipode are in the set
+		return -1 ### could be in error by the pixel size...
+
+	### boarder-to-boarder search
+	boarder_pix = []
+	for bpix in __into_boarders( nside, pix, nest=nest ):
+		boarder_pix += bpix
+	return min_all_cos_dtheta( boarder_pix, nside, nest=nest, safe=False )
+
+def __into_boarders(nside, pix, nest=False):
+        """
+        extracts the boarder from the list of pixels (pix)
+        """
+        ### establish an array representing the included pixels
+        npix = hp.nside2npix(nside)
+
+        truth = np.zeros((npix,),bool)
+        truth[pix] = True
+
+        pixnums = np.arange(npix) ### convenient array we establish once
+
+	raise StandardError( "WRITE ME" )
+
+	### adapt the mode-finding algorithm to find boarders instead of just disjoint sets!
+
+        modes = []
+        while truth.any():
+                ipix = pixnums[truth][0] ### take the first pixel
+                truth[ipix] = False ### remove it from the global set
+                mode = [ipix]
+                to_check = [ipix] ### add it to the list of things to check
+
+                while len(to_check): # there are pixels in this mode we have to check
+                        ipix = to_check.pop() # take one pixel from those to be checked.
+
+                        for neighbour in hp.get_all_neighbours(nside, ipix, nest=nest):# get neighbors as rtheta, rphi
+
+                                if neighbour == -1: ### when neighbour == -1, there is no corresponding pixel in this direction
+                                        pass
+                                # try to find pixel in skymap
+                                elif truth[neighbour]: ### pixel in the set and has not been visited before
+                                        truth[neighbour] = False ### remove neighbour from global set
+#                                       truth[neighbour] = 0 ### remove neighbour from global set
+                                        mode.append( neighbour ) ### add to this mode
+                                        to_check.append( neighbour ) ### add to list of things to check
+                                else: ### pixel not in the set or has been visited before
+                                        pass
+                modes.append( mode )
+
+        return modes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ###
