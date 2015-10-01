@@ -40,7 +40,12 @@ parser.add_option("", "--skip-gracedb-upload", default=False, action="store_true
 
 parser.add_option("-p", "--projection", default="astro mollweide", type="string", help="either \"mollweide\", \"astro mollweide\"")
 
+parser.add_option("-t", "--tag", default="", type="string")
+
 opts, args = parser.parse_args()
+
+if opts.tag:
+	opts.tag = "_%s"%opts.tag
 
 if opts.graceid:
         from ligo.gracedb.rest import GraceDb
@@ -133,7 +138,7 @@ for ind, label1 in enumerate(labels):
 		fig.text(0.1, 0.9, label1, color='b', ha='center', va='center')
 		fig.text(0.9, 0.9, label2, color='r', ha='center', va='center')
 
-		figname = "%s/%s-%s.png"%(opts.output_dir, label1, label2)
+		figname = "%s/%s-%s%s.png"%(opts.output_dir, label1, label2, opts.tag)
 		if opts.verbose:
 			print "\t", figname
 		plt.savefig( figname)
