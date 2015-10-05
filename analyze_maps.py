@@ -112,7 +112,8 @@ for ind, arg in enumerate(args):
 		if not opts.no_credible_interval_dtheta:
 			if opts.Verbose:
 				print "\t\t\tmax_dtheta"
-			max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta(CR, nside, nest=NEST, safe=True))
+#			max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta(CR, nside, nest=NEST, safe=True))
+			max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta_fast(CR, nside, nest=NEST, safe=True))
 			messages.append( "%s: max(dtheta) = %.3f %s"%(header, max_dtheta, unit) )
 
 		if not opts.no_credible_interval_disjoint_regions:
