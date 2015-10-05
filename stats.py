@@ -186,10 +186,11 @@ def __into_boarders(nside, pix, nest=False):
         ### establish an array representing the included pixels
         npix = hp.nside2npix(nside)
 
-        truth = np.zeros((npix,),bool)
+        truth = np.zeros((npix,), bool)
         truth[pix] = True
 
-	abstruth = truth[:]
+        abstruth = np.zeros((npix,), bool) ### need completely separate object, not just a pointer
+        abstruth[pix] = True
 
         pixnums = np.arange(npix) ### convenient array we establish once
 
