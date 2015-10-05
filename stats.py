@@ -157,6 +157,8 @@ def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
 	computes the maximum angular separation between any two pixels within pix=[ipix,ipix,...]
 	does this with a boarder-to-boarder search after checking some other things
 	this could be in error up to the pixel size (hopefully small)
+
+	This algorithm is due in part to Antonios Kontos, who helped Reed Essick think through the details
 	"""
 	Npix = len(pix)
 	### check to see if more than half the sky is filled
