@@ -18,6 +18,7 @@ parser.add_option("-v", "--verbose", default=False, action="store_true")
 parser.add_option("-V", "--Verbose", default=False, action="store_true")
 
 parser.add_option("-d", "--degrees", default=False, action="store_true")
+parser.add_option("-r", "--rankmap", default=False, action="store_true", help="make comparisons with rankmaps instead of probability maps")
 
 parser.add_option("", "--dMAP", default=False, action="store_true", help="compute the angular separation between maximum a posteriori points")
 
@@ -93,6 +94,9 @@ for label in labels:
         nside = hp.npix2nside(npix)
         if opts.verbose:
                 print "\tnside=%d"%nside
+
+	if opts.rankmap: ### convert maps to rankmpas, not posteriors
+		post = stats.rankmap( post, npix=npix, normed=True )
 
         d['post'] = post
         d['npix'] = npix

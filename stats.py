@@ -34,7 +34,7 @@ def cos_dtheta(theta1, phi1, theta2, phi2, safe=False):
 # methods involving manipulating a posterior
 #
 #=================================================
-def rankmap(posterior, npix=None):
+def rankmap(posterior, npix=None, normed=True):
         """
         converts a posterior into a rank map. Small ranks correspond to large posterior weight
         WARNING: rankmaps do not sum to unity!
@@ -43,6 +43,8 @@ def rankmap(posterior, npix=None):
 	        npix = len(posterior)
         rankmap = np.empty(npix,int)
         rankmap[posterior.argsort()] = np.arange(npix)[::-1]
+        if normed:
+            rankmap /= 1.0*npix
         return rankmap
 
 ###
