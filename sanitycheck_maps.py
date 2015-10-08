@@ -19,14 +19,14 @@ parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
-parser.add_option("-L", "--line-of-sight", dest="los", defualt=[], action="append", type="string", help="ifo1,ifo2")
+parser.add_option("-L", "--line-of-sight", dest="los", default=[], action="append", type="string", help="ifo1,ifo2")
 parser.add_option("-O", "--overhead", default=[], action="append", type="string", help="ifo")
 
 parser.add_option("-c", "--coord", default="C", type="string", help="\"C\" or \"E\"")
 parser.add_option("-T", "--t_geocent", default=None, type=float)
 
-parser.add_option("-o", "--output-dir", default=".", type="float")
-parser.add_option("-t", "--tag", default="", type="float")
+parser.add_option("-o", "--output-dir", default=".", type="string")
+parser.add_option("-t", "--tag", default="", type="string")
 
 opts, args = parser.parse_args()
 
