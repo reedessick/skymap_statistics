@@ -20,6 +20,7 @@ parser.add_option("-V", "--Verbose", default=False, action="store_true")
 parser.add_option("-d", "--degrees", default=False, action="store_true")
 
 parser.add_option("", "--pvalue", default=False, type="string", help="\"theta, phi\" in the coordinate system of these maps for which we compute the pvalue (the confidence associated with the minimum credible region that marginally includes this location)")
+parser.add_option("", "--searched-area", default=False, type="string" )
 
 parser.add_option("-H", "--entropy", default=False, action="store_true", help='computes the entropy of the map')
 
@@ -47,6 +48,8 @@ if opts.graceid and len(opts.graceid)!=len(args):
 
 if opts.pvalue:
 	theta, phi = [float(l) for l in opts.pvalue.split(",")]
+if opts.searched_area:
+	stheta, sphi = [float(l) for l in opts.searched_area.split(",")]
 
 opts.credible_interval = sorted(opts.credible_interval)
 
@@ -58,6 +61,9 @@ if opts.degrees:
 	if opts.pvalue:
 		theta /= angle_conversion
 		phi /= angle_conversion
+	if opts.searched_area:
+		stheta /= angle_conversion
+		sphi /= angle_conversion
 else:
 	unit = "radians"
 	areaunit = "stradians"
@@ -90,6 +96,12 @@ for ind, arg in enumerate(args):
 			print "\t\tpvalue"
 		pvalue = stats.p_value(post, theta, phi, nside=nside)
 		messages.append( "cdf(%s) = %.3f %s"%(opts.pvalue, pvalue*100, "%") )
+
+	if opts.searched_area:
+		if opts.Verbose:
+			print "\t\tsearched_area"
+		sa = stats.searched_area(post, stheta, sphi, nside=nside, degrees=opts.degrees)
+		messages.append( "searched_area(%s) = %.3f %s"%(opts.searched_area, sa, areaunit) )
 		
 	# entropy -> size
 	if opts.entropy:
