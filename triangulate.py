@@ -31,7 +31,7 @@ detectors["V"] = {"dr":__V_dr__, "nx":__V_nx__, "ny":__V_ny__}
 
 #=================================================
 
-def __earth_to_celest( t, p, tgeocent ):
+def __earth2celest( t, p, tgeocent ):
     from lal.lal import GreenwichMeanSiderealTime as GMST
     gmst = GMST( tgeocent )
     ra = (p-gmst)%(2*np.pi) ### rotate to get RA
@@ -62,7 +62,7 @@ def line_of_sight( ifo1, ifo2, coord="E", tgeocent=None, degrees=False ):
         raise ValueError("ifo2=%s not understood"%ifo2)
 
     dr = __line_of_sight_Evec( ifo1, ifo2, normed=True )
-    t, p = hp.vec2ang( dr[0], dr[1], dr[2] )
+    t, p = hp.vec2ang( dr )
 
     if coord=="E":
         if degrees:
@@ -90,6 +90,7 @@ def __line_of_sight_Evec( ifo1, ifo2, normed=True ):
     dr = detectors[ifo2]['dr'] - detectors[ifo1]['dr']
     if normed:
         dr /= np.sum(dr**2)**0.5
+    return dr
 
 #=================================================
 
@@ -99,11 +100,11 @@ def overhead( ifo, coord="E", tgeocent=None, degrees=False ):
 
     overhead is defined as (nx x ny) = nz
     """
-    if ifo not in detctors.keys():
+    if ifo not in detectors.keys():
         raise ValueError("ifo=%s not understood"%ifo )
 
     nz = __overhead_Evec( ifo )
-    t, p = hp.vec2ang( nz[0], nz[1], nz[2] )
+    t, p = hp.vec2ang( nz )
 
     if coord == "E":
         if degrees:
@@ -135,7 +136,8 @@ def rotate2pole( theta, phi, thetaPole, phiPole, degrees=False ):
     (thetaPole, phiPole) define the new coordinate pole, with phi=phiPole corresonding to the new zero of the azimuth.
     accomplished through successive applications of healpy.Rotator objects
     """
-    return hp.Rotator( deg=degrees, rot=[-phiPole, thetaPole, 0], eulertype="ZYZ" )( theta, phi )
+    newt, newp = hp.Rotator( deg=degrees, rot=[-phiPole, -thetaPole, 0], eulertype="ZYZ" )( theta, phi )
+    return (newt+2*np.pi)%(2*np.pi), (newp+2*np.pi)%(2*np.pi)
 
 #=================================================
 
