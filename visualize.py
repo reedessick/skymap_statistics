@@ -6,11 +6,11 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-#plt.rcParams.update( {"text.usetex":True} )
+plt.rcParams.update( {"text.usetex":True} )
 
 #=================================================
 
-def histogram2d( theta, phi, weights=None, figax=None, Nbins=500, color='b' ):
+def histogram2d( theta, phi, weights=None, figax=None, Nbins=500, color='b', log=False ):
     """
     custom plot for skymap analysis
     """
@@ -31,34 +31,41 @@ def histogram2d( theta, phi, weights=None, figax=None, Nbins=500, color='b' ):
     theta_bins = np.linspace(0, np.pi, Nbins+1)
     theta_dots = 0.5*(theta_bins[:-1]+theta_bins[1:]) / np.pi
 
-    phi_bins = np.linspace(0, 2*np.pi, Nbins+1)
+    phi_bins = np.linspace(-np.pi, np.pi, Nbins+1)
     phi_dots = 0.5*(phi_bins[:-1]+phi_bins[1:]) / np.pi
 
     ### 2D histogram
     tp_count = np.histogram2d( theta, phi, bins=(theta_bins, phi_bins), weights=weights )[0]
 
     im = matplotlib.image.NonUniformImage( pt, interpolation='bilinear')
-#    im.set_data( theta_dots, phi_dots, np.log(tp_count) )
-    im.set_data( phi_dots, theta_dots[::-1], tp_count[:,::-1] )
+    if log:
+        im.set_data( phi_dots, theta_dots[::-1], np.log10(tp_count[::-1,:]) )
+    else:
+        im.set_data( phi_dots, theta_dots[::-1], tp_count[::-1,:] )
+    im.set_alpha( 0.001 )
     pt.images.append( im )
-    pt.set_xlim( xmin=0.0, xmax=2.0 )
+    pt.set_xlim( xmin=-1.0, xmax=1.0 )
     pt.set_ylim( ymin=1.0, ymax=0.0 )
     pt.set_xlabel( "$\phi$" )
     pt.set_ylabel( "$\\theta$" )
 
     ### theta projection
     theta_count = np.histogram( theta, bins=theta_bins, weights=weights )[0]
-    rp.plot( theta_count, theta_dots, color=color )
+    rp.plot( theta_count, theta_dots[::-1], color=color )
     rp.set_ylim( ymin=0.0, ymax=1.0 )
     rp.set_xlabel( "$p(\\theta)$" )
     plt.setp(rp.get_yticklabels(), visible=False)
+    if log:
+        rp.set_xscale('log')
 
     ### phi proejection
     phi_count = np.histogram( phi, bins=phi_bins, weights=weights )[0]
     tp.plot( phi_dots, phi_count, color=color )
-    tp.set_xlim( xmin=2.0, xmax=0.0 )
+    tp.set_xlim( xmin=-1.0, xmax=1.0 )
     tp.set_ylabel( "$p(\phi)$" )
     plt.setp(tp.get_xticklabels(), visible=False)
+    if log:
+        tp.set_yscale('log')
 
     return fig, ax
 

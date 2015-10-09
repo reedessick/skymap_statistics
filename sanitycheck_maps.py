@@ -23,6 +23,8 @@ parser.add_option("-O", "--overhead", default=[], action="append", type="string"
 parser.add_option("-c", "--coord", default="C", type="string", help="\"C\" or \"E\"")
 parser.add_option("-T", "--t_geocent", default=None, type=float)
 
+parser.add_option("-l", "--log", default=False, action="store_true", help="log scale histograms")
+
 parser.add_option("-g", "--grid", default=False, action="store_true")
 parser.add_option("-o", "--output-dir", default=".", type="string")
 parser.add_option("-t", "--tag", default="", type="string")
@@ -83,7 +85,7 @@ for opt in opts.los:
         ### rotate
         rtheta, rphi = triangulate.rotate2pole( theta, phi, t, p )
 
-        figax = visualize.histogram2d( rtheta, rphi, weights=m, figax=figax )
+        figax = visualize.histogram2d( rtheta, rphi, weights=m, figax=figax, log=opts.log )
 
     if figax:
         fig, ax = figax
@@ -130,7 +132,7 @@ for ifo in opts.overhead:
         ### rotate
         rtheta, rphi = triangulate.rotate2pole( theta, phi, t, p )
 
-        figax = visualize.histogram2d( rtheta, rphi, weights=m, figax=figax )
+        figax = visualize.histogram2d( rtheta, rphi, weights=m, figax=figax, log=opts.log )
 
     if figax:
         fig, ax = figax
