@@ -149,3 +149,49 @@ def rotate2pole( theta, phi, thetaPole, phiPole, degrees=False ):
 
 #=================================================
 
+def mutualinformation( count, bins=None ):
+    """
+    returns the KL distance between the joint distribution and the product of the marginals
+        sum p(t,p) * log( p(t,p)/p(t)*p(p) )
+    if bins!=None:
+        theta_bins, phi_bins = bins
+        include the jacobian for spherical coordinates in the summation (approximate an integral instead of a sum)
+
+    assumes count is indexed by phi, then theta
+    -> p(theta) = np.sum( count, axis=0 )
+    """
+    if bins:
+        theta, phi = bins
+        weights = np.outer( np.cos(theta)[:-1]-np.cos(theta)[1:] , phi[1:]-phi[:-1] ) ### weight by the area contained in that bin
+    else:
+        weights = np.ones_like( count ) ### weight all bins equally
+
+    ### ensure normalization
+    count /= np.sum( weights*count )
+
+    ### compute marginals
+    marg0 = np.sum( weights*count, axis=1 ) / np.sum( weights, axis=1 )
+    marg0 /= np.sum( marg0 )
+    marg1 = np.sum( weights*count, axis=0 ) / np.sum( weights, axis=0 )
+    marg1 /= np.sum( marg1 )
+
+    margs = np.outer( marg0, marg1 )
+    margs /= np.sum(margs)
+
+    truth = weights*count > 0
+
+    mi =  np.sum( (weights*count)[truth] * np.log( (weights*count)[truth] / margs[truth] ) )
+
+    truth = marg0 > 0
+    ent0 = np.sum( marg0[truth] * np.log( marg0[truth] ) )
+
+    truth = marg1 > 0
+    ent1 = np.sum( marg1[truth] * np.log( marg1[truth] ) )
+
+    truth = count > 0
+    entj = np.sum( (weights*count)[truth] * np.log( count[truth] ) )
+    entj = np.sum( (weights*count)[truth] * np.log( (weights*count)[truth] ) )
+
+    print mi, ent0, ent1, ent0+ent1, entj
+
+    return mi
