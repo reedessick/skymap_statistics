@@ -10,7 +10,7 @@ plt.rcParams.update( {"text.usetex":True} )
 
 #=================================================
 
-def histogram2d( theta, phi, weights=None, figax=None, Nbins=500, color='b', log=False ):
+def histogram2d( theta, phi, weights=None, figax=None, Nbins=250, color='b', log=False, contour=False ):
     """
     custom plot for skymap analysis
     """
@@ -29,41 +29,52 @@ def histogram2d( theta, phi, weights=None, figax=None, Nbins=500, color='b', log
 
     ### define binning
     theta_bins = np.linspace(0, np.pi, Nbins+1)
-    theta_dots = 0.5*(theta_bins[:-1]+theta_bins[1:]) / np.pi
+    theta_dots = 0.5*(theta_bins[:-1]+theta_bins[1:]) * 180 / np.pi
 
     phi_bins = np.linspace(-np.pi, np.pi, Nbins+1)
-    phi_dots = 0.5*(phi_bins[:-1]+phi_bins[1:]) / np.pi
+    phi_dots = 0.5*(phi_bins[:-1]+phi_bins[1:]) * 180 / np.pi
 
     ### 2D histogram
     tp_count = np.histogram2d( theta, phi, bins=(theta_bins, phi_bins), weights=weights )[0]
-
-    im = matplotlib.image.NonUniformImage( pt, interpolation='bilinear')
-    if log:
-        im.set_data( phi_dots, theta_dots[::-1], np.log10(tp_count[::-1,:]) )
+    if contour:
+        if log:
+            pt.contour( phi_dots, theta_dots, np.log10(tp_count), colors=color, alpha=0.5 )
+        else:
+            pt.contour( phi_dots, theta_dots, tp_count, colors=color, alpha=0.5 )
     else:
-        im.set_data( phi_dots, theta_dots[::-1], tp_count[::-1,:] )
-    im.set_alpha( 0.001 )
-    pt.images.append( im )
-    pt.set_xlim( xmin=-1.0, xmax=1.0 )
-    pt.set_ylim( ymin=1.0, ymax=0.0 )
+        im = matplotlib.image.NonUniformImage( pt, interpolation='bilinear')
+        if log:
+            im.set_data( phi_dots, theta_dots[::-1], np.log10(tp_count[::-1,:]) )
+        else:
+            im.set_data( phi_dots, theta_dots[::-1], tp_count[::-1,:] )
+        im.set_alpha( 0.001 )
+        pt.images.append( im )
+
+    pt.set_xlim( xmin=-180.0, xmax=180.0 )
+    pt.set_ylim( ymin=180.0, ymax=0.0 )
     pt.set_xlabel( "$\phi$" )
     pt.set_ylabel( "$\\theta$" )
+
+    pt.set_xticks( np.arange(-180, 180, 10), minor=True )
+    pt.set_yticks( np.arange(0, 180, 5), minor=True )
 
     ### theta projection
     theta_count = np.histogram( theta, bins=theta_bins, weights=weights )[0]
     rp.plot( theta_count, theta_dots[::-1], color=color )
-    rp.set_ylim( ymin=0.0, ymax=1.0 )
+    rp.set_ylim( ymin=0.0, ymax=180.0 )
     rp.set_xlabel( "$p(\\theta)$" )
     plt.setp(rp.get_yticklabels(), visible=False)
+    rp.set_yticks( np.arange(0, 180, 5), minor=True )
     if log:
         rp.set_xscale('log')
 
     ### phi proejection
     phi_count = np.histogram( phi, bins=phi_bins, weights=weights )[0]
     tp.plot( phi_dots, phi_count, color=color )
-    tp.set_xlim( xmin=-1.0, xmax=1.0 )
+    tp.set_xlim( xmin=-180.0, xmax=180.0 )
     tp.set_ylabel( "$p(\phi)$" )
     plt.setp(tp.get_xticklabels(), visible=False)
+    tp.set_xticks( np.arange(-180, 180, 10), minor=True )
     if log:
         tp.set_yscale('log')
 
