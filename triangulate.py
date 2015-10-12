@@ -192,6 +192,4 @@ def mutualinformation( count, bins=None ):
     entj = np.sum( (weights*count)[truth] * np.log( count[truth] ) )
     entj = np.sum( (weights*count)[truth] * np.log( (weights*count)[truth] ) )
 
-    print mi, ent0, ent1, ent0+ent1, entj
-
-    return mi
+    return mi, -entj

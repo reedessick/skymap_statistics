@@ -1,4 +1,4 @@
-usage = "python compare_maps.py [--options] label1,fits1 label2,fits2 ..."
+usage = "python overlay_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "overlays skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_contour"
 author = "R. Essick (reed.essick@ligo.org)"
 
@@ -7,6 +7,7 @@ author = "R. Essick (reed.essick@ligo.org)"
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
+plt.rcParams.update( {"text.usetex":True} )
 try:
 	from lalinference import plot as lalinf_plot
 except:
@@ -135,8 +136,8 @@ for ind, label1 in enumerate(labels):
 #			c.set_linestyle('dashed')
 
 #		ax.legend(loc='upper right')
-		fig.text(0.1, 0.9, label1, color='b', ha='center', va='center')
-		fig.text(0.9, 0.9, label2, color='r', ha='center', va='center')
+		fig.text(0.1, 0.9, label1.replace("_","\_"), color='b', ha='center', va='center')
+		fig.text(0.9, 0.9, label2.replace("_","\_"), color='r', ha='center', va='center')
 
 		figname = "%s/%s-%s%s.png"%(opts.output_dir, label1, label2, opts.tag)
 		if opts.verbose:

@@ -19,7 +19,8 @@ def compute_mi( theta, phi, Nbins, weights=None ):
 
     count = np.histogram2d( phi, theta, bins=(phi_bins, theta_bins), weights=weights )[0]
 
-    return triangulate.mutualinformation( count, bins=(theta_bins, phi_bins) )
+    return triangulate.mutualinformation( count, bins=None )
+#    return triangulate.mutualinformation( count, bins=(theta_bins, phi_bins) )
 
 #=================================================
 
@@ -78,16 +79,16 @@ for arg in args:
     if opts.mutualinformation:
         Nbins = max(100, int(npix**0.5/5))
         theta, phi = hp.pix2ang(nside, np.arange(npix))
-        mi = compute_mi( theta, phi, Nbins, weights=m )
-        print "\tmutualinformation(%s) : %.6f nats"%(label, mi)
-        maps[label].update( {'mutualinformation':mi} )
+        mi, entj = compute_mi( theta, phi, Nbins, weights=m )
+        print "\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
+        maps[label].update( {'mutualinformation':mi/entj} )
 
 labels = sorted(maps.keys())
 
 #=================================================
 
 ### line-of-sight
-if opts.verbose:
+if opts.verbose and len(opts.los):
     print "line-of-sight"
 for opt in opts.los:
     ifo1, ifo2 = opt.split(",")
@@ -116,11 +117,11 @@ for opt in opts.los:
         Nbins = max(100, int(npix**0.5/5))
 
         if opts.mutualinformation:
-            mi = compute_mi( rtheta, rphi, Nbins, weights=m )
-            print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi)
+            mi, entj = compute_mi( rtheta, rphi, Nbins, weights=m )
+            print "\t\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
         if opts.plots:
             figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color )
-            figax[0].text(0.9, 0.9-cind*0.05, label, color=color, ha='center', va='top')
+            figax[0].text(0.9, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='center', va='top')
 
     if figax:
         fig, ax = figax
@@ -144,7 +145,7 @@ should show up as lines of constant lattitude
 #=================================================
 
 ### distance from overhead
-if opts.verbose:
+if opts.verbose and len(opts.overhead):
     print "overhead"
 for ifo in opts.overhead:
     if opts.verbose:
@@ -172,11 +173,11 @@ for ifo in opts.overhead:
         Nbins = max(100, int(npix**0.5/5))
 
         if opts.mutualinformation:
-            mi = compute_mi( rtheta, rphi, Nbins, weights=m )
-            print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi)
+            mi, entj = compute_mi( rtheta, rphi, Nbins, weights=m )
+            print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi/entj)
         if opts.plots:
             figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color )
-            figax[0].text(0.9, 0.9-cind*0.05, label, color=color, ha='center', va='top')
+            figax[0].text(0.9, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='center', va='top')
 
     if figax:
         fig, ax = figax
