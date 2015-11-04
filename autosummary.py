@@ -110,6 +110,10 @@ skymap comparison for \href{https://gracedb.ligo.org/events/view/%s}{%s}
 \author{
 autosummary.py\footnote{\url{https://github.com/reedessick/skymap_statistics}}
 }
+\abstract{
+This document was generated and compiled automatically and has not been validated before publication.
+DESCRIPTION GOES HERE
+}
 
 \begin{document}
 
