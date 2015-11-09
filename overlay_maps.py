@@ -144,6 +144,7 @@ for ind, label1 in enumerate(labels):
 			print "\t", figname
 		plt.savefig( figname)
 #		fig.savefig( figname)
+		plt.close( fig )
 
 		figind += 1
 
