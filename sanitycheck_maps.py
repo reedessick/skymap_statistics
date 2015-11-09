@@ -48,6 +48,8 @@ parser.add_option("-g", "--grid", default=False, action="store_true")
 parser.add_option("-o", "--output-dir", default=".", type="string")
 parser.add_option("-t", "--tag", default="", type="string")
 
+parser.add_option("", "--color-map", default="Reds", type="string", help="Default=\"Reds\"")
+
 opts, args = parser.parse_args()
 
 if opts.coord not in ["C", "E"]:
@@ -120,7 +122,7 @@ for opt in opts.los:
             mi, entj = compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
         if opts.plots:
-            figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color )
+            figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.color_map )
             figax[0].text(0.99, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='right', va='top')
 
     if figax:
@@ -176,7 +178,7 @@ for ifo in opts.overhead:
             mi, entj = compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi/entj)
         if opts.plots:
-            figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color )
+            figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.colormap )
             figax[0].text(0.99, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='right', va='top')
 
     if figax:

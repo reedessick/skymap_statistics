@@ -10,7 +10,7 @@ plt.rcParams.update( {"text.usetex":True} )
 
 #=================================================
 
-def histogram2d( theta, phi, weights=None, figax=None, Nbins=250, color='b', log=False, contour=False ):
+def histogram2d( theta, phi, weights=None, figax=None, Nbins=250, color='b', log=False, contour=False, cmap="jet" ):
     """
     custom plot for skymap analysis
     """
@@ -42,7 +42,7 @@ def histogram2d( theta, phi, weights=None, figax=None, Nbins=250, color='b', log
         else:
             pt.contour( phi_dots, theta_dots, tp_count, colors=color, alpha=0.5 )
     else:
-        im = matplotlib.image.NonUniformImage( pt, interpolation='bilinear')
+        im = matplotlib.image.NonUniformImage( pt, interpolation='bilinear', cmap=plt.get_cmap(cmap) )
         if log:
             im.set_data( phi_dots, theta_dots[::-1], np.log10(tp_count[::-1,:]) )
         else:

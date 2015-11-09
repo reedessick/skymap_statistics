@@ -31,7 +31,7 @@ parser.add_option("-W", "--figwidth", default=9, type="float")
 
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
-parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB!")
+parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB! Not yet implemented.")
 
 parser.add_option('', '--gdb-url', default='https://gracedb.ligo.org/api', type='string')
 parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
@@ -39,6 +39,7 @@ parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
 parser.add_option("", "--skip-gracedb-upload", default=False, action="store_true")
 
 parser.add_option("-p", "--projection", default="astro mollweide", type="string", help="either \"mollweide\", \"astro mollweide\"")
+parser.add_option("", "--color-map", default="Reds", type="string", help="Default=\"Reds\"")
 
 parser.add_option("-t", "--tag", default="", type="string")
 
@@ -53,11 +54,6 @@ if opts.graceid:
 
 if opts.graceid and len(opts.graceid)!=len(args):
         raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
-
-#if not opts.credible_interval:
-#	opts.credible_interval = [0.50, 0.90]
-#else:
-#	opts.credible_interval = sorted(opts.credible_interval)
 
 maps = {}
 if opts.graceid:
@@ -107,7 +103,7 @@ for label in labels:
 		ax = plt.subplot(111)
 	ax.grid( True )
 
-	lalinf_plot.healpix_heatmap( post )
+	lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
 
 	figname = "%s/%s%s.png"%(opts.output_dir, label, opts.tag)
 	if opts.verbose:

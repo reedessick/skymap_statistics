@@ -95,7 +95,7 @@ def compile_cmd( docname ):
 
 #=================================================
 
-def data2latex( event, fitsfiles, landscape=False ):
+def data2latex( event, fitsfiles, landscape=False, neighbors=[]):
     """
     returns a latex document as a string
     This is the work-horse of the script, where all the tex formatting and annoying crap like that is applied.
@@ -154,14 +154,39 @@ DESCRIPTION GOES HERE
 \section{event description}
 
 \begin{center}
-    \begin{tabular}{ccc| c c | c | c | c}
-        group & pipeline & search & gpstime & created & far [Hz] & instruments & labels \\
+    \begin{tabular}{c | ccc| c c | c | c | c}
+        GraceID & group & pipeline & search & gpstime & created & far [Hz] & instruments & labels \\
         \hline
-        %s    & %s       & %s     & %.9f    & %s      & %.5e     & %s          & %s 
+        %s      & %s    & %s       & %s     & %.9f    & %s      & %.5e     & %s          & %s \\"""%(graceid, group, pipeline, search, gpstime, created, far, instruments, labels)
+
+    for e in neighbors:
+        egraceid = e['graceid']
+        egroup = e['group']
+        epipeline = e['pipeline']
+        if e.has_key('search'):
+            esearch = e['search']
+        else:
+            search = ''
+
+        egpstime = float(e['gpstime'])
+        ecreated = e['created']
+
+        try:
+            efar = float(e['far'])
+        except:
+            efar = np.nan
+
+        einstruments = e['instruments']
+        elabels = ",".join(e['labels'].keys())
+
+        string += r"""
+        %s      & %s    & %s       & %s     & %.9f    & %s      & %.5e     & %s          & %s \\"""%(egraceid, egroup, epipeline, esearch, egpstime, ecreated, efar, einstruments, elabels)
+
+    string = string[:-2]
+    string += r"""
     \end{tabular}
 \end{center}
-"""%(group, pipeline, search, gpstime, created, far, instruments, labels)
-
+"""
     fitsorder = [ key for key in fitsfiles.keys() if isinstance(key, tuple) and ("fit" in key[1]) ] ### gets rid of sanity overlay stuff
     fitsorder.sort( key=lambda l: l[1] )
 
@@ -194,7 +219,7 @@ DESCRIPTION GOES HERE
     \includegraphics[width=0.45\textwidth]{%s}
     \includegraphics[width=0.45\textwidth]{%s}
 \end{center}
-"""%(gid, label.replace("_", "\_"), "../%s/%s"%tuple(plot.split("/")[-2:]), sanity2plot( fitsfiles[fitsname]['sanitycheck'] ))
+"""%(fitsname[0], label.replace("_", "\_"), "../%s/%s"%tuple(plot.split("/")[-2:]), sanity2plot( fitsfiles[fitsname]['sanitycheck'] ))
 
         ### analyze
         analyze = fitsfiles[fitsname]['analyze']
@@ -721,30 +746,32 @@ for graceid in args:
     if opts.neighbor_window > 0: ### perform neighbor search
         if opts.verbose:
             print( "\tsearching for neighbors within %.3f sec"%(opts.neighbor_window) )
-        for event in gracedb.events( "%.6f .. %.6f"%(geocent-opts.neighbor_window, geocent+opts.neighbor_window) ):
-            if (event['graceid'][0] != "H") and (event['graceid'] != graceid): ### new event, FR
-                if opts.verbose:
-                    print( "\t\tfound : %s"%(event['graceid']) )
-                noutdir = "%s/%s"%(opts.output_dir, event['graceid'])
-                if not os.path.exists( noutdir ):
-                    os.makedirs( noutdir )
-                files = sorted( gracedb.files( event['graceid'] ).json().keys() )
-                for fits in [filename for filename in files if filename.strip(".gz").endswith(".fits") ]:
-                    fitsfiles.update( {(event['graceid'],fits):{}} )
-                    filename = "%s/%s"%(noutdir, fits)
-                    if notforce and os.path.exists( filename ):
-                        if opts.verbose:
-                            print( "\t\t\t%s already exists"%(filename) )
-                    else:
-                        if opts.verbose:
-                            print( "\t\t\t%s"%(filename) )
-                        file_obj = open(filename, "w")
-                        file_obj.write( gracedb.files( event['graceid'], fits ).read() )
-                        file_obj.close()
-                        old = False
-                    fitsfiles[(event['graceid'], fits)]['path'] = filename
-                    fitsfiles[(event['graceid'], fits)]['label'] = os.path.basename(filename).split(".")[0]
-                    fitsfiles[(event['graceid'], fits)]['graceid'] = event['graceid']
+        neighbors = [e for e in gracedb.events( "%.6f .. %.6f"%(geocent-opts.neighbor_window, geocent+opts.neighbor_window) ) if (e['graceid'][0] != 'H') and (e['graceid'] != graceid)]
+        for e in neighbors:
+            if opts.verbose:
+                print( "\t\tfound : %s"%(e['graceid']) )
+            noutdir = "%s/%s"%(opts.output_dir, e['graceid'])
+            if not os.path.exists( noutdir ):
+                os.makedirs( noutdir )
+            files = sorted( gracedb.files( e['graceid'] ).json().keys() )
+            for fits in [filename for filename in files if filename.strip(".gz").endswith(".fits") ]:
+                fitsfiles.update( {(e['graceid'],fits):{}} )
+                filename = "%s/%s"%(noutdir, fits)
+                if notforce and os.path.exists( filename ):
+                    if opts.verbose:
+                        print( "\t\t\t%s already exists"%(filename) )
+                else:
+                    if opts.verbose:
+                        print( "\t\t\t%s"%(filename) )
+                    file_obj = open(filename, "w")
+                    file_obj.write( gracedb.files( e['graceid'], fits ).read() )
+                    file_obj.close()
+                    old = False
+                fitsfiles[(e['graceid'], fits)]['path'] = filename
+                fitsfiles[(e['graceid'], fits)]['label'] = os.path.basename(filename).split(".")[0]
+                fitsfiles[(e['graceid'], fits)]['graceid'] = e['graceid']
+    else:
+        neighbors = []
 
     ### plot fits files
     if opts.verbose:
@@ -906,7 +933,7 @@ for graceid in args:
     if opts.verbose:
         print( "\twriting : %s"%(docname) )
     doc = open(docname, "w")
-    doc.write( data2latex( event, fitsfiles, landscape=opts.landscape ) )
+    doc.write( data2latex( event, fitsfiles, landscape=opts.landscape, neighbors=neighbors ) )
     doc.close()
 
     if opts.compile:

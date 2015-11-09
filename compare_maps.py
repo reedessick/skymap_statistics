@@ -26,6 +26,7 @@ parser.add_option("", "--fidelity", default=False, action="store_true", help="co
 parser.add_option("", "--joint-entropy", default=False, action="store_true", help="compute joint entropy between maps")
 
 parser.add_option("", "--symKL", default=False, action="store_true", help="compute symmetric KLdivergence between maps")
+parser.add_option("", "--symKL-walk", default=False, action="store_true", help="compute symmetric KL divergence hierarchically to average out edge effects")
 parser.add_option("", "--mse", default=False, action="store_true", help="compute the mean square error between maps")
 parser.add_option("", "--peak-snr", default=False, action="store_true", help="compute peak snr between maps")
 parser.add_option("", "--structural-similarity", default=False, action="store_true", help="compute structural similarity between maps")
@@ -170,6 +171,11 @@ for ind, label1 in enumerate(labels):
 			if opts.Verbose:
 				print "\t\tsymKL"
 			messages.append( "symmetric KL divergence : %.5f"%stats.symmetric_KLdivergence(post1, post2) )
+
+		if opts.symKL_walk:
+			if opts.Verbose:
+				print "\t\tsymKL_walk"
+			messages.append( "hierarchical symmetric KL divergence : %.5f at nside=%d"%stats.symmetric_KLdivergence_walk( post1, post2, base=2.0, nside=nside ) )
 
 		if opts.mse:
 			if opts.Verbose:

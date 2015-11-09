@@ -377,6 +377,24 @@ def symmetric_KLdivergence(posterior1, posterior2, base=2.0):
 #	return np.sum( np.log(posterior1/posterior2)*(posterior1 - posterior2) )/np.log(base)
 
 ###
+def symmetric_KLdivergence_walk( posterior1, posterior2, base=2.0, nside=False, nest=False ):
+	"""
+	compute the symmetric Kullback-Leibler divergence, stepping down the resolution to address edge effects
+		sum log(p1/p2)*(p1 - p2)
+	returns the first finite symKL found
+	"""
+	if not nside:
+		nside = hp.npix2nside( len(posterior1) )
+	symKL = symmetric_KLdivergence( posterior1, posterior2, base=base )
+	while (nside > 1) and (symKL == np.infty):
+		nside = nside / 2
+		posterior1 = resample(posterior1, nside, nest=nest)
+		posterior2 = resample(posterior2, nside, nest=nest)
+		symKL = symmetric_KLdivergence( posterior1, posterior2, base=base )
+
+	return symKL, nside
+
+###
 def structural_similarity(posterior1, posterior2, c1=(0.01)**2, c2=(0.03)**2):
 	"""
 	computes the structural similarity

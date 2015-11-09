@@ -32,7 +32,7 @@ parser.add_option("-W", "--figwidth", default=9, type="float")
 
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
-parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB!")
+parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB! Not yet implemented")
 
 parser.add_option('', '--gdb-url', default='https://gracedb.ligo.org/api', type='string')
 parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
