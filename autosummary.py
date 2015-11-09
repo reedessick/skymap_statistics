@@ -59,25 +59,25 @@ def sanityoverlay_cmd( fitsfiles, geocent, outdir=".", los="H,L" ):
     """
     return the command string for sanity overlay plots
     """
-    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s,%s"%(os.path.basename(f).split(".")[0], f) for f in fitsfiles ) )
+    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s,%s"%(l, f) for f,l in fitsfiles ) )
     return string
 
 ###
 
-def compare_cmd( fitsfile, fitsFile ):
+def compare_cmd( (fitsfile, label), (fitsFile, laBel) ):
     """
     return the command string for comparing
     """
-    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s %s,%s"%(os.path.basename(fitsfile).split(".")[0], fitsfile, os.path.basename(fitsFile).split(".")[0], fitsFile)
+    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s %s,%s"%(label, fitsfile, laBel, fitsFile)
     return string
 
 ###
 
-def overlay_cmd( fitsfile, fitsFile, outdir="." ):
+def overlay_cmd( (fitsfile, label), (fitsFile, laBel), outdir="." ):
     """
     return the command string for overlaying
     """
-    string = "python overlay_maps.py -v -c 0.10 -c 0.50 -c 0.90 -c 0.99 -o %s %s,%s %s,%s"%(outdir, os.path.basename(fitsfile).split(".")[0], fitsfile, os.path.basename(fitsFile).split(".")[0], fitsFile)
+    string = "python overlay_maps.py -v -c 0.10 -c 0.50 -c 0.90 -c 0.99 -o %s %s,%s %s,%s"%(outdir, label, fitsfile, laBel, fitsFile)
     return string
 
 ###
@@ -91,18 +91,24 @@ def compile_cmd( docname ):
 
 #=================================================
 
-def data2latex( event, fitsfiles ):
+def data2latex( event, fitsfiles, landscape=False ):
     """
     returns a latex document as a string
     This is the work-horse of the script, where all the tex formatting and annoying crap like that is applied.
     """
     graceid = event['graceid']
     ### start off string with a preamble, etc
-    string = r"""\documentclass{article}
+    if landscape:
+        docclass="[landscape]{article}"
+    else:
+        docclass="{article}"
+    string = r"""\documentclass%s
 
 \usepackage{fullpage}
 \usepackage{graphicx}
 \usepackage{hyperref}
+
+\begin{document}
 
 \title{
 skymap comparison for \href{https://gracedb.ligo.org/events/view/%s}{%s}
@@ -110,15 +116,15 @@ skymap comparison for \href{https://gracedb.ligo.org/events/view/%s}{%s}
 \author{
 autosummary.py\footnote{\url{https://github.com/reedessick/skymap_statistics}}
 }
+
+\maketitle
+
 \abstract{
 This document was generated and compiled automatically and has not been validated before publication.
 DESCRIPTION GOES HERE
 }
 
-\begin{document}
-
-\maketitle
-"""%(graceid, graceid)
+"""%(docclass, graceid, graceid)
 
     ### section describing top-level attributes
     group = event['group']
@@ -156,14 +162,16 @@ DESCRIPTION GOES HERE
 """
 
     for fitsname in fitsorder:
+        label = fitsfiles[fitsname]['label']
         plot = fitsfiles[fitsname]['plot']
         string += r"""
 \subsection{%s}
 
 \begin{center}
-    \includegraphics[width=1.0\textwidth]{%s}
+    \includegraphics[width=0.45\textwidth]{%s}
+    \includegraphics[width=0.45\textwidth]{%s}
 \end{center}
-"""%(fitsname.replace("_", "\_"), os.path.basename(plot))
+"""%(label.replace("_", "\_"), os.path.basename(plot), sanity2plot( fitsfiles[fitsname]['sanitycheck'] ))
 
         ### analyze
         analyze = fitsfiles[fitsname]['analyze']
@@ -266,26 +274,22 @@ def analyze2string( analyze ):
     \end{tabular}
 \end{center}
 """
-
     return string
+
+###
+
+def sanity2plot( sanity ):
+    string = ""
+    for line in sanity.split("\n"):
+        if ("los" in line) and (".png" in line):
+            return os.path.basename(line.strip())
+    else:
+        raise ValueError("could not find a figure file...")
 
 ###
 
 def sanity2string( sanity ):
     string = ""
-
-    for line in sanity.split("\n"):
-        if ("los" in line) and (".png" in line):
-            figname = os.path.basename(line.strip())
-            break
-    else:
-        raise ValueError("could not find a figure file...")
-
-    string += r"""
-\begin{center}
-    \includegraphics[width=1.0\textwidth]{%s}
-\end{center}
-"""%(figname)
 
     miD = []
     for line in sanity.split("\n"):
@@ -427,16 +431,24 @@ parser = OptionParser(description=description, usage=usage)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
-parser.add_option('-G', '--gracedb_url', default=None, type="string")
+parser.add_option("-G", '--gracedb_url', default=None, type="string")
 
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
-parser.add_option("-c", "--compile", default=False, action="store_true")
+parser.add_option("-l", "--landscape", default=False, action="store_true", help="make latex doc lanscape")
+parser.add_option("-c", "--compile", default=False, action="store_true", help="compile latex doc")
+
+parser.add_option("-F", "--force", default=False, action="store_true", help="download all files and re-compute all statistics even if they already exist")
 
 opts, args = parser.parse_args()
 
 if not len(args):
     raise ValueError("please supply at least one graceid as an input argument")
+
+notforce = not opts.force ### used often, so we compute it once
+
+if opts.compile: ### needed for compilation
+    cwd = os.getcwd()
 
 #=================================================
 
@@ -463,7 +475,7 @@ for graceid in args:
 
     ### get event data
     if opts.verbose:
-        print( "retrieving event data" )
+        print( "\tretrieving event data" )
     event = gracedb.event( graceid ).json()
     geocent = float(event['gpstime'])
     instruments = event['instruments']
@@ -473,106 +485,193 @@ for graceid in args:
 
     ### pull down fits files
     if opts.verbose:
-        print( "pulling down data for" )
+        print( "\tpulling down FITS" )
     files = sorted( gracedb.files( graceid ).json().keys() )
     fitsfiles = dict( (filename,{}) for filename in files if filename.strip(".gz").endswith(".fits") )
+    old = True ### records whether there is a new FITS
+                ### used for sanityoverlay
     for fits in fitsfiles.keys():
         filename = "%s/%s"%(outdir, fits)
-        if opts.verbose:
-            print( "\t%s"%(filename) )
-        file_obj = open(filename, "w")
-        file_obj.write( gracedb.files( graceid, fits ).read() )
-        file_obj.close()
+        if notforce and os.path.exists( filename ):
+            if opts.verbose:
+                print( "\t\t%s already exists"%(filename) )
+        else:
+            if opts.verbose:
+                print( "\t\t%s"%(filename) )
+            file_obj = open(filename, "w")
+            file_obj.write( gracedb.files( graceid, fits ).read() )
+            file_obj.close()
+            old = False
         fitsfiles[fits]['path'] = filename
- 
+        fitsfiles[fits]['label'] = os.path.basename(filename).split(".")[0]
+
     ### plot fits files
     if opts.verbose:
-        print( "plotting skymaps" )
+        print( "\tplotting skymaps" )
     for fitsfile in fitsfiles.keys():
         path = fitsfiles[fitsfile]['path']
         cmd, outfilename = plot_cmd( path, radec=None )
-        if opts.verbose:
-            print( "\t%s"%cmd )
-        sp.Popen( cmd.split() ).wait()
+        if notforce and os.path.exists( outfilename ):
+            if opts.verbose:
+                print "\t\t%s already exists"%(outfilename)
+        else:
+            out = "%s.out"%(outfilename)
+            err = "%s.err"%(out[:-4])
+            if opts.verbose:
+                print( "\t\t%s > %s, %s"%(cmd, out, err) )
+            out_obj = open(out, "w")
+            err_obj = open(err, "w")
+            sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).wait()
+            out_obj.close()
+            err_obj.close()
         fitsfiles[fitsfile]['plot'] = outfilename
 
     ### analyse maps
     if opts.verbose:
-        print( "analyzing maps" )
+        print( "\tanalyzing maps" )
     for fitsfile in fitsfiles.keys():
         path = fitsfiles[fitsfile]['path']
-        cmd = analyze_cmd( path, radec=None )
-        if opts.verbose:
-            print( "\t%s"%cmd )
-        result = sp.Popen( cmd.split(), stdout=sp.PIPE ).communicate()[0]
-        fitsfiles[fitsfile]['analyze'] = result
+        out = "%s.analyze.out"%(path)
+        if notforce and os.path.exists( out ):
+            if opts.verbose:
+                print( "\t\t%s already exists"%(out) )
+        else:
+            err = "%s.err"%(out[:-4])
+            cmd = analyze_cmd( path, radec=None )
+            if opts.verbose:
+                print( "\t\t%s > %s, %s"%(cmd, out, err) )
+            out_obj = open(out, "w")
+            err_obj = open(err, "w")
+            sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).wait()
+            out_obj.close()
+            err_obj.close()
+        out_obj = open( out , "r" )
+        fitsfiles[fitsfile]['analyze'] = out_obj.read()
+        out_obj.close()
 
     files = fitsfiles.keys()
-
     ### sanity check maps
     if opts.verbose:
-        print( "sanity checking maps" )
+        print( "\tsanity checking maps" )
     for fitsfile in fitsfiles.keys():
         path = fitsfiles[fitsfile]['path']
-        cmd = sanitycheck_cmd( path, geocent, outdir=outdir, los="H,L" ) ### IFO THING MAY NEED UPDATING...
-        if opts.verbose:
-            print( "\t%s"%cmd )
-        result = sp.Popen( cmd.split(), stdout=sp.PIPE ).communicate()[0]
-        fitsfiles[fitsfile]['sanitycheck'] = result
+        out = "%s.sanitycheck.out"%(path)
+        if notforce and os.path.exists( out ):
+            if opts.verbose:
+                print( "\t\t%s already exists"%(out) )
+        else:
+            cmd = sanitycheck_cmd( path, geocent, outdir=outdir, los="H,L" ) ### IFO THING MAY NEED UPDATING...
+            err = "%s.err"%(out[:-4])
+            if opts.verbose:
+                print( "\t\t%s > %s, %s"%(cmd, out, err) )
+            out_obj = open(out, "w")
+            err_obj = open(err, "w")
+            sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).wait()
+            out_obj.close()
+            err_obj.close()
+        out_obj = open( out, "r" )
+        fitsfiles[fitsfile]['sanitycheck'] = out_obj.read()
+        out_obj.close()
 
-    if opts.verbose:
-        print( "sanity overlay" )
-    cmd = sanityoverlay_cmd( [fitsfiles[fitsfile]['path'] for fitsfile in files], geocent, outdir=outdir, los="H,L" )
-    if opts.verbose:
-        print( "\t%s"%cmd )
-    result = sp.Popen( cmd.split(), stdout=sp.PIPE ).communicate()[0]
-    fitsfiles['sanityoverlay'] = result
+    ### sanity overlay
+    out = "%s/sanityoverlay.out"%(outdir)
+    if old and notforce:
+        if opts.verbose:
+            print( "\tnothing new to sanity overlay" )
+    else:
+        if opts.verbose:
+            print( "\tsanity overlay" )
+        cmd = sanityoverlay_cmd( [(fitsfiles[fitsfile]['path'], fitsfiles[fitsfile]['label']) for fitsfile in files], geocent, outdir=outdir, los="H,L" )
+        err = "%s.err"%(out[:-4])
+        if opts.verbose:
+            print( "\t\t%s > %s, %s"%(cmd, out, err) )
+        out_obj = open(out, "w")
+        err_obj = open(err, "w")
+        sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).wait()
+        out_obj.close()
+        err_obj.close()
+    out_obj = open( out, "r" )
+    fitsfiles['sanityoverlay'] = out_obj.read()
+    out_obj.close()
 
     ### compare maps
     if opts.verbose:
-        print( "comparing maps" )
+        print( "\tcomparing maps" )
     for ind, fitsfile in enumerate( files ):
         path1 = fitsfiles[fitsfile]['path']
+        label1 = fitsfiles[fitsfile]['label']
 
         for fitsFile in files[ind+1:]:
             path2 = fitsfiles[fitsFile]['path']
+            label2 = fitsfiles[fitsFile]['label']
 
-            cmd = compare_cmd( path1, path2 )
-            if opts.verbose:
-                print( "\t%s"%cmd )
-            result = sp.Popen( cmd.split(), stdout=sp.PIPE ).communicate()[0]
+            out = "%s/%s-%s.compare.out"%(outdir, label1, label2)
+            if notforce and os.path.exists( out ):
+                if opts.verbose:
+                    print( "\t\t%s already exists"%(out) )
+            else:
+                cmd = compare_cmd( (path1, label1), (path2, label2) )
+                err = "%s.err"%(out[:-4])
+                if opts.verbose:
+                    print( "\t\t%s > %s, %s"%(cmd, out, err) )
+                out_obj = open(out, "w")    
+                err_obj = open(err, "w")    
+                sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).wait()
+                out_obj.close()
+                err_obj.close()
+            out_obj = open( out, "r" )
+            result = out_obj.read()
+            out_obj.close()
             fitsfiles[fitsfile]['compare : %s'%fitsFile] = result
             fitsfiles[fitsFile]['compare : %s'%fitsfile] = result
 
     ### overlay maps
     if opts.verbose:
-        print( "overlay maps" )
+        print( "\toverlay maps" )
     for ind, fitsfile in enumerate( files ):
         path1 = fitsfiles[fitsfile]['path']
+        label1 = fitsfiles[fitsfile]['label']
 
         for fitsFile in files[ind+1:]:
             path2 = fitsfiles[fitsFile]['path']
+            label2 = fitsfiles[fitsFile]['label']
 
-            cmd = overlay_cmd( path1, path2, outdir=outdir )
-            if opts.verbose:
-                print( "\t%s"%cmd )
-            result = sp.Popen( cmd.split(), stdout=sp.PIPE ).communicate()[0]
+            out = "%s/%s-%s.compare.out"%(outdir, label1, label2)
+            if notforce and os.path.exists( out ):
+                if opts.verbose:
+                    print( "\t\t%s already exists"%(out) )
+            else:
+                cmd = overlay_cmd( (path1, label1), (path2, label2), outdir=outdir )
+                err = "%s.err"%(out[:-4])
+                if opts.verbose:
+                    print( "\t\t%s > , %s"%(cmd, err) )
+                out_obj = open(out, "w")
+                err_obj = open(err, "w")
+                sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).communicate()[0]
+                out_obj.close()
+                err_obj.close()
+            out_obj = open( out, "r" )
+            result = out_obj.read()
+            out_obj.close()
             fitsfiles[fitsfile]['overlay : %s'%fitsFile] = result
             fitsfiles[fitsFile]['overlay : %s'%fitsfile] = result
+
+    #====================
 
     ### write latex document
     docname = "%s/summary.tex"%(outdir)
     if opts.verbose:
         print( "writing : %s"%(docname) )
     doc = open(docname, "w")
-    doc.write( data2latex( event, fitsfiles ) )
+    doc.write( data2latex( event, fitsfiles, landscape=opts.landscape ) )
     doc.close()
 
     if opts.compile:
-        cmd = compile_cmd( docname )
+        os.chdir( outdir )
+        cmd = compile_cmd( os.path.basename(docname) )
         if opts.verbose:
             print( "\t%s"%cmd )
         sp.Popen(cmd.split()).wait()
-
+        os.chdir( cwd )
 
 

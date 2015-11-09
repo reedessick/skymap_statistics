@@ -54,10 +54,10 @@ if opts.graceid:
 if opts.graceid and len(opts.graceid)!=len(args):
         raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
 
-if not opts.credible_interval:
-	opts.credible_interval = [0.50, 0.90]
-else:
-	opts.credible_interval = sorted(opts.credible_interval)
+#if not opts.credible_interval:
+#	opts.credible_interval = [0.50, 0.90]
+#else:
+#	opts.credible_interval = sorted(opts.credible_interval)
 
 maps = {}
 if opts.graceid:
