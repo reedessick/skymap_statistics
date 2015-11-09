@@ -121,7 +121,7 @@ for opt in opts.los:
             print "\t\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
         if opts.plots:
             figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color )
-            figax[0].text(0.9, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='center', va='top')
+            figax[0].text(0.99, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='right', va='top')
 
     if figax:
         fig, ax = figax
@@ -177,7 +177,7 @@ for ifo in opts.overhead:
             print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi/entj)
         if opts.plots:
             figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color )
-            figax[0].text(0.9, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='center', va='top')
+            figax[0].text(0.99, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='right', va='top')
 
     if figax:
         fig, ax = figax
