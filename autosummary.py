@@ -68,7 +68,7 @@ def compare_cmd( (fitsfile, label), (fitsFile, laBel) ):
     """
     return the command string for comparing
     """
-    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s %s,%s"%(label, fitsfile, laBel, fitsFile)
+    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity --symKL -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s %s,%s"%(label, fitsfile, laBel, fitsFile)
     return string
 
 ###
@@ -107,6 +107,7 @@ def data2latex( event, fitsfiles, landscape=False ):
 \usepackage{fullpage}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{multirow}
 
 \begin{document}
 
@@ -322,11 +323,85 @@ def sanityoverlay2string( sanityoverlay ):
 
     string = r"""
 \begin{center}
-    \includegraphics[width=1.0\textwidth]{%s}
+    \includegraphics[width=0.9\textwidth]{%s}
 \end{center}
 """%(figname)
 
     return string
+
+###
+
+def compare2spotcheck( compare, label1, label2, cr ):
+    ### label1 = row -> integrated
+    ### label2 = column -> defines CR
+    look = "spotcheck %.3f %s"%(cr*100, "%")
+    order = None
+    for line in compare.split("\n"):
+        if (label1 in line) and (label2 in line):
+            order = tuple( line.split(" vs ") )
+        if look in line:
+            vals = line.split(":")[-1].strip(" (").strip(")").split(", ")
+            break
+    else:
+        raise ValueError("could not find spotcheck...")
+    if not order:
+        raise ValueError("could not find order...")
+
+    if order == (label1, label2):
+        return vals[1] 
+    else:
+        return vals[0]
+
+###
+
+def compare2cr( compare, cr ):
+    look = "%.3f %s CR"%(cr*100, "%")
+    dat = []
+    for line in compare.split("\n"):
+        if look in line:
+            dat.append( line.split(":")[-1].strip() )
+    if len(dat) != 4:
+        raise ValueError("something's wrong with dat's length...")
+    return "%s$^\circ$ / %s$^\circ$"%(dat[-2].split()[-2], dat[-1].split()[-2])
+
+###
+
+def compare2structuralsimilarity( compare ):
+    for line in compare.split("\n"):
+        if "structural similarity" in line:
+            return line.strip().split()[-1]
+    else:
+        raise ValueError("could not find structural similarity...")
+
+###
+
+def compare2dthetaMAP( compare ):
+    for line in compare.split("\n"):
+        if "dtheta_MAP" in line:
+            return line.strip().split()[-2]
+    else:
+        raise ValueError("could not find dtheta_MAP...")
+
+###
+
+def compare2fidelity( compare ):
+    for line in compare.split("\n"):
+        if "fidelity" in line:
+            return line.strip().split()[-1]
+    else:
+        raise ValueError("could not find fidelity...")
+
+###
+
+def compare2symKL( compare ):
+    for line in compare.split("\n"):
+        if "symmetric KL divergence" in line:
+            value = line.strip().split()[-1]
+            if value == "inf":
+                value = "$\infty$"
+            return value
+    else:
+        raise ValueError("could not find symmetric KL divergence...")
 
 ###
 
@@ -335,13 +410,23 @@ def compare2string( fitsorder, fitsfiles ):
     string = ""
 
     string += r"""
+\subsection{$\delta \theta_{MAP}$}
+
 \begin{center}
     \begin{tabular}{c| %s }
         $\delta \theta_{MAP}$ & %s \\
         \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
-    for fitsname in fitsorder[:-1]:
-        string += r"""
-        %s  & \\"""%(fitsname.replace("_","\_"))
+
+    for ind, fitsname in enumerate(fitsorder[:-1]):
+        label1 = fitsfiles[fitsname]['label']
+        plusequal = r"""
+        %s"""%(label1.replace("_","\_"))
+        for i in xrange(ind):
+            plusequal += r""" & -"""
+        for fitsName in fitsorder[ind+1:]:
+            label2 = fitsfiles[fitsName]['label']
+            plusequal += r""" & %s$^\circ$"""%compare2dthetaMAP( fitsfiles[fitsname]['compare : %s'%fitsName] )
+        string += r"%s \\"%(plusequal)
     string = string[:-2]
     string += r"""
     \end{tabular}
@@ -349,13 +434,24 @@ def compare2string( fitsorder, fitsfiles ):
 """
 
     string += r"""
+\subsection{fidelity}
+
 \begin{center}
     \begin{tabular}{c| %s }
         fidelity & %s \\
         \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
-    for fitsname in fitsorder[:-1]:
-        string += r"""
-        %s & \\"""%(fitsname.replace("_","\_"))
+
+    for ind, fitsname in enumerate(fitsorder[:-1]):
+        label1 = fitsfiles[fitsname]['label']
+        plusequal = r"""
+        %s"""%(label1.replace("_","\_"))
+        for i in xrange(ind):
+            plusequal += r""" & -"""
+        for fitsName in fitsorder[ind+1:]:
+            label2 = fitsfiles[fitsName]['label']
+            plusequal += r""" & %s"""%compare2fidelity( fitsfiles[fitsname]['compare : %s'%fitsName] )
+        string += r"%s \\"%(plusequal)
+
     string = string[:-2]
     string += r"""
     \end{tabular}
@@ -363,66 +459,147 @@ def compare2string( fitsorder, fitsfiles ):
 """
 
     string += r"""
+\subsection{structural similarity}
+
 \begin{center}
     \begin{tabular}{c| %s }
         structural similarity & %s \\
         \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
-    for fitsname in fitsorder[:-1]:
-        string += r"""
-        %s & \\"""%(fitsname.replace("_","\_"))
+
+    for ind, fitsname in enumerate(fitsorder[:-1]):
+        label1 = fitsfiles[fitsname]['label']
+        plusequal = r"""
+        %s"""%(label1.replace("_","\_"))
+        for i in xrange(ind):
+            plusequal += r""" & -"""
+        for fitsName in fitsorder[ind+1:]:
+            label2 = fitsfiles[fitsName]['label']
+            plusequal += r""" & %s"""%compare2structuralsimilarity( fitsfiles[fitsname]['compare : %s'%fitsName] )
+        string += r"%s \\"%(plusequal)
+
     string = string[:-2]
     string += r"""
     \end{tabular}
 \end{center}
 """
 
-    for cr in [0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99]:
-        string += r"""
+    string += r"""
+\subsection{symmetric KL divergence}
+
 \begin{center}
     \begin{tabular}{c| %s }
-        confidence region : %.1f %s intersection / union & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", cr*1e2, "\%", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
-        for fitsname in fitsorder[:-1]:
-            string += r"""
-        %s & \\"""%(fitsname.replace("_","\_"))
-        string = string[:-2]
-        string += r"""
+        symmetric KL divergence & %s \\
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+
+    for ind, fitsname in enumerate(fitsorder[:-1]):
+        label1 = fitsfiles[fitsname]['label']
+        plusequal = r"""
+        %s"""%(label1.replace("_","\_"))
+        for i in xrange(ind):
+            plusequal += r""" & -"""
+        for fitsName in fitsorder[ind+1:]:
+            label2 = fitsfiles[fitsName]['label']
+            plusequal += r""" & %s"""%compare2symKL( fitsfiles[fitsname]['compare : %s'%fitsName] )
+        string += r"%s \\"%(plusequal)
+
+    string = string[:-2]
+    string += r"""
     \end{tabular}
 \end{center}
 """
+
+    string += r"""
+\subsection{Confidence levels}"""
+
+    for cr in [0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99]:
+        string += r"""
+\subsubsection{%.1f%s}"""%(cr*100, "\%")
+
         string += r"""
 \begin{center}
     \begin{tabular}{c| %s }
-        spot check : %.1f %s & %s \\
-        \hline"""%((len(fitsorder))*"c", cr*1e2, "\%"," & ".join(l.replace("_","\_") for l in fitsorder))
-        for fitsname in fitsorder:
-            string += r"""
-        %s & \\"""%(fitsname.replace("_","\_"))
+        confidence region : %.1f%s intersection / union & %s \\
+        \hline"""%((len(fitsorder)-1)*"c", cr*1e2, "\%", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+
+        for ind, fitsname in enumerate(fitsorder[:-1]):
+            label1 = fitsfiles[fitsname]['label']
+            plusequal = r"""
+        %s"""%(label1.replace("_","\_"))
+            for i in xrange(ind):
+                plusequal += r""" & -"""
+            for fitsName in fitsorder[ind+1:]:
+                label2 = fitsfiles[fitsName]['label']
+                plusequal += r""" & %s"""%compare2cr( fitsfiles[fitsname]['compare : %s'%fitsName], cr )
+            string += r"%s \\"%(plusequal)
+
         string = string[:-2]
         string += r"""
     \end{tabular}
 \end{center}
 """
 
+        string += r"""
+\begin{center}
+    \begin{tabular}{c| %s }
+                             & \multicolumn{%d}{|c}{map defining confidence region} \\
+        spot check : %.1f%s & %s \\
+        \hline"""%((len(fitsorder))*"c", len(fitsorder), cr*1e2, "\%"," & ".join(l.replace("_","\_") for l in fitsorder))
+ 
+        for ind, fitsname in enumerate(fitsorder):
+            label1 = fitsfiles[fitsname]['label']
+            plusequal = r"""
+        %s"""%(label1.replace("_","\_"))
+            for fitsName in fitsorder[:ind]:
+                label2 = fitsfiles[fitsName]['label']
+                plusequal += r""" & %s"""%compare2spotcheck( fitsfiles[fitsname]['compare : %s'%fitsName], label1, label2, cr )
+            plusequal += r""" & -"""
+            for fitsName in fitsorder[ind+1:]:
+                label2 = fitsfiles[fitsName]['label']
+                plusequal += r""" & %s"""%compare2spotcheck( fitsfiles[fitsname]['compare : %s'%fitsName], label1, label2, cr )
+            string += r"%s \\"%(plusequal)
+
+        string = string[:-2]
+        string += r"""
+    \end{tabular}
+\end{center}
+"""
     return string
 
 ### 
+
+def overlay2plot( overlay ):
+    for line in overlay.split("\n"):
+        if ".png" in line:
+            return os.path.basename(line.strip())
+    else:
+        raise ValueError("could not find a figure file...")
+
+###
 
 def overlay2string( fitsorder, fitsfiles ):
     string = r"""
 \begin{center}
     \begin{tabular}{c| %s }
         overlay & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
-    for fitsname in fitsorder[:-1]:
-        string += r"""
-%s \\"""%(fitsname.replace("_","\_"))
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join(fitsfiles[l]['label'].replace("_","\_") for l in fitsorder[1:]))
+
+    width = 0.9/len(fitsorder)
+    for ind, fitsname in enumerate(fitsorder[:-1]):
+        label1 = fitsfiles[fitsname]['label']
+        plusequal = r"""
+%s"""%(label1.replace("_","\_"))
+        for i in xrange(ind):
+            plusequal += r""" &"""
+        for fitsName in fitsorder[ind+1:]:
+            label2 = fitsfiles[fitsName]['label']
+            plusequal += r""" & \includegraphics[width=%.6f\textwidth]{%s}"""%(width, overlay2plot(fitsfiles[fitsname]['overlay : %s'%fitsName]))
+        string += r"%s \\"%(plusequal)
+
     string = string[:-2]
     string += r"""
     \end{tabular}
 \end{center}
 """
-
     return string
 
 #=================================================
@@ -440,12 +617,16 @@ parser.add_option("-c", "--compile", default=False, action="store_true", help="c
 
 parser.add_option("-F", "--force", default=False, action="store_true", help="download all files and re-compute all statistics even if they already exist")
 
+parser.add_option("-a", "--annotate-gracedb", default=False, action="store_true", help="upload a pdf to gracedb")
+
 opts, args = parser.parse_args()
 
 if not len(args):
     raise ValueError("please supply at least one graceid as an input argument")
 
 notforce = not opts.force ### used often, so we compute it once
+
+opts.compile = opts.compile or opts.annotate_gracedb
 
 if opts.compile: ### needed for compilation
     cwd = os.getcwd()
@@ -549,7 +730,7 @@ for graceid in args:
         fitsfiles[fitsfile]['analyze'] = out_obj.read()
         out_obj.close()
 
-    files = fitsfiles.keys()
+    files = sorted(fitsfiles.keys())
     ### sanity check maps
     if opts.verbose:
         print( "\tsanity checking maps" )
@@ -636,7 +817,7 @@ for graceid in args:
             path2 = fitsfiles[fitsFile]['path']
             label2 = fitsfiles[fitsFile]['label']
 
-            out = "%s/%s-%s.compare.out"%(outdir, label1, label2)
+            out = "%s/%s-%s.overlay.out"%(outdir, label1, label2)
             if notforce and os.path.exists( out ):
                 if opts.verbose:
                     print( "\t\t%s already exists"%(out) )
@@ -644,7 +825,7 @@ for graceid in args:
                 cmd = overlay_cmd( (path1, label1), (path2, label2), outdir=outdir )
                 err = "%s.err"%(out[:-4])
                 if opts.verbose:
-                    print( "\t\t%s > , %s"%(cmd, err) )
+                    print( "\t\t%s > %s, %s"%(cmd, out, err) )
                 out_obj = open(out, "w")
                 err_obj = open(err, "w")
                 sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).communicate()[0]
@@ -661,7 +842,7 @@ for graceid in args:
     ### write latex document
     docname = "%s/summary.tex"%(outdir)
     if opts.verbose:
-        print( "writing : %s"%(docname) )
+        print( "\twriting : %s"%(docname) )
     doc = open(docname, "w")
     doc.write( data2latex( event, fitsfiles, landscape=opts.landscape ) )
     doc.close()
@@ -673,5 +854,21 @@ for graceid in args:
             print( "\t%s"%cmd )
         sp.Popen(cmd.split()).wait()
         os.chdir( cwd )
+
+    if opts.annotate_gracedb:
+        if opts.verbose:
+            print( "\tuploading to GraceDb" )
+        labels = [fitsfiles[fitsname]['label'] for fitsname in files ]
+        lenlabels = len(labels)        
+        if lenlabels > 2:
+            labels = "%s, and %s"%(", ".join(labels[:-1]), labels[-1])
+        elif lenlabels > 1:
+            labels = " and ".join(labels)
+        else:
+            labels = labels[0]
+        message = "skymap comparison for %s"%(labels)
+        if opts.verbose:
+            print( "\t%s"%(message) )
+        gracedb.writeLog( graceid, message, filename=docname, tagname="sky_loc" )
 
 
