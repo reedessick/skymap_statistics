@@ -18,17 +18,21 @@ from optparse import OptionParser
 
 #=================================================
 
-def plot_cmd( fitsfile, radec=None ):
-    """
-    return the command string for plotting.
-    if radec!=None:
-        ra, dec = radec
-    """
-    figname = "%s/%s.png"%(os.path.dirname(fitsfile), os.path.basename(fitsfile).split(".")[0])
-    string = "bayestar_plot_allsky %s -o %s"%(fitsfile, figname)
-    if radec:
-        bayestar_plot_allsky += " --radec %.5f %.5f"%radec
-    return string, figname
+#def plot_cmd( fitsfile, radec=None ):
+#    """
+#    return the command string for plotting.
+#    if radec!=None:
+#        ra, dec = radec
+#    """
+#    figname = "%s/%s.png"%(os.path.dirname(fitsfile), os.path.basename(fitsfile).split(".")[0])
+#    string = "bayestar_plot_allsky %s -o %s"%(fitsfile, figname)
+#    if radec:
+#        string += " --radec %.5f %.5f"%radec
+#    return string, figname
+
+def plot_cmd( fitsfile, label, outdir=".", radec=None ):
+    string = "python plot_maps.py -v -o %s %s,%s"%(outdir, label, fitsfile)
+    return string, "%s/%s.png"%(outdir, label)
 
 ###
 
@@ -59,25 +63,25 @@ def sanityoverlay_cmd( fitsfiles, geocent, outdir=".", los="H,L" ):
     """
     return the command string for sanity overlay plots
     """
-    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s,%s"%(l, f) for f,l in fitsfiles ) )
+    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s:%s,%s"%(g,l, f) for g,f,l in fitsfiles ) )
     return string
 
 ###
 
-def compare_cmd( (fitsfile, label), (fitsFile, laBel) ):
+def compare_cmd( (gid, fitsfile, label), (gID, fitsFile, laBel) ):
     """
     return the command string for comparing
     """
-    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity --symKL -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s %s,%s"%(label, fitsfile, laBel, fitsFile)
+    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity --symKL -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s:%s,%s %s:%s,%s"%(gid, label, fitsfile, gID, laBel, fitsFile)
     return string
 
 ###
 
-def overlay_cmd( (fitsfile, label), (fitsFile, laBel), outdir="." ):
+def overlay_cmd( (gid, fitsfile, label), (gID, fitsFile, laBel), outdir="." ):
     """
     return the command string for overlaying
     """
-    string = "python overlay_maps.py -v -c 0.10 -c 0.50 -c 0.90 -c 0.99 -o %s %s,%s %s,%s"%(outdir, label, fitsfile, laBel, fitsFile)
+    string = "python overlay_maps.py -v -c 0.10 -c 0.50 -c 0.90 -c 0.99 -o %s %s:%s,%s %s:%s,%s"%(outdir, gid, label, fitsfile, gID, laBel, fitsFile)
     return string
 
 ###
@@ -138,7 +142,10 @@ DESCRIPTION GOES HERE
     gpstime = float(event['gpstime'])
     created = event['created']
 
-    far = float(event['far'])
+    try:
+        far = float(event['far'])
+    except:
+        far = np.nan
 
     instruments = event['instruments']
     labels = ",".join(event['labels'].keys())
@@ -155,7 +162,22 @@ DESCRIPTION GOES HERE
 \end{center}
 """%(group, pipeline, search, gpstime, created, far, instruments, labels)
 
-    fitsorder = sorted( key for key in fitsfiles.keys() if "fit" in key ) ### gets rid of sanity overlay stuff
+    fitsorder = [ key for key in fitsfiles.keys() if isinstance(key, tuple) and ("fit" in key[1]) ] ### gets rid of sanity overlay stuff
+    fitsorder.sort( key=lambda l: l[1] )
+
+    if not len(fitsorder):
+        string += r"""
+\end{document}"""
+        return string
+
+    string += r"""
+\begin{itemize}"""
+    for gid, fitsname in fitsorder:
+        string += r"""
+    \item{%s : %s}"""%(gid, fitsfiles[(gid,fitsname)]['label'].replace("_","\_"))
+    string += r"""
+\end{itemize}
+"""
 
     ### section describing each map
     string += r"""
@@ -166,13 +188,13 @@ DESCRIPTION GOES HERE
         label = fitsfiles[fitsname]['label']
         plot = fitsfiles[fitsname]['plot']
         string += r"""
-\subsection{%s}
+\subsection{%s:%s}
 
 \begin{center}
     \includegraphics[width=0.45\textwidth]{%s}
     \includegraphics[width=0.45\textwidth]{%s}
 \end{center}
-"""%(label.replace("_", "\_"), os.path.basename(plot), sanity2plot( fitsfiles[fitsname]['sanitycheck'] ))
+"""%(gid, label.replace("_", "\_"), "../%s/%s"%tuple(plot.split("/")[-2:]), sanity2plot( fitsfiles[fitsname]['sanitycheck'] ))
 
         ### analyze
         analyze = fitsfiles[fitsname]['analyze']
@@ -209,6 +231,14 @@ DESCRIPTION GOES HERE
         string += r"""
 %s
 """%sanityoverlay2string( fitsfiles['sanityoverlay'] )
+
+    ### glossary
+    string += r"""
+\newpage
+\section{glossary}
+
+WRITE brief summary of each statistic here.
+"""
 
     ### finish document
     string += r"""
@@ -283,7 +313,7 @@ def sanity2plot( sanity ):
     string = ""
     for line in sanity.split("\n"):
         if ("los" in line) and (".png" in line):
-            return os.path.basename(line.strip())
+            return "../%s/%s"%tuple(line.strip().split("/")[-2:])
     else:
         raise ValueError("could not find a figure file...")
 
@@ -316,16 +346,16 @@ def sanity2string( sanity ):
 def sanityoverlay2string( sanityoverlay ):
     for line in sanityoverlay.split("\n"):
         if ("los" in line) and (".png" in line):
-            figname = os.path.basename(line.strip())
+            figname = line.strip()
             break
     else:
         raise ValueError("could not find a figure file...")
 
     string = r"""
 \begin{center}
-    \includegraphics[width=0.9\textwidth]{%s}
+    \includegraphics[width=0.9\textwidth]{../%s/%s}
 \end{center}
-"""%(figname)
+"""%tuple(figname.split("/")[-2:])
 
     return string
 
@@ -415,17 +445,17 @@ def compare2string( fitsorder, fitsfiles ):
 \begin{center}
     \begin{tabular}{c| %s }
         $\delta \theta_{MAP}$ & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder[1:]))
 
     for ind, fitsname in enumerate(fitsorder[:-1]):
         label1 = fitsfiles[fitsname]['label']
         plusequal = r"""
-        %s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0],label1.replace("_","\_"))
         for i in xrange(ind):
             plusequal += r""" & -"""
         for fitsName in fitsorder[ind+1:]:
             label2 = fitsfiles[fitsName]['label']
-            plusequal += r""" & %s$^\circ$"""%compare2dthetaMAP( fitsfiles[fitsname]['compare : %s'%fitsName] )
+            plusequal += r""" & %s$^\circ$"""%compare2dthetaMAP( fitsfiles[fitsname]['compare : %s_%s'%fitsName] )
         string += r"%s \\"%(plusequal)
     string = string[:-2]
     string += r"""
@@ -439,17 +469,17 @@ def compare2string( fitsorder, fitsfiles ):
 \begin{center}
     \begin{tabular}{c| %s }
         fidelity & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder[1:]))
 
     for ind, fitsname in enumerate(fitsorder[:-1]):
         label1 = fitsfiles[fitsname]['label']
         plusequal = r"""
-        %s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0], label1.replace("_","\_"))
         for i in xrange(ind):
             plusequal += r""" & -"""
         for fitsName in fitsorder[ind+1:]:
             label2 = fitsfiles[fitsName]['label']
-            plusequal += r""" & %s"""%compare2fidelity( fitsfiles[fitsname]['compare : %s'%fitsName] )
+            plusequal += r""" & %s"""%compare2fidelity( fitsfiles[fitsname]['compare : %s_%s'%fitsName] )
         string += r"%s \\"%(plusequal)
 
     string = string[:-2]
@@ -464,17 +494,17 @@ def compare2string( fitsorder, fitsfiles ):
 \begin{center}
     \begin{tabular}{c| %s }
         structural similarity & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder[1:]))
 
     for ind, fitsname in enumerate(fitsorder[:-1]):
         label1 = fitsfiles[fitsname]['label']
         plusequal = r"""
-        %s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0], label1.replace("_","\_"))
         for i in xrange(ind):
             plusequal += r""" & -"""
         for fitsName in fitsorder[ind+1:]:
             label2 = fitsfiles[fitsName]['label']
-            plusequal += r""" & %s"""%compare2structuralsimilarity( fitsfiles[fitsname]['compare : %s'%fitsName] )
+            plusequal += r""" & %s"""%compare2structuralsimilarity( fitsfiles[fitsname]['compare : %s_%s'%fitsName] )
         string += r"%s \\"%(plusequal)
 
     string = string[:-2]
@@ -489,17 +519,17 @@ def compare2string( fitsorder, fitsfiles ):
 \begin{center}
     \begin{tabular}{c| %s }
         symmetric KL divergence & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder[1:]))
 
     for ind, fitsname in enumerate(fitsorder[:-1]):
         label1 = fitsfiles[fitsname]['label']
         plusequal = r"""
-        %s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0], label1.replace("_","\_"))
         for i in xrange(ind):
             plusequal += r""" & -"""
         for fitsName in fitsorder[ind+1:]:
             label2 = fitsfiles[fitsName]['label']
-            plusequal += r""" & %s"""%compare2symKL( fitsfiles[fitsname]['compare : %s'%fitsName] )
+            plusequal += r""" & %s"""%compare2symKL( fitsfiles[fitsname]['compare : %s_%s'%fitsName] )
         string += r"%s \\"%(plusequal)
 
     string = string[:-2]
@@ -519,17 +549,17 @@ def compare2string( fitsorder, fitsfiles ):
 \begin{center}
     \begin{tabular}{c| %s }
         confidence region : %.1f%s intersection / union & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", cr*1e2, "\%", " & ".join(l.replace("_","\_") for l in fitsorder[1:]))
+        \hline"""%((len(fitsorder)-1)*"c", cr*1e2, "\%", " & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder[1:]))
 
         for ind, fitsname in enumerate(fitsorder[:-1]):
             label1 = fitsfiles[fitsname]['label']
             plusequal = r"""
-        %s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0], label1.replace("_","\_"))
             for i in xrange(ind):
                 plusequal += r""" & -"""
             for fitsName in fitsorder[ind+1:]:
                 label2 = fitsfiles[fitsName]['label']
-                plusequal += r""" & %s"""%compare2cr( fitsfiles[fitsname]['compare : %s'%fitsName], cr )
+                plusequal += r""" & %s"""%compare2cr( fitsfiles[fitsname]['compare : %s_%s'%fitsName], cr )
             string += r"%s \\"%(plusequal)
 
         string = string[:-2]
@@ -543,19 +573,19 @@ def compare2string( fitsorder, fitsfiles ):
     \begin{tabular}{c| %s }
                              & \multicolumn{%d}{|c}{map defining confidence region} \\
         spot check : %.1f%s & %s \\
-        \hline"""%((len(fitsorder))*"c", len(fitsorder), cr*1e2, "\%"," & ".join(l.replace("_","\_") for l in fitsorder))
+        \hline"""%((len(fitsorder))*"c", len(fitsorder), cr*1e2, "\%"," & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder))
  
         for ind, fitsname in enumerate(fitsorder):
             label1 = fitsfiles[fitsname]['label']
             plusequal = r"""
-        %s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0], label1.replace("_","\_"))
             for fitsName in fitsorder[:ind]:
                 label2 = fitsfiles[fitsName]['label']
-                plusequal += r""" & %s"""%compare2spotcheck( fitsfiles[fitsname]['compare : %s'%fitsName], label1, label2, cr )
+                plusequal += r""" & %s"""%compare2spotcheck( fitsfiles[fitsname]['compare : %s_%s'%fitsName], label1, label2, cr )
             plusequal += r""" & -"""
             for fitsName in fitsorder[ind+1:]:
                 label2 = fitsfiles[fitsName]['label']
-                plusequal += r""" & %s"""%compare2spotcheck( fitsfiles[fitsname]['compare : %s'%fitsName], label1, label2, cr )
+                plusequal += r""" & %s"""%compare2spotcheck( fitsfiles[fitsname]['compare : %s_%s'%fitsName], label1, label2, cr )
             string += r"%s \\"%(plusequal)
 
         string = string[:-2]
@@ -570,7 +600,8 @@ def compare2string( fitsorder, fitsfiles ):
 def overlay2plot( overlay ):
     for line in overlay.split("\n"):
         if ".png" in line:
-            return os.path.basename(line.strip())
+            line = line.strip()
+            return "../%s/%s"%tuple(line.strip().split("/")[-2:])
     else:
         raise ValueError("could not find a figure file...")
 
@@ -581,18 +612,18 @@ def overlay2string( fitsorder, fitsfiles ):
 \begin{center}
     \begin{tabular}{c| %s }
         overlay & %s \\
-        \hline"""%((len(fitsorder)-1)*"c", " & ".join(fitsfiles[l]['label'].replace("_","\_") for l in fitsorder[1:]))
+        \hline"""%((len(fitsorder)-1)*"c", " & ".join("%s:%s"%(l[0], fitsfiles[l]['label'].replace("_","\_")) for l in fitsorder[1:]))
 
     width = 0.9/len(fitsorder)
     for ind, fitsname in enumerate(fitsorder[:-1]):
         label1 = fitsfiles[fitsname]['label']
         plusequal = r"""
-%s"""%(label1.replace("_","\_"))
+        %s:%s"""%(fitsname[0], label1.replace("_","\_"))
         for i in xrange(ind):
             plusequal += r""" &"""
         for fitsName in fitsorder[ind+1:]:
             label2 = fitsfiles[fitsName]['label']
-            plusequal += r""" & \includegraphics[width=%.6f\textwidth]{%s}"""%(width, overlay2plot(fitsfiles[fitsname]['overlay : %s'%fitsName]))
+            plusequal += r""" & \includegraphics[width=%.6f\textwidth]{%s}"""%(width, overlay2plot(fitsfiles[fitsname]['overlay : %s_%s'%fitsName]))
         string += r"%s \\"%(plusequal)
 
     string = string[:-2]
@@ -618,6 +649,8 @@ parser.add_option("-c", "--compile", default=False, action="store_true", help="c
 parser.add_option("-F", "--force", default=False, action="store_true", help="download all files and re-compute all statistics even if they already exist")
 
 parser.add_option("-a", "--annotate-gracedb", default=False, action="store_true", help="upload a pdf to gracedb")
+
+parser.add_option("-w", "--neighbor-window", default=None, type="float", help="search for neighbors within +/- neighbors_window and include any maps from those events in the comparison" )
 
 opts, args = parser.parse_args()
 
@@ -665,13 +698,11 @@ for graceid in args:
         raise ValueError("don't know how to processes events with instruments=%s"%(instruments))
 
     ### pull down fits files
-    if opts.verbose:
-        print( "\tpulling down FITS" )
     files = sorted( gracedb.files( graceid ).json().keys() )
-    fitsfiles = dict( (filename,{}) for filename in files if filename.strip(".gz").endswith(".fits") )
+    fitsfiles = dict( ((graceid, filename),{}) for filename in files if filename.strip(".gz").endswith(".fits") )
     old = True ### records whether there is a new FITS
                 ### used for sanityoverlay
-    for fits in fitsfiles.keys():
+    for _, fits in fitsfiles.keys():
         filename = "%s/%s"%(outdir, fits)
         if notforce and os.path.exists( filename ):
             if opts.verbose:
@@ -683,15 +714,45 @@ for graceid in args:
             file_obj.write( gracedb.files( graceid, fits ).read() )
             file_obj.close()
             old = False
-        fitsfiles[fits]['path'] = filename
-        fitsfiles[fits]['label'] = os.path.basename(filename).split(".")[0]
+        fitsfiles[(graceid, fits)]['path'] = filename
+        fitsfiles[(graceid, fits)]['label'] = os.path.basename(filename).split(".")[0]
+        fitsfiles[(graceid, fits)]['graceid'] = graceid
+
+    if opts.neighbor_window > 0: ### perform neighbor search
+        if opts.verbose:
+            print( "\tsearching for neighbors within %.3f sec"%(opts.neighbor_window) )
+        for event in gracedb.events( "%.6f .. %.6f"%(geocent-opts.neighbor_window, geocent+opts.neighbor_window) ):
+            if (event['graceid'][0] != "H") and (event['graceid'] != graceid): ### new event, FR
+                if opts.verbose:
+                    print( "\t\tfound : %s"%(event['graceid']) )
+                noutdir = "%s/%s"%(opts.output_dir, event['graceid'])
+                if not os.path.exists( noutdir ):
+                    os.makedirs( noutdir )
+                files = sorted( gracedb.files( event['graceid'] ).json().keys() )
+                for fits in [filename for filename in files if filename.strip(".gz").endswith(".fits") ]:
+                    fitsfiles.update( {(event['graceid'],fits):{}} )
+                    filename = "%s/%s"%(noutdir, fits)
+                    if notforce and os.path.exists( filename ):
+                        if opts.verbose:
+                            print( "\t\t\t%s already exists"%(filename) )
+                    else:
+                        if opts.verbose:
+                            print( "\t\t\t%s"%(filename) )
+                        file_obj = open(filename, "w")
+                        file_obj.write( gracedb.files( event['graceid'], fits ).read() )
+                        file_obj.close()
+                        old = False
+                    fitsfiles[(event['graceid'], fits)]['path'] = filename
+                    fitsfiles[(event['graceid'], fits)]['label'] = os.path.basename(filename).split(".")[0]
+                    fitsfiles[(event['graceid'], fits)]['graceid'] = event['graceid']
 
     ### plot fits files
     if opts.verbose:
         print( "\tplotting skymaps" )
-    for fitsfile in fitsfiles.keys():
-        path = fitsfiles[fitsfile]['path']
-        cmd, outfilename = plot_cmd( path, radec=None )
+    for gid, fitsfile in fitsfiles.keys():
+        path = fitsfiles[(gid, fitsfile)]['path']
+        label = fitsfiles[(gid, fitsfile)]['label']
+        cmd, outfilename = plot_cmd( path, label, outdir="%s/%s"%(opts.output_dir, gid) )
         if notforce and os.path.exists( outfilename ):
             if opts.verbose:
                 print "\t\t%s already exists"%(outfilename)
@@ -705,13 +766,13 @@ for graceid in args:
             sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj ).wait()
             out_obj.close()
             err_obj.close()
-        fitsfiles[fitsfile]['plot'] = outfilename
+        fitsfiles[(gid, fitsfile)]['plot'] = outfilename
 
     ### analyse maps
     if opts.verbose:
         print( "\tanalyzing maps" )
-    for fitsfile in fitsfiles.keys():
-        path = fitsfiles[fitsfile]['path']
+    for gid, fitsfile in fitsfiles.keys():
+        path = fitsfiles[(gid, fitsfile)]['path']
         out = "%s.analyze.out"%(path)
         if notforce and os.path.exists( out ):
             if opts.verbose:
@@ -727,21 +788,22 @@ for graceid in args:
             out_obj.close()
             err_obj.close()
         out_obj = open( out , "r" )
-        fitsfiles[fitsfile]['analyze'] = out_obj.read()
+        fitsfiles[(gid, fitsfile)]['analyze'] = out_obj.read()
         out_obj.close()
 
-    files = sorted(fitsfiles.keys())
+    files = fitsfiles.keys()
+    files.sort(key=lambda l: l[1])
     ### sanity check maps
     if opts.verbose:
         print( "\tsanity checking maps" )
-    for fitsfile in fitsfiles.keys():
-        path = fitsfiles[fitsfile]['path']
+    for gid, fitsfile in fitsfiles.keys():
+        path = fitsfiles[(gid, fitsfile)]['path']
         out = "%s.sanitycheck.out"%(path)
         if notforce and os.path.exists( out ):
             if opts.verbose:
                 print( "\t\t%s already exists"%(out) )
         else:
-            cmd = sanitycheck_cmd( path, geocent, outdir=outdir, los="H,L" ) ### IFO THING MAY NEED UPDATING...
+            cmd = sanitycheck_cmd( path, geocent, outdir="%s/%s"%(opts.output_dir, gid), los="H,L" ) ### IFO THING MAY NEED UPDATING...
             err = "%s.err"%(out[:-4])
             if opts.verbose:
                 print( "\t\t%s > %s, %s"%(cmd, out, err) )
@@ -751,7 +813,7 @@ for graceid in args:
             out_obj.close()
             err_obj.close()
         out_obj = open( out, "r" )
-        fitsfiles[fitsfile]['sanitycheck'] = out_obj.read()
+        fitsfiles[(gid, fitsfile)]['sanitycheck'] = out_obj.read()
         out_obj.close()
 
     ### sanity overlay
@@ -762,7 +824,7 @@ for graceid in args:
     else:
         if opts.verbose:
             print( "\tsanity overlay" )
-        cmd = sanityoverlay_cmd( [(fitsfiles[fitsfile]['path'], fitsfiles[fitsfile]['label']) for fitsfile in files], geocent, outdir=outdir, los="H,L" )
+        cmd = sanityoverlay_cmd( [(gid, fitsfiles[(gid,fitsfile)]['path'], fitsfiles[(gid,fitsfile)]['label']) for gid,fitsfile in files], geocent, outdir=outdir, los="H,L" )
         err = "%s.err"%(out[:-4])
         if opts.verbose:
             print( "\t\t%s > %s, %s"%(cmd, out, err) )
@@ -778,20 +840,20 @@ for graceid in args:
     ### compare maps
     if opts.verbose:
         print( "\tcomparing maps" )
-    for ind, fitsfile in enumerate( files ):
-        path1 = fitsfiles[fitsfile]['path']
-        label1 = fitsfiles[fitsfile]['label']
+    for ind, (gid, fitsfile) in enumerate( files ):
+        path1 = fitsfiles[(gid, fitsfile)]['path']
+        label1 = fitsfiles[(gid, fitsfile)]['label']
 
-        for fitsFile in files[ind+1:]:
-            path2 = fitsfiles[fitsFile]['path']
-            label2 = fitsfiles[fitsFile]['label']
+        for gID, fitsFile in files[ind+1:]:
+            path2 = fitsfiles[(gID, fitsFile)]['path']
+            label2 = fitsfiles[(gID, fitsFile)]['label']
 
-            out = "%s/%s-%s.compare.out"%(outdir, label1, label2)
+            out = "%s/%s_%s-%s_%s.compare.out"%(outdir, gid, label1, gID, label2)
             if notforce and os.path.exists( out ):
                 if opts.verbose:
                     print( "\t\t%s already exists"%(out) )
             else:
-                cmd = compare_cmd( (path1, label1), (path2, label2) )
+                cmd = compare_cmd( (gid, path1, label1), (gID, path2, label2) )
                 err = "%s.err"%(out[:-4])
                 if opts.verbose:
                     print( "\t\t%s > %s, %s"%(cmd, out, err) )
@@ -803,26 +865,26 @@ for graceid in args:
             out_obj = open( out, "r" )
             result = out_obj.read()
             out_obj.close()
-            fitsfiles[fitsfile]['compare : %s'%fitsFile] = result
-            fitsfiles[fitsFile]['compare : %s'%fitsfile] = result
+            fitsfiles[(gid,fitsfile)]['compare : %s_%s'%(gID,fitsFile)] = result
+            fitsfiles[(gID,fitsFile)]['compare : %s_%s'%(gid,fitsfile)] = result
 
     ### overlay maps
     if opts.verbose:
         print( "\toverlay maps" )
-    for ind, fitsfile in enumerate( files ):
-        path1 = fitsfiles[fitsfile]['path']
-        label1 = fitsfiles[fitsfile]['label']
+    for ind, (gid, fitsfile) in enumerate( files ):
+        path1 = fitsfiles[(gid, fitsfile)]['path']
+        label1 = fitsfiles[(gid, fitsfile)]['label']
 
-        for fitsFile in files[ind+1:]:
-            path2 = fitsfiles[fitsFile]['path']
-            label2 = fitsfiles[fitsFile]['label']
+        for gID, fitsFile in files[ind+1:]:
+            path2 = fitsfiles[(gID, fitsFile)]['path']
+            label2 = fitsfiles[(gID, fitsFile)]['label']
 
-            out = "%s/%s-%s.overlay.out"%(outdir, label1, label2)
+            out = "%s/%s_%s-%s_%s.overlay.out"%(outdir, gid, label1, gID, label2)
             if notforce and os.path.exists( out ):
                 if opts.verbose:
                     print( "\t\t%s already exists"%(out) )
             else:
-                cmd = overlay_cmd( (path1, label1), (path2, label2), outdir=outdir )
+                cmd = overlay_cmd( (gid, path1, label1), (gID, path2, label2), outdir=outdir )
                 err = "%s.err"%(out[:-4])
                 if opts.verbose:
                     print( "\t\t%s > %s, %s"%(cmd, out, err) )
@@ -834,8 +896,8 @@ for graceid in args:
             out_obj = open( out, "r" )
             result = out_obj.read()
             out_obj.close()
-            fitsfiles[fitsfile]['overlay : %s'%fitsFile] = result
-            fitsfiles[fitsFile]['overlay : %s'%fitsfile] = result
+            fitsfiles[(gid, fitsfile)]['overlay : %s_%s'%(gID, fitsFile)] = result
+            fitsfiles[(gID, fitsFile)]['overlay : %s_%s'%(gid, fitsfile)] = result
 
     #====================
 
@@ -858,7 +920,7 @@ for graceid in args:
     if opts.annotate_gracedb:
         if opts.verbose:
             print( "\tuploading to GraceDb" )
-        labels = [fitsfiles[fitsname]['label'] for fitsname in files ]
+        labels = [fitsfiles[(gid, fitsname)]['label'] for gid, fitsname in files ]
         lenlabels = len(labels)        
         if lenlabels > 2:
             labels = "%s, and %s"%(", ".join(labels[:-1]), labels[-1])
