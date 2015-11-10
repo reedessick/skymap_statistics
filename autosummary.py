@@ -265,30 +265,124 @@ DESCRIPTION GOES HERE
 
 \subsection{descritpion of individual maps}
 
-\begin{itemize}
-    \item{mollweide projection}
-    \item{los projection with marginals}
-    \item{nside}
-    \item{pixare}
-    \item{entropy}
-    \item{cr size}
-    \item{cr disjoint regions}
-    \item{cr max dtheta}
-    \item{mutual information}
-\end{itemize}
+\subsubsection{mollweide projcetion}
+
+Standard Mollweide projection of our skymap in Celestial coordinates.
+
+\subsubsection{line-of-sight projection with marginals}
+
+A cartesian projection of the skymap in a frame defined by the line-of-sight between LHO and LLO.
+Because most of the localization comes from triangulation, we see that the distributions are approximately
+separable in this frame.
+In fact, we can measure the time-of-arrival difference between LHO and LLO based on the marignal distribution over $\theta$.
+
+\subsubsection{nside, pixarea}
+
+Basic parameters of the HEALPix decomposition used for this particular map.
+
+\subsubsection{entropy}
+
+A measure of the uncertainty associated with a map based on the Shannon entropy.
+We normalize this to a fraction of the sky (measured in deg$^2$) to avoid any ambiguity due to different levels of pixelization.
+
+\begin{equation}
+    H(p) = A_\mathrm{pix} e^{-\int\mathrm{d}\Omega p \ln p}
+\end{equation}
+
+\subsubsection{Confidence Regions size, No. disjoint regions, $\mathrm{max}\{\delta\theta\}$}
+
+We define the confidence region $R_c$ cooresponding to confidence $c$ as the minimum area that contains at a probability greater or equal to $c$
+
+\begin{equation}
+    R_c := \min\limits_{\Sigma} \int\limits_\Sigma\mathrm{d}\Omega\ \left|\ \int_\Sigma\mathrm{d}\Omega p \geq c \right.
+\end{equation}
+
+Typically, this is computed via a pixelated skymap.
+We include pixels in order of decreasing probability until we reach a cumulative probability $\geq c$.
+In this way, we uniquely identify a set of pixels associated with $R_c$.
+The size is just the corresponding solid angle associated with this set.
+The No. disjoint regions is the number of separate regions, which do not touch, contained in the map.
+Typically, for 2-detector networks, we have 2 disjoint regions (one overhead and one underneath the detectors).
+$\mathrm{max}\{\delta\theta\}$ is the largest angular separation between any two pixels contained in the set.
+
+\subsection{Mutual Information}
+
+We define the mutual information between $\theta$ and $\phi$ as the Kullback-Leibler divergence from the joint distribution to the product of the marginals.
+
+\begin{equation}
+    I(\theta,\phi) = \int\sin\theta\mathrm{d}\theta\mathrm{d}\phi\, p(\theta,\phi) \ln \frac{p(\theta,\phi)}{p(\theta)p(\phi)}
+\end{equation}
+
+where $p(\theta) = \int\mathrm{d}\phi\, p(\theta,\phi)$ and $p(\phi) = \int\sin\theta\mathrm{d}\theta\, p(\theta,\phi)$. 
+Note, this measure represents the amount of information lost by approximating the true joint distribution by the product of the marginals.
+It is \textit{not} invarient under general coordinate transformations, in particular under rotations. 
+We use this to our advantage and compute $I$ for the original map and the map rotated into the line-of-sight frame defined by the two detectors.
+If our intuition from triangulation is correct, then $I$ in the rotated frame should be significantly smaller (typically a factor of $\sim$10) than $I$ in Celestial coordinates.
 
 \subsection{comparison of maps}
 
-\begin{itemize}
-    \item{dtheta MAP}
-    \item{fidelity}
-    \item{structural similarity}
-    \item{symmetric KL divergence}
-    \item{confidence levels: intersection, union}
-    \item{confidence levels: spot check}
-    \item{contour overlay plots (what are the contours?)}
-    \item{los overlay plots}
-\end{itemize}
+\subsubsection{$\delta\theta_\mathrm{MAP}$}
+
+Simply the angular separation between the maximum a posteriori points of two maps. 
+
+\subsubsection{Fidelity}
+
+A measure of the distance between two probability distributions, the fidelity is defined as
+
+\begin{equation}
+    F(p, q) = \int\mathrm{d}\Omega \sqrt{p \cdot q} \in [0, 1]
+\end{equation}
+
+with $F=1$ iff $p(\Omega)=q(\Omega)\ \forall\Omega$.
+Essentially, it is a modified dot product that tells us how similar to distributions are.
+
+\subsubsection{Structural Similarity}
+
+The structural similarity attempts to model how the human eye distinguishes between images.
+
+\begin{equation}
+    \mathrm{SSI} = ??? \in [-1, 1]
+\end{equation}
+
+mention the values of $c_1$, $c_2$ used in our analysis.
+
+\subsubsection{Symmetrick Kullback-Leibler divergence}
+
+The Kullback-Leibler divergence is a non-symmetric distance measure between to distributions.
+It can be thought of as the information lost when approximating the distribution $p$ with the distribution $q$.
+
+\begin{equation}
+    D_\mathrm{KL}(p||q) = \int\mathrm{d}\Omega p \ln \frac{p}{q} \in [0,\infty)
+\end{equation}
+
+We symmeterize this because we do not have an a priori preference between maps, which results in the symmetric KL divergence
+
+\begin{equation}
+    D_\mathrm{symKL}(p,q) = D_\mathrm{KL}(p||q) + D_\mathrm{KL}(q||p) \in [0,\infty)
+\end{equation}
+
+WARNING: this statistic is not particularly ``stable'' to slight changes in the pixelization and can often be infinite.
+
+\subsubsection{Confidence Regions intersection, union, spotcheck}
+
+We define confidence regions for each map separately, which defines a two sets of pixels.
+The intersection and union of these sets of pixels are straightforward.
+
+The \textit{spotcheck} is a non-symmetric measure of the probability contined in on map within a region defined by another map.
+Precisely, it is 
+
+\begin{equation}
+    D_\mathrm{s}(p||q;c) = \int\limits_{R_c(q)}\mathrm{d}\Omega p\ \left|\ R_c(q) := \min\limits_{\Sigma} \int\limits_\Sigma\mathrm{d}\Omega\ \right|\ \int_\Sigma\mathrm{d}\Omega p \geq c 
+\end{equation}
+
+In more practical terms, if I observe all of the confidence region $R_c$ defined by map $q$, $D_\mathrm{s}$ defines the amount of probability contained in my observations based on map $p$.
+
+\subsection{Contour overlays}
+
+We provide overlays of the contours from separate maps in both Celestial and line-of-sight coordinates.
+The line-of-sight distributions come with marginal distributions as well.
+This helps identifiy whether the maps pick up the same triangulation rings and have the same wight around the rings.
+
 """
 
     ### finish document
