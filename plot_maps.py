@@ -9,6 +9,7 @@ matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 try:
 	from lalinference import plot as lalinf_plot
+	from lalinference import cmap
 except:
 	raise StandardError("Could not import lalinference.plot")
 

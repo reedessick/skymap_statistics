@@ -30,8 +30,8 @@ from optparse import OptionParser
 #        string += " --radec %.5f %.5f"%radec
 #    return string, figname
 
-def plot_cmd( fitsfile, label, outdir=".", radec=None ):
-    string = "python plot_maps.py -v -o %s %s,%s"%(outdir, label, fitsfile)
+def plot_cmd( fitsfile, label, outdir=".", radec=None, color_map="Reds" ):
+    string = "python plot_maps.py -v -o %s --color-map %s %s,%s"%(outdir, color_map, label, fitsfile)
     return string, "%s/%s.png"%(outdir, label)
 
 ###
@@ -50,11 +50,12 @@ def analyze_cmd( fitsfile, radec=None ):
 
 ###
 
-def sanitycheck_cmd( fitsfile, geocent, outdir=".", los="H,L" ):
+def sanitycheck_cmd( fitsfile, geocent, outdir=".", los="H,L", color_map="Reds" ):
     """
     return the command string for sanity checking
     """
-    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -t %s -m -p -g %s,%s"%(los, geocent, outdir, os.path.basename(fitsfile).split(".")[0], os.path.basename(fitsfile).split(".")[0], fitsfile)
+    label = os.path.basename(fitsfile).split(".")[0]
+    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -t %s -m -p -g --color-map %s %s,%s"%(los, geocent, outdir, label, color_map, label, fitsfile)
     return string
 
 ###
@@ -262,7 +263,32 @@ DESCRIPTION GOES HERE
 \newpage
 \section{glossary}
 
-WRITE brief summary of each statistic here.
+\subsection{descritpion of individual maps}
+
+\begin{itemize}
+    \item{mollweide projection}
+    \item{los projection with marginals}
+    \item{nside}
+    \item{pixare}
+    \item{entropy}
+    \item{cr size}
+    \item{cr disjoint regions}
+    \item{cr max dtheta}
+    \item{mutual information}
+\end{itemize}
+
+\subsection{comparison of maps}
+
+\begin{itemize}
+    \item{dtheta MAP}
+    \item{fidelity}
+    \item{structural similarity}
+    \item{symmetric KL divergence}
+    \item{confidence levels: intersection, union}
+    \item{confidence levels: spot check}
+    \item{contour overlay plots (what are the contours?)}
+    \item{los overlay plots}
+\end{itemize}
 """
 
     ### finish document
@@ -340,6 +366,7 @@ def sanity2plot( sanity ):
         if ("los" in line) and (".png" in line):
             return "../%s/%s"%tuple(line.strip().split("/")[-2:])
     else:
+        print sanity
         raise ValueError("could not find a figure file...")
 
 ###
@@ -352,6 +379,7 @@ def sanity2string( sanity ):
         if "mutualinformationDistance" in line:
            miD.append( float(line.strip().split()[-1]) )
     if len(miD)!=2:
+        print sanity
         raise ValueError("could not find mutualInformationDistance...")
 
     string += r"""
@@ -374,6 +402,7 @@ def sanityoverlay2string( sanityoverlay ):
             figname = line.strip()
             break
     else:
+        print sanityoverlay
         raise ValueError("could not find a figure file...")
 
     string = r"""
@@ -398,8 +427,10 @@ def compare2spotcheck( compare, label1, label2, cr ):
             vals = line.split(":")[-1].strip(" (").strip(")").split(", ")
             break
     else:
+        print compare
         raise ValueError("could not find spotcheck...")
     if not order:
+        print compare
         raise ValueError("could not find order...")
 
     if order == (label1, label2):
@@ -426,6 +457,7 @@ def compare2structuralsimilarity( compare ):
         if "structural similarity" in line:
             return line.strip().split()[-1]
     else:
+        print compare
         raise ValueError("could not find structural similarity...")
 
 ###
@@ -435,6 +467,7 @@ def compare2dthetaMAP( compare ):
         if "dtheta_MAP" in line:
             return line.strip().split()[-2]
     else:
+        print compare
         raise ValueError("could not find dtheta_MAP...")
 
 ###
@@ -444,6 +477,7 @@ def compare2fidelity( compare ):
         if "fidelity" in line:
             return line.strip().split()[-1]
     else:
+        print compare
         raise ValueError("could not find fidelity...")
 
 ###
@@ -456,6 +490,7 @@ def compare2symKL( compare ):
                 value = "$\infty$"
             return value
     else:
+        print compare
         raise ValueError("could not find symmetric KL divergence...")
 
 ###
@@ -628,6 +663,7 @@ def overlay2plot( overlay ):
             line = line.strip()
             return "../%s/%s"%tuple(line.strip().split("/")[-2:])
     else:
+        print overlay
         raise ValueError("could not find a figure file...")
 
 ###
@@ -676,6 +712,8 @@ parser.add_option("-F", "--force", default=False, action="store_true", help="dow
 parser.add_option("-a", "--annotate-gracedb", default=False, action="store_true", help="upload a pdf to gracedb")
 
 parser.add_option("-w", "--neighbor-window", default=None, type="float", help="search for neighbors within +/- neighbors_window and include any maps from those events in the comparison" )
+
+parser.add_option("", "--color-map", default="cylon", type="string")
 
 opts, args = parser.parse_args()
 
@@ -779,7 +817,7 @@ for graceid in args:
     for gid, fitsfile in fitsfiles.keys():
         path = fitsfiles[(gid, fitsfile)]['path']
         label = fitsfiles[(gid, fitsfile)]['label']
-        cmd, outfilename = plot_cmd( path, label, outdir="%s/%s"%(opts.output_dir, gid) )
+        cmd, outfilename = plot_cmd( path, label, outdir="%s/%s"%(opts.output_dir, gid), color_map=opts.color_map )
         if notforce and os.path.exists( outfilename ):
             if opts.verbose:
                 print "\t\t%s already exists"%(outfilename)
@@ -830,7 +868,7 @@ for graceid in args:
             if opts.verbose:
                 print( "\t\t%s already exists"%(out) )
         else:
-            cmd = sanitycheck_cmd( path, geocent, outdir="%s/%s"%(opts.output_dir, gid), los="H,L" ) ### IFO THING MAY NEED UPDATING...
+            cmd = sanitycheck_cmd( path, geocent, outdir="%s/%s"%(opts.output_dir, gid), los="H,L", color_map=opts.color_map ) ### IFO THING MAY NEED UPDATING...
             err = "%s.err"%(out[:-4])
             if opts.verbose:
                 print( "\t\t%s > %s, %s"%(cmd, out, err) )

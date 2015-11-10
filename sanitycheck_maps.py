@@ -61,6 +61,12 @@ if opts.coord=="C" and opts.t_geocent==None:
 if opts.tag:
     opts.tag = "_%s"%(opts.tag)
 
+if opts.color_map == "cylon":
+    try:
+        from lalinference import cmap
+    except:
+        raise ValueError('could not import lalinference')
+
 #=================================================
 
 ### read in maps
