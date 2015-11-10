@@ -96,11 +96,48 @@ def compile_cmd( docname ):
 
 #=================================================
 
+def data2conclusions( fitsorder, fitsfiles ):
+    """
+    draws inferences about the event based on the data collected about skymaps
+    """
+    string = ""
+
+    ### check mutual information
+    odd = []
+    for gid, fits in fitsorder:
+        miD = sanity2mi( fitsfiles[(gid, fits)]['sanitycheck'] )
+        if miD[0] < 2*miD[1]:
+            odd.append( (gid, fitsfiles[(gid,fits)]['label'].replace("_","\_"), miD[0], miD[1]) )
+    lenodd = len(odd)
+    if lenodd > 2:
+        string += r"""Based on the mutual information, there is unexpected behavior in"""
+        for tup in odd[:-1]:
+            string += r""" %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$),"""%tup
+        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$); all other maps appear consistent with expectations."""%odd[-1]
+    elif lenodd > 1:
+        string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$))"""%odd[0] 
+        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$); all other maps appear consistent with expectations."""%odd[1]
+    elif lenodd:
+        string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$); all other maps appear consistent with expectations."""%odd[0]
+    else:
+        string += r"""All maps appear consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
+
+    ### check other things?
+    ### fidelity between maps?        
+
+    return string
+
+###
+
 def data2latex( event, fitsfiles, landscape=False, neighbors=[]):
     """
     returns a latex document as a string
     This is the work-horse of the script, where all the tex formatting and annoying crap like that is applied.
     """
+    fitsorder = [ key for key in fitsfiles.keys() if isinstance(key, tuple) and ("fit" in key[1]) ] ### gets rid of sanity overlay stuff
+    fitsorder.sort( key=lambda l: l[1] )
+    fitsorder.sort( key=lambda l: l[0] )
+
     graceid = event['graceid']
     ### start off string with a preamble, etc
     if landscape:
@@ -124,12 +161,14 @@ autosummary.py\footnote{\url{https://github.com/reedessick/skymap_statistics}}
 }
 
 \maketitle
-
-\abstract{
-This document was generated and compiled automatically and has not been validated before publication.
-}
-
 """%(docclass, graceid, graceid)
+
+    string += r"""
+\abstract{
+This document was generated and compiled automatically and has not been validated before publication. 
+%s
+}
+"""%data2conclusions( fitsorder, fitsfiles)
 
     ### section describing top-level attributes
     group = event['group']
@@ -187,10 +226,6 @@ This document was generated and compiled automatically and has not been validate
     \end{tabular}
 \end{center}
 """
-    fitsorder = [ key for key in fitsfiles.keys() if isinstance(key, tuple) and ("fit" in key[1]) ] ### gets rid of sanity overlay stuff
-    fitsorder.sort( key=lambda l: l[1] )
-    fitsorder.sort( key=lambda l: l[0] )
-
     if not len(fitsorder):
         string += r"""
 \end{document}"""
@@ -467,9 +502,7 @@ def sanity2plot( sanity ):
 
 ###
 
-def sanity2string( sanity ):
-    string = ""
-
+def sanity2mi( sanity ):
     miD = []
     for line in sanity.split("\n"):
         if "mutualinformationDistance" in line:
@@ -477,6 +510,12 @@ def sanity2string( sanity ):
     if len(miD)!=2:
         print sanity
         raise ValueError("could not find mutualInformationDistance...")
+    return miD
+
+def sanity2string( sanity ):
+    string = ""
+
+    miD = sanity2mi( sanity )
 
     string += r"""
 \begin{center}
