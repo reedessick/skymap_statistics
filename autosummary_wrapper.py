@@ -1,6 +1,8 @@
 #!/usr/bin/python
 usage = "launch_autosummary.py [--options]"
-description = "a wrapper around autosummary.py to set it up and run under lvalert_listen. WARNING: our neighbors logic is not fool-proof if we specify different windows for each event_type, which is currently allowed."
+description = """a wrapper around autosummary.py to set it up and run under lvalert_listen. 
+
+WARNING: our neighbors logic is not fool-proof if we specify different windows for each event_type, which is currently allowed. Instead of our logic, bullet proof logic would include identifying the largest window in the config file, finding all neighbors within that window, and for each neighbor determining whether it would see the current event (with the new FITS file) using this to determine whether or not we re-run for that event."""
 auther = "Reed Essick (reed.essick@ligo.org)"
 
 import os
