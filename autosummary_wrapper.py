@@ -3,6 +3,7 @@ usage = "launch_autosummary.py [--options]"
 description = "a wrapper around autosummary.py to set it up and run under lvalert_listen. WARNING: our neighbors logic is not fool-proof if we specify different windows for each event_type, which is currently allowed."
 auther = "Reed Essick (reed.essick@ligo.org)"
 
+import os
 import sys
 import json
 
@@ -19,11 +20,14 @@ parser.add_option("-v", "--verbose", default=False, action="store_true")
 
 parser.add_option("-c", "--config", default="./config.ini", type="string")
 
-parser.add_option("-l", "--log-dir", defualt=".", type="string")
+parser.add_option("-l", "--log-dir", default=".", type="string")
 
 parser.add_option("", "--dont-wait", default=False, action="store_true", help="do not wait for one GraceID to complete before launching neighbors")
 
 opts, args = parser.parse_args()
+
+if not os.path.exists(opts.log_dir):
+    os.makedirs( opts.log_dir )
 
 #=================================================
 
