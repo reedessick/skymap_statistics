@@ -127,7 +127,6 @@ autosummary.py\footnote{\url{https://github.com/reedessick/skymap_statistics}}
 
 \abstract{
 This document was generated and compiled automatically and has not been validated before publication.
-DESCRIPTION GOES HERE
 }
 
 """%(docclass, graceid, graceid)
@@ -190,6 +189,7 @@ DESCRIPTION GOES HERE
 """
     fitsorder = [ key for key in fitsfiles.keys() if isinstance(key, tuple) and ("fit" in key[1]) ] ### gets rid of sanity overlay stuff
     fitsorder.sort( key=lambda l: l[1] )
+    fitsorder.sort( key=lambda l: l[0] )
 
     if not len(fitsorder):
         string += r"""
@@ -286,7 +286,7 @@ A measure of the uncertainty associated with a map based on the Shannon entropy.
 We normalize this to a fraction of the sky (measured in deg$^2$) to avoid any ambiguity due to different levels of pixelization.
 
 \begin{equation}
-    H(p) = A_\mathrm{pix} e^{-\int\mathrm{d}\Omega p \ln p}
+    H(p) = A_\mathrm{pix} e^{-\sum_\mathrm{pix} p \ln p}
 \end{equation}
 
 \subsubsection{Confidence Regions size, No. disjoint regions, $\mathrm{max}\{\delta\theta\}$}
@@ -294,7 +294,7 @@ We normalize this to a fraction of the sky (measured in deg$^2$) to avoid any am
 We define the confidence region $R_c$ cooresponding to confidence $c$ as the minimum area that contains at a probability greater or equal to $c$
 
 \begin{equation}
-    R_c := \min\limits_{\Sigma} \int\limits_\Sigma\mathrm{d}\Omega\ \left|\ \int_\Sigma\mathrm{d}\Omega p \geq c \right.
+    R_c := \min\limits_{\Sigma} \int\limits_\Sigma\mathrm{d}\Omega\ \left|\ \int_\Sigma\mathrm{d}\Omega\, p \geq c \right.
 \end{equation}
 
 Typically, this is computed via a pixelated skymap.
@@ -310,7 +310,7 @@ $\mathrm{max}\{\delta\theta\}$ is the largest angular separation between any two
 We define the mutual information between $\theta$ and $\phi$ as the Kullback-Leibler divergence from the joint distribution to the product of the marginals.
 
 \begin{equation}
-    I(\theta,\phi) = \int\sin\theta\mathrm{d}\theta\mathrm{d}\phi\, p(\theta,\phi) \ln \frac{p(\theta,\phi)}{p(\theta)p(\phi)}
+    I(\theta,\phi) = D_\mathrm{KL}(p(\theta,\phi)||p(\theta)p(\phi)) = \int\sin\theta\mathrm{d}\theta\mathrm{d}\phi\, p(\theta,\phi) \ln \frac{p(\theta,\phi)}{p(\theta)p(\phi)}
 \end{equation}
 
 where $p(\theta) = \int\mathrm{d}\phi\, p(\theta,\phi)$ and $p(\phi) = \int\sin\theta\mathrm{d}\theta\, p(\theta,\phi)$. 
@@ -341,10 +341,12 @@ Essentially, it is a modified dot product that tells us how similar to distribut
 The structural similarity attempts to model how the human eye distinguishes between images.
 
 \begin{equation}
-    \mathrm{SSI} = ??? \in [-1, 1]
+    \mathrm{SSI} = \left( \frac{2\mu_p\mu_q + c_1}{\mu_p^2 + \mu_q^2 + c_2}\right)\left( \frac{2\Sigma_{pq} + c_2}{\Sigma_{pp} + \Sigma_{qq} + c_2}\right) \in [-1, 1]
 \end{equation}
 
-mention the values of $c_1$, $c_2$ used in our analysis.
+where $\mu_{p} = \sum_\mathrm{pix} p / N_\mathrm{pix}$ and $\Sigma_{pq} = \sum_\mathrm{pix} (p-\mu_p)(q-\mu_q) / N_\mathrm{pix}$, with anagogous definitions for the other terms.
+$c_1$ and $c_2$ are regularizing constants that prevent the statistic from diverging if the averages and/or variances vanish. 
+These are taken to be much smaller than the expected range of $\mu$ and $\Sigma$ and therefore have little effect on the statistic in practice.
 
 \subsubsection{Symmetrick Kullback-Leibler divergence}
 
@@ -352,7 +354,7 @@ The Kullback-Leibler divergence is a non-symmetric distance measure between to d
 It can be thought of as the information lost when approximating the distribution $p$ with the distribution $q$.
 
 \begin{equation}
-    D_\mathrm{KL}(p||q) = \int\mathrm{d}\Omega p \ln \frac{p}{q} \in [0,\infty)
+    D_\mathrm{KL}(p||q) = \int\mathrm{d}\Omega\, p \ln \frac{p}{q} \in [0,\infty)
 \end{equation}
 
 We symmeterize this because we do not have an a priori preference between maps, which results in the symmetric KL divergence
@@ -807,6 +809,10 @@ parser.add_option("-a", "--annotate-gracedb", default=False, action="store_true"
 
 parser.add_option("-w", "--neighbor-window", default=None, type="float", help="search for neighbors within +/- neighbors_window and include any maps from those events in the comparison" )
 
+parser.add_option("", "--neighbors-not-my-group", default=False, action="store_true", help="restrict neighbors to events of different group")
+parser.add_option("", "--neighbors-not-my-pipeline", default=False, action="store_true", help="restrict neighbors to events from different pipeline")
+parser.add_option("", "--neighbors-not-my-search", default=False, action="store_true", help="restrict neighbors to events from different search. Does nothing if the event has no search defined.")
+
 parser.add_option("", "--color-map", default="cylon", type="string")
 
 opts, args = parser.parse_args()
@@ -879,6 +885,14 @@ for graceid in args:
         if opts.verbose:
             print( "\tsearching for neighbors within %.3f sec"%(opts.neighbor_window) )
         neighbors = [e for e in gracedb.events( "%.6f .. %.6f"%(geocent-opts.neighbor_window, geocent+opts.neighbor_window) ) if (e['graceid'][0] != 'H') and (e['graceid'] != graceid)]
+
+        if opts.neighbors_not_my_group: ### only include events from different group
+            neighbors = [e for e in neighbors if e['group'] != event['group']]
+        elif opts.neighbors_not_my_pipeline: ### only include events from different pipeline
+            neighbors = [e for e in neighbors if e['pipeline'] != event['pipeline']]
+        elif opts.neighbors_not_my_search and event.has_key('search'): ### only include events from different search
+            neighbors = [e for e in neighbors if (not e.has_key('search')) or (e['search']==event['search'])]
+
         for e in neighbors:
             if opts.verbose:
                 print( "\t\tfound : %s"%(e['graceid']) )
