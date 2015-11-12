@@ -104,23 +104,49 @@ def data2conclusions( fitsorder, fitsfiles ):
 
     ### check mutual information
     odd = []
+    nodd = []
     for gid, fits in fitsorder:
         miD = sanity2mi( fitsfiles[(gid, fits)]['sanitycheck'] )
         if miD[0] < 2*miD[1]:
             odd.append( (gid, fitsfiles[(gid,fits)]['label'].replace("_","\_"), miD[0], miD[1]) )
+        else:
+            nodd.append( (gid, fitsfites[(gid,fits)]['label'].replace("_","\_"), miD[0], miD[1]) )
+
     lenodd = len(odd)
+    lennodd = len(nodd)
     if lenodd > 2:
         string += r"""Based on the mutual information, there is unexpected behavior in"""
         for tup in odd[:-1]:
             string += r""" %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$),"""%tup
-        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$); all other maps appear consistent with expectations."""%odd[-1]
+        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$)"""%odd[-1]
+        if lennodd > 1:
+            string += r"""; all other maps appear consistent with expectations."""
+        elif lennodd:
+            string += r"""; the other map appears consistent with expectations."""
+        else:
+            string += r"""."""
     elif lenodd > 1:
         string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$))"""%odd[0] 
-        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$); all other maps appear consistent with expectations."""%odd[1]
+        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$)"""%odd[1]
+        if lennodd > 1:
+            string += r"""; all other maps appear consistent with expectations."""
+        elif lennodd:
+            string += r"""; the other map appears consistent with expectations."""
+        else:
+            string += r"""."""
     elif lenodd:
-        string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$); all other maps appear consistent with expectations."""%odd[0]
+        string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$)"""%odd[0]
+        if lennodd > 1:
+            string += r"""; all other maps appear consistent with expectations."""
+        elif lennodd:
+            string += r"""; the other map appear consistent with expectations."""
+        else:
+            string += r"""."""
     else:
-        string += r"""All maps appear consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
+        if lennodd > 1:
+            string += r"""All maps appear consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
+        else:
+            string += r"""The map appears consistent with expectations based on the mutual information ($I_{$\alpha,\delta}$ and $I_{\theta,\phi}$)."""
 
     ### check other things?
     ### fidelity between maps?        
