@@ -1,1 +1,4 @@
-nohup lvalert_listen -a gdb_processor -b skrite#batz -s lvalert.cgca.uwm.edu -r autosummary -c /home/gracedb.processor/users/ressick/skymap_statistics/autosummary-lvalertconfig.ini >> /home/gracedb.processor/users/ressick/working/lvalert_listen-autosummary.out &
+#!/bin/bash
+export PATH=/home/gracedb.processor/users/ressick/skymap_statistics/:${PATH}
+export PYTHONPATH=/home/gracedb.processor/users/ressick/skymaps_statistics/:${PYTHONPATH}
+lvalert_listen -a gdb_processor -b skrite#batz -s lvalert.cgca.uwm.edu -r autosummary -c /home/gracedb.processor/users/ressick/skymap_statistics/autosummary-lvalertconfig.ini >> /home/gracedb.processor/users/ressick/working/lvalert_listen-autosummary.out 

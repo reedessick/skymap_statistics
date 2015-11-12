@@ -835,7 +835,7 @@ parser = OptionParser(description=description, usage=usage)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
-parser.add_option("-G", '--gracedb_url', default=None, type="string")
+parser.add_option("-G", '--gracedb-url', default=None, type="string")
 
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
@@ -846,7 +846,7 @@ parser.add_option("-F", "--force", default=False, action="store_true", help="dow
 
 parser.add_option("-a", "--annotate-gracedb", default=False, action="store_true", help="upload a pdf to gracedb")
 
-parser.add_option("-w", "--neighbor-window", default=None, type="float", help="search for neighbors within +/- neighbors_window and include any maps from those events in the comparison" )
+parser.add_option("-w", "--neighbors-window", default=None, type="float", help="search for neighbors within +/- neighbors_window and include any maps from those events in the comparison" )
 
 parser.add_option("", "--neighbors-not-my-group", default=False, action="store_true", help="restrict neighbors to events of different group")
 parser.add_option("", "--neighbors-not-my-pipeline", default=False, action="store_true", help="restrict neighbors to events from different pipeline")
@@ -920,10 +920,10 @@ for graceid in args:
         fitsfiles[(graceid, fits)]['label'] = os.path.basename(filename).split(".")[0]
         fitsfiles[(graceid, fits)]['graceid'] = graceid
 
-    if opts.neighbor_window > 0: ### perform neighbor search
+    if opts.neighbors_window > 0: ### perform neighbor search
         if opts.verbose:
-            print( "\tsearching for neighbors within %.3f sec"%(opts.neighbor_window) )
-        neighbors = [e for e in gracedb.events( "%.6f .. %.6f"%(geocent-opts.neighbor_window, geocent+opts.neighbor_window) ) if (e['graceid'][0] != 'H') and (e['graceid'] != graceid)]
+            print( "\tsearching for neighbors within %.3f sec"%(opts.neighbors_window) )
+        neighbors = [e for e in gracedb.events( "%.6f .. %.6f"%(geocent-opts.neighbors_window, geocent+opts.neighbors_window) ) if (e['graceid'][0] != 'H') and (e['graceid'] != graceid)]
 
         if opts.neighbors_not_my_group: ### only include events from different group
             neighbors = [e for e in neighbors if e['group'] != event['group']]
@@ -1129,20 +1129,23 @@ for graceid in args:
         sp.Popen(cmd.split()).wait()
         os.chdir( cwd )
 
-    if opts.annotate_gracedb:
-        if opts.verbose:
-            print( "\tuploading to GraceDb" )
-        labels = [fitsfiles[(gid, fitsname)]['label'] for gid, fitsname in files ]
-        lenlabels = len(labels)        
-        if lenlabels > 2:
-            labels = "%s, and %s"%(", ".join(labels[:-1]), labels[-1])
-        elif lenlabels > 1:
-            labels = " and ".join(labels)
-        else:
-            labels = labels[0]
-        message = "skymap comparison for %s"%(labels)
-        if opts.verbose:
-            print( "\t%s"%(message) )
-        gracedb.writeLog( graceid, message, filename=docname, tagname="sky_loc" )
+        pdfname = docname.replace(".tex",".pdf")
+    
+        if opts.annotate_gracedb:
+            if opts.verbose:
+                print( "\tuploading to GraceDb" )
+#            labels = [ fitsfiles[(gid, fitsname)]['label'] for gid, fitsname in files ]
+            labels = [ fitsname for gid, fitsname in files ]
+            lenlabels = len(labels)        
+            if lenlabels > 2:
+                labels = "%s, and %s"%(", ".join(labels[:-1]), labels[-1])
+            elif lenlabels > 1:
+                labels = " and ".join(labels)
+            else:
+                labels = labels[0]
+            message = "skymap comparison for %s"%(labels)
+            if opts.verbose:
+                print( "\t%s"%(message) )
+            gracedb.writeLog( graceid, message, filename=pdfname, tagname="sky_loc" )
 
 

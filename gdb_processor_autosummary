@@ -34,7 +34,7 @@ if args.command == 'start':
 
 universe            = local
 
-executable          = %s/lvalert-init_autosummary_wrapper
+executable          = %s/lvalert-init_autosummary
 getenv              = True
 notification        = never
 environment         = DISPLAY=localhost:10.0

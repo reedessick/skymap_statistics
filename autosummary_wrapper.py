@@ -11,6 +11,8 @@ import json
 
 import subprocess as sp
 
+from ligo.gracedb.rest import GraceDb
+
 from ConfigParser import SafeConfigParser
 from optparse import OptionParser
 
@@ -42,7 +44,7 @@ if opts.verbose:
 alert = json.loads(alert)
 
 ### determine if we need to react (only when there is a new FITS file)
-if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswidth(".fits"):  ### check for new FITS file 
+if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswith(".fits"):  ### check for new FITS file 
 
     ### configure command
     if opts.verbose:
@@ -61,13 +63,13 @@ if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswidt
     gid_done = []
 
     while len(gid_todo):
-        gid = pop( gid_todo )
+        gid = gid_todo.pop( 0 )
         if opts.verbose:
             print "working on : %s"%gid
 
         event = gracedb.event( gid ).json()
         if event.has_key( 'search' ):
-            event_type = "%s_%s_%s"%(evnet['group'], event['pipeline'], event['search'])
+            event_type = "%s_%s_%s"%(event['group'], event['pipeline'], event['search'])
         else:
             event_type = "%s_%s"%(event['group'], event['pipeline'])
         event_type = event_type.lower()
@@ -85,7 +87,7 @@ if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswidt
             w = float(options["neighbors-window"])
             if w > 0:
                 ### find neighbors
-                neighbors = [e for e in gracedb.events( "%.6f .. %.6f"%(event['gps']-w, event['gps']+w) ) if (e['graceid'][0] != "H") and (e['graceid'] != gid)]
+                neighbors = [e for e in gracedb.events( "%.6f .. %.6f"%(float(event['gpstime'])-w, float(event['gpstime'])+w) ) if (e['graceid'][0] != "H") and (e['graceid'] != gid)]
 
                 ### filter neighbors
                 if options.has_key('neighbors-not-my-group'):
@@ -100,7 +102,7 @@ if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswidt
                     if e['graceid'] not in gid_todo+gid_done:
                         gid_todo.append( e['graceid'] )
 
-        cmd = "autosummary.py %s %s"%( gid, " ".join("--%s %s"%tup for tup in options) )
+        cmd = "autosummary.py %s %s"%( gid, " ".join("--%s %s"%tup for tup in options.items()) )
         out = "%s/autosummary_%s.out"%(opts.log_dir, gid)
         err = "%s.err"%(out[:-4])
 
@@ -109,16 +111,16 @@ if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswidt
             print "%s > %s, %s"%(cmd, out, err)
         out_obj = open(out, "w")
         err_obj = open(err, "w")
-#        proc = sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj )
-#        if opts.verbose:
-#            print "process successfully forked : %s -> %d"%(gid, proc.pid)
+        proc = sp.Popen( cmd.split(), stdout=out_obj, stderr=err_obj )
+        if opts.verbose:
+            print "process successfully forked : %s -> %d"%(gid, proc.pid)
         out_obj.close()
         err_obj.close()
 
-#        if not opts.dont_wait:
-#            proc.wait()
+        if not opts.dont_wait:
+            proc.wait()
 
         gid_done.append( gid )
 
-elif opts.verobse:
+elif opts.verbose:
     print "alert isn't about a new FITS file, ignoring"
