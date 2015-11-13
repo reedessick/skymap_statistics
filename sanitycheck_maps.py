@@ -1,3 +1,4 @@
+#!/usr/bin/python
 description = """generate some sanity checks based on basic triangulation"""
 usage = "sanitycheck_maps.py [--options] label,fits label,fits label,fits ..."
 author = "Reed Essick (reed.essick@ligo.org)"

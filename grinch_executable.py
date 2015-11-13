@@ -1,3 +1,4 @@
+#!/usr/bin/python
 usage = "grinch_executable.py [--options] graceid"
 description = "manages the interface between GraceDB and the command line inputs for skymap quantification code"
 author = "R. Essick (reed.essick@ligo.org), A. Urban (aurban@uwm.edu)"

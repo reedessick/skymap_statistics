@@ -1,3 +1,4 @@
+#!/usr/bin/python
 usage = "python overlay_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "overlays skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_contour"
 author = "R. Essick (reed.essick@ligo.org)"

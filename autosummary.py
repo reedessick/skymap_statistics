@@ -31,7 +31,7 @@ from optparse import OptionParser
 #    return string, figname
 
 def plot_cmd( fitsfile, label, outdir=".", radec=None, color_map="Reds" ):
-    string = "python plot_maps.py -v -o %s --color-map %s %s,%s"%(outdir, color_map, label, fitsfile)
+    string = "plot_maps.py -v -o %s --color-map %s %s,%s"%(outdir, color_map, label, fitsfile)
     return string, "%s/%s.png"%(outdir, label)
 
 ###
@@ -40,7 +40,7 @@ def analyze_cmd( fitsfile, radec=None ):
     """
     return the command string for analyzing
     """
-    string = "python analyze_maps.py -v -d -H -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s"%(os.path.basename(fitsfile).split(".")[0], fitsfile)
+    string = "analyze_maps.py -v -d -H -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s,%s"%(os.path.basename(fitsfile).split(".")[0], fitsfile)
     if radec:
         ra, dec = radec
         phi = ra*180/np.pi
@@ -55,7 +55,7 @@ def sanitycheck_cmd( fitsfile, geocent, outdir=".", los="H,L", color_map="Reds" 
     return the command string for sanity checking
     """
     label = os.path.basename(fitsfile).split(".")[0]
-    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -t %s -m -p -g --color-map %s %s,%s"%(los, geocent, outdir, label, color_map, label, fitsfile)
+    string = "sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -t %s -m -p -g --color-map %s %s,%s"%(los, geocent, outdir, label, color_map, label, fitsfile)
     return string
 
 ###
@@ -64,7 +64,7 @@ def sanityoverlay_cmd( fitsfiles, geocent, outdir=".", los="H,L" ):
     """
     return the command string for sanity overlay plots
     """
-    string = "python sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s:%s,%s"%(g,l, f) for g,f,l in fitsfiles ) )
+    string = "sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s:%s,%s"%(g,l, f) for g,f,l in fitsfiles ) )
     return string
 
 ###
@@ -73,7 +73,7 @@ def compare_cmd( (gid, fitsfile, label), (gID, fitsFile, laBel) ):
     """
     return the command string for comparing
     """
-    string = "python compare_maps.py -v -d --dMAP --fidelity --structural-similarity --symKL -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s:%s,%s %s:%s,%s"%(gid, label, fitsfile, gID, laBel, fitsFile)
+    string = "compare_maps.py -v -d --dMAP --fidelity --structural-similarity --symKL -s 0.10 -s 0.25 -s 0.50 -s 0.75 -s 0.90 -s 0.95 -s 0.99 -c 0.10 -c 0.25 -c 0.50 -c 0.75 -c 0.90 -c 0.95 -c 0.99 %s:%s,%s %s:%s,%s"%(gid, label, fitsfile, gID, laBel, fitsFile)
     return string
 
 ###
@@ -82,7 +82,7 @@ def overlay_cmd( (gid, fitsfile, label), (gID, fitsFile, laBel), outdir="." ):
     """
     return the command string for overlaying
     """
-    string = "python overlay_maps.py -v -c 0.10 -c 0.50 -c 0.90 -c 0.99 -o %s %s:%s,%s %s:%s,%s"%(outdir, gid, label, fitsfile, gID, laBel, fitsFile)
+    string = "overlay_maps.py -v -c 0.10 -c 0.50 -c 0.90 -c 0.99 -o %s %s:%s,%s %s:%s,%s"%(outdir, gid, label, fitsfile, gID, laBel, fitsFile)
     return string
 
 ###

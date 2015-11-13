@@ -1,3 +1,4 @@
+#!/usr/bin/python
 usage = "python compare_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "plot skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_heatmap"
 author = "R. Essick (reed.essick@ligo.org)"

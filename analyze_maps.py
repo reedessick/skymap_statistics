@@ -1,3 +1,4 @@
+#!/usr/bin/python
 usage = "python analyze_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several descriptive statistics about the maps provided"
 author = "R. Essick (reed.essick@ligo.org)"

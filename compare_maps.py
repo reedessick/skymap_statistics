@@ -1,3 +1,4 @@
+#!/usr/bin/python
 usage = "python compare_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several comparison statistics for the FITs files provided. Computes comparison statistics for all possible pairings (downsampling the finner resolution map if needed)"
 author = "R. Essick (reed.essick@ligo.org)"
