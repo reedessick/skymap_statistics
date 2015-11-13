@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 # store the name of the home directory as a global variable
 #home = os.getenv("HOME")
-home = "/home/gracedb.processor/users/ressick/skymap_statistics/"
+home = "/home/gracedb.processor/users/ressick/"
 
 # switch to the working directory
 if not os.path.exists(home+"/working/log/"):

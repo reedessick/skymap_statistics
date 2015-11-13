@@ -110,7 +110,7 @@ def data2conclusions( fitsorder, fitsfiles ):
         if miD[0] < 2*miD[1]:
             odd.append( (gid, fitsfiles[(gid,fits)]['label'].replace("_","\_"), miD[0], miD[1]) )
         else:
-            nodd.append( (gid, fitsfites[(gid,fits)]['label'].replace("_","\_"), miD[0], miD[1]) )
+            nodd.append( (gid, fitsfiles[(gid,fits)]['label'].replace("_","\_"), miD[0], miD[1]) )
 
     lenodd = len(odd)
     lennodd = len(nodd)
@@ -146,7 +146,7 @@ def data2conclusions( fitsorder, fitsfiles ):
         if lennodd > 1:
             string += r"""All maps appear consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
         else:
-            string += r"""The map appears consistent with expectations based on the mutual information ($I_{$\alpha,\delta}$ and $I_{\theta,\phi}$)."""
+            string += r"""The map appears consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
 
     ### check other things?
     ### fidelity between maps?        

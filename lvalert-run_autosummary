@@ -1,0 +1,4 @@
+#!/bin/bash
+export PATH=/home/gracedb.processor/users/ressick/skymap_statistics/:${PATH}
+export PYTHONPATH=/home/gracedb.processor/users/ressick/skymaps_statistics/:${PYTHONPATH}
+/home/gracedb.processor/users/ressick/skymap_statistics/autosummary_wrapper.py -v -c /home/gracedb.processor/users/ressick/skymap_statistics/autosummary.ini -l /home/gracedb.processor/user/ressick/working/autosummary-log/
