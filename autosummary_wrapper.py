@@ -44,11 +44,11 @@ if opts.verbose:
 alert = json.loads(alert)
 
 ### determine if we need to react (only when there is a new FITS file)
-if (alert['alert_type'] == 'update') and alert['filename'].strip(".gz").endswith(".fits"):  ### check for new FITS file 
+if (alert['alert_type'] == 'update') and alert['file'].strip(".gz").endswith(".fits"):  ### check for new FITS file 
 
     ### configure command
     if opts.verbose:
-        print "new FITS file : %s -> %s"%(alert['uid'], alert['filename'])
+        print "new FITS file : %s -> %s"%(alert['uid'], alert['file'])
         print "reading config : %s"%(opts.config)
     config = SafeConfigParser()
     config.read( opts.config )

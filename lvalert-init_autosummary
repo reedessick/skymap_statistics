@@ -1,2 +1,2 @@
 #!/bin/bash
-lvalert_listen -a gdb_processor -b skrite#batz -s lvalert.cgca.uwm.edu -r autosummary -c /home/gracedb.processor/users/ressick/skymap_statistics/autosummary-lvalertconfig.ini >> /home/gracedb.processor/users/ressick/working/lvalert_listen-autosummary.out 
+lvalert_listen -a gdb_processor -b skrite#batz -s lvalert.cgca.uwm.edu -r autosummary -c /home/gracedb.processor/users/ressick/skymap_statistics/autosummary-lvalertconfig.ini --dont-wait >> /home/gracedb.processor/users/ressick/working/lvalert_listen-autosummary.out 
