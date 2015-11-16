@@ -60,11 +60,13 @@ def sanitycheck_cmd( fitsfile, geocent, outdir=".", los="H,L", color_map="Reds" 
 
 ###
 
-def sanityoverlay_cmd( fitsfiles, geocent, outdir=".", los="H,L" ):
+def sanityoverlay_cmd( fitsfiles, geocent, outdir=".", los="H,L", tag="" ):
     """
     return the command string for sanity overlay plots
     """
     string = "sanitycheck_maps.py -v -L %s -c C -T %.6f -o %s -p -g -C %s"%(los, geocent, outdir, " ".join( "%s:%s,%s"%(g,l, f) for g,f,l in fitsfiles ) )
+    if tag:
+        string += " -t %s"%tag
     return string
 
 ###
@@ -314,8 +316,8 @@ This document was generated and compiled automatically and has not been validate
 %s
 """%(overlay2string( fitsorder, fitsfiles ))
 
-        ### sanityoverlay plot
-        string += r"""
+    ### sanityoverlay plot
+    string += r"""
 %s
 """%sanityoverlay2string( fitsfiles['sanityoverlay'] )
 
@@ -880,6 +882,8 @@ parser.add_option("", "--neighbors-not-my-search", default=False, action="store_
 
 parser.add_option("", "--color-map", default="cylon", type="string")
 
+parser.add_option("", "--lvem", default=False, action="store_true", help="restrict maps to only those with an lvem label")
+
 opts, args = parser.parse_args()
 
 if not len(args):
@@ -928,6 +932,18 @@ for graceid in args:
     ### pull down fits files
     files = sorted( gracedb.files( graceid ).json().keys() )
     fitsfiles = dict( ((graceid, filename),{}) for filename in files if filename.strip(".gz").endswith(".fits") )
+
+    if opts.lvem:
+        if opts.verbose:
+            print( "\tdownselecting FITS files with lvem tag" )
+        logs = gracedb.logs( graceid ).json()['log']
+        for log in logs:
+            for gid, fitsfile in fitsfiles.keys():
+                if fitsfile == log['filename']:
+                    fitsfiles[(gid, fitsfile)]['tag_names'] = log['tag_names']
+                    break
+        fitsfiles = dict( (key,value) for key, value in fitsfiles.items() if "lvem" in value['tag_names'] )
+
     old = True ### records whether there is a new FITS
                 ### used for sanityoverlay
     for _, fits in fitsfiles.keys():
@@ -964,8 +980,20 @@ for graceid in args:
             noutdir = "%s/%s"%(opts.output_dir, e['graceid'])
             if not os.path.exists( noutdir ):
                 os.makedirs( noutdir )
-            files = sorted( gracedb.files( e['graceid'] ).json().keys() )
-            for fits in [filename for filename in files if filename.strip(".gz").endswith(".fits") ]:
+            files = dict( (fit,{}) for fit in gracedb.files( e['graceid'] ).json().keys() if fit.strip(".gz").endswith(".fits") )
+
+            if opts.lvem:
+                if opts.verbose:
+                    print( "\tdownselecting FITS files with lvem tag" )
+                logs = gracedb.logs( graceid ).json()['log']
+                for log in logs:
+                    for gid, fitsfile in files.keys():
+                        if fitsfile == log['filename']:
+                            files[(gid, fitsfile)]['tag_names'] = log['tag_names']
+                            break
+                files = dict( (key,value) for key, value in files.items() if "lvem" in value['tag_names'] )
+
+            for fits in files.keys():
                 fitsfiles.update( {(e['graceid'],fits):{}} )
                 filename = "%s/%s"%(noutdir, fits)
                 if notforce and os.path.exists( filename ):
@@ -983,6 +1011,11 @@ for graceid in args:
                 fitsfiles[(e['graceid'], fits)]['graceid'] = e['graceid']
     else:
         neighbors = []
+
+    if not len(fitsfiles.keys()):
+        if opts.verbose:
+            print( "\tno FITS files found...skipping" )
+        continue
 
     ### plot fits files
     if opts.verbose:
@@ -1055,14 +1088,19 @@ for graceid in args:
         out_obj.close()
 
     ### sanity overlay
-    out = "%s/sanityoverlay.out"%(outdir)
-    if old and notforce:
-        if opts.verbose:
-            print( "\tnothing new to sanity overlay" )
+    if opts.lvem:
+        out = "%s/sanityoverlay_lvem.out"%(outdir)
+        cmd = sanityoverlay_cmd( [(gid, fitsfiles[(gid,fitsfile)]['path'], fitsfiles[(gid,fitsfile)]['label']) for gid,fitsfile in files], geocent, outdir=outdir, los="H,L", tag="lvem" )
+    else:
+        out = "%s/sanityoverlay.out"%(outdir)
+        cmd = sanityoverlay_cmd( [(gid, fitsfiles[(gid,fitsfile)]['path'], fitsfiles[(gid,fitsfile)]['label']) for gid,fitsfile in files], geocent, outdir=outdir, los="H,L" )
+    if os.path.exists( out ):
+        if old and notforce:
+            if opts.verbose:
+                print( "\tnothing new to sanity overlay" )
     else:
         if opts.verbose:
             print( "\tsanity overlay" )
-        cmd = sanityoverlay_cmd( [(gid, fitsfiles[(gid,fitsfile)]['path'], fitsfiles[(gid,fitsfile)]['label']) for gid,fitsfile in files], geocent, outdir=outdir, los="H,L" )
         err = "%s.err"%(out[:-4])
         if opts.verbose:
             print( "\t\t%s > %s, %s"%(cmd, out, err) )
@@ -1140,7 +1178,10 @@ for graceid in args:
     #====================
 
     ### write latex document
-    docname = "%s/summary.tex"%(outdir)
+    if opts.lvem:
+        docname = "%s/lvem_summary.tex"%(outdir)
+    else:
+        docname = "%s/summary.tex"%(outdir)
     if opts.verbose:
         print( "\twriting : %s"%(docname) )
     doc = open(docname, "w")
@@ -1172,6 +1213,10 @@ for graceid in args:
             message = "skymap comparison for %s"%(labels)
             if opts.verbose:
                 print( "\t%s"%(message) )
-            gracedb.writeLog( graceid, message, filename=pdfname, tagname="sky_loc" )
+            tags = ["sky_loc"]
+            if opts.lvem:
+                tags.append( "lvem" )
+                message = "lvem-only "+message
+            gracedb.writeLog( graceid, message, filename=pdfname, tagname=tags )
 
 
