@@ -45,7 +45,15 @@ parser.add_option("", "--color-map", default="Reds", type="string", help="Defaul
 
 parser.add_option("-t", "--tag", default="", type="string")
 
+parser.add_option("-T", "--transparent", default=False, action="store_true")
+
+parser.add_option("", "--figtype", default=[], action="append", type="string")
+parser.add_option("", "--dpi", default=500, type="int")
+
 opts, args = parser.parse_args()
+
+if not opts.figtype:
+    opts.figtype.append( "png" )
 
 if opts.tag:
 	opts.tag = "_%s"%opts.tag
@@ -107,10 +115,16 @@ for label in labels:
 
 	lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
 
-	figname = "%s/%s%s.png"%(opts.output_dir, label, opts.tag)
-	if opts.verbose:
-		print "\t", figname
-	plt.savefig( figname )
+	if opts.transparent:
+		fig.patch.set_alpha(0.)
+		ax.patch.set_alpha(0.)
+		ax.set_alpha(0.)
+
+	for figtype in opts.figtype:
+	    	figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
+		if opts.verbose:
+			print "\t", figname
+		plt.savefig( figname, dpi=opts.dpi )
 	plt.close( fig )
 
 	figind += 1
