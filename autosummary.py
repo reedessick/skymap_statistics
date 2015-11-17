@@ -117,10 +117,10 @@ def data2conclusions( fitsorder, fitsfiles ):
     lenodd = len(odd)
     lennodd = len(nodd)
     if lenodd > 2:
-        string += r"""Based on the mutual information, there is unexpected behavior in"""
+        string += r"""Based on the mutual information metric, there is unexpected behavior in"""
         for tup in odd[:-1]:
-            string += r""" %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$),"""%tup
-        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$)"""%odd[-1]
+            string += r""" %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$),"""%tup
+        string += r""" and %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$)"""%odd[-1]
         if lennodd > 1:
             string += r"""; all other maps appear consistent with expectations."""
         elif lennodd:
@@ -128,8 +128,8 @@ def data2conclusions( fitsorder, fitsfiles ):
         else:
             string += r"""."""
     elif lenodd > 1:
-        string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$))"""%odd[0] 
-        string += r""" and %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$)"""%odd[1]
+        string += r"""Based on the mutual information metric, there is unexpected behavior in %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$))"""%odd[0] 
+        string += r""" and %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$)"""%odd[1]
         if lennodd > 1:
             string += r"""; all other maps appear consistent with expectations."""
         elif lennodd:
@@ -137,7 +137,7 @@ def data2conclusions( fitsorder, fitsfiles ):
         else:
             string += r"""."""
     elif lenodd:
-        string += r"""Based on the mutual information, there is unexpected behavior in %s:%s (which has $I_{\alpha,\delta}=%.3f$ and $I_{\theta,\phi}=%.3f$)"""%odd[0]
+        string += r"""Based on the mutual information metric, there is unexpected behavior in %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$)"""%odd[0]
         if lennodd > 1:
             string += r"""; all other maps appear consistent with expectations."""
         elif lennodd:
@@ -146,9 +146,9 @@ def data2conclusions( fitsorder, fitsfiles ):
             string += r"""."""
     else:
         if lennodd > 1:
-            string += r"""All maps appear consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
+            string += r"""All maps appear consistent with expectations based on the mutual information metric ($D_{\alpha,\delta}$ and $D_{\theta,\phi}$)."""
         else:
-            string += r"""The map appears consistent with expectations based on the mutual information ($I_{\alpha,\delta}$ and $I_{\theta,\phi}$)."""
+            string += r"""The map appears consistent with expectations based on the mutual information metric ($D_{\alpha,\delta}$ and $D_{\theta,\phi}$)."""
 
     ### check other things?
     ### fidelity between maps?        
@@ -368,7 +368,7 @@ The No. disjoint regions is the number of separate regions, which do not touch, 
 Typically, for 2-detector networks, we have 2 disjoint regions (one overhead and one underneath the detectors).
 $\mathrm{max}\{\delta\theta\}$ is the largest angular separation between any two pixels contained in the set.
 
-\subsection{Mutual Information}
+\subsection{Mutual Information Metric}
 
 We define the mutual information between $\theta$ and $\phi$ as the Kullback-Leibler divergence from the joint distribution to the product of the marginals.
 
@@ -380,7 +380,22 @@ where $p(\theta) = \int\mathrm{d}\phi\, p(\theta,\phi)$ and $p(\phi) = \int\sin\
 Note, this measure represents the amount of information lost by approximating the true joint distribution by the product of the marginals.
 It is \textit{not} invarient under general coordinate transformations, in particular under rotations. 
 We use this to our advantage and compute $I$ for the original map and the map rotated into the line-of-sight frame defined by the two detectors.
-If our intuition from triangulation is correct, then $I$ in the rotated frame should be significantly smaller (typically a factor of $\sim$10) than $I$ in Celestial coordinates.
+
+In general, $I$ also depends on the pixelization used.
+However, for discrete distributions we know that $0 \leq I \leq H$, where $H$ is the entropy of the joint distribution.
+
+\begin{equation}
+    H(\theta, \phi) = - \int\sin\theta\mathrm{d}\theta\mathrm{d}\phi\, p(\theta,\phi) \ln p(\theta,\phi)
+\end{equation}
+
+In this way, we can define a normalized distance measure based on the mutual information
+
+\begin{equation}
+    D_\mathrm{MI} = \frac{I(\theta,\phi)}{H(\theta,\phi)} \in [0, 1]
+\end{equation}
+
+
+If our intuition from triangulation is correct, then $D_\mathrm{MI}$ in the rotated frame should be significantly smaller (typically a factor of $\sim$10) than $I$ in Celestial coordinates.
 
 \subsection{comparison of maps}
 
@@ -550,7 +565,7 @@ def sanity2string( sanity ):
     \begin{tabular}{c | c c}
         & unrotated & rotated \\
         \hline
-        mutual information distance $\equiv \frac{I(\theta,\phi)}{H(\theta,\phi)}$ & %.6f & %.6f
+        mutual information distance $D_\mathrm{MI} \equiv \frac{I(\theta,\phi)}{H(\theta,\phi)}$ & %.6f & %.6f
     \end{tabular}
 \end{center}
 """%tuple(miD)
