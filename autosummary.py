@@ -119,8 +119,8 @@ def data2conclusions( fitsorder, fitsfiles ):
     if lenodd > 2:
         string += r"""Based on the mutual information metric, there is unexpected behavior in"""
         for tup in odd[:-1]:
-            string += r""" %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$),"""%tup
-        string += r""" and %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$)"""%odd[-1]
+            string += r""" %s:%s (which has $D_\mathrm{MI}(\alpha,\delta)=%.3f$ and $D_\mathrm{MI}(\theta,\phi)=%.3f$),"""%tup
+        string += r""" and %s:%s (which has $D_\mathrm{MI}(\alpha,\delta)=%.3f$ and $D_\mathrm{MI}(\theta,\phi)=%.3f$)"""%odd[-1]
         if lennodd > 1:
             string += r"""; all other maps appear consistent with expectations."""
         elif lennodd:
@@ -128,8 +128,8 @@ def data2conclusions( fitsorder, fitsfiles ):
         else:
             string += r"""."""
     elif lenodd > 1:
-        string += r"""Based on the mutual information metric, there is unexpected behavior in %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$))"""%odd[0] 
-        string += r""" and %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$)"""%odd[1]
+        string += r"""Based on the mutual information metric, there is unexpected behavior in %s:%s (which has $D_\mathrm{MI}(\alpha,\delta)=%.3f$ and $D_\mathrm{MI}(\theta,\phi)=%.3f$))"""%odd[0] 
+        string += r""" and %s:%s (which has $D_\mathrm{MI}(\alpha,\delta)=%.3f$ and $D_\mathrm{MI}(\theta,\phi)=%.3f$)"""%odd[1]
         if lennodd > 1:
             string += r"""; all other maps appear consistent with expectations."""
         elif lennodd:
@@ -137,7 +137,7 @@ def data2conclusions( fitsorder, fitsfiles ):
         else:
             string += r"""."""
     elif lenodd:
-        string += r"""Based on the mutual information metric, there is unexpected behavior in %s:%s (which has $D_{\alpha,\delta}=%.3f$ and $D_{\theta,\phi}=%.3f$)"""%odd[0]
+        string += r"""Based on the mutual information metric, there is unexpected behavior in %s:%s (which has $D_\mathrm{MI}(\alpha,\delta)=%.3f$ and $D_\mathrm{MI}(\theta,\phi)=%.3f$)"""%odd[0]
         if lennodd > 1:
             string += r"""; all other maps appear consistent with expectations."""
         elif lennodd:
@@ -146,9 +146,9 @@ def data2conclusions( fitsorder, fitsfiles ):
             string += r"""."""
     else:
         if lennodd > 1:
-            string += r"""All maps appear consistent with expectations based on the mutual information metric ($D_{\alpha,\delta}$ and $D_{\theta,\phi}$)."""
+            string += r"""All maps appear consistent with expectations based on the mutual information metric ($D_\mathrm{MI}(\alpha,\delta)$ and $D_\mathrm{MI}(\theta,\phi)$)."""
         else:
-            string += r"""The map appears consistent with expectations based on the mutual information metric ($D_{\alpha,\delta}$ and $D_{\theta,\phi}$)."""
+            string += r"""The map appears consistent with expectations based on the mutual information metric ($D_\mathrm{MI}(\alpha,\delta)$ and $D_\mathrm{MI}(\theta,\phi)$)."""
 
     ### check other things?
     ### fidelity between maps?        
@@ -565,7 +565,7 @@ def sanity2string( sanity ):
     \begin{tabular}{c | c c}
         & unrotated & rotated \\
         \hline
-        mutual information distance $D_\mathrm{MI} \equiv \frac{I(\theta,\phi)}{H(\theta,\phi)}$ & %.6f & %.6f
+        mutual information distance ($D_\mathrm{MI}$) & %.6f & %.6f
     \end{tabular}
 \end{center}
 """%tuple(miD)
