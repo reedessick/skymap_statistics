@@ -941,7 +941,7 @@ for graceid in args:
     geocent = float(event['gpstime'])
     instruments = event['instruments']
 
-    if instruments.replace("1","")!="H,L":
+    if instruments.replace("1","").replace(",","") not in ["HL", "LH"]:
         raise ValueError("don't know how to processes events with instruments=%s"%(instruments))
 
     ### pull down fits files
