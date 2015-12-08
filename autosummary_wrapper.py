@@ -80,7 +80,7 @@ if (alert['alert_type'] == 'update') and alert['file'].strip(".gz").endswith(".f
             if opts.verbose:
                 print "\tloading extra instructions from section : %s"%event_type
             options.update( dict( config.items( event_type ) ) )
-        elif verbose:
+        elif opts.verbose:
             print "\tno section found for event_type : %s"%event_type
 
         if options.has_key("neighbors-window"):
