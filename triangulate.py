@@ -47,6 +47,21 @@ def __celest2earth( dec, ra, tgeocent ):
 
 #=================================================
 
+def antipode( x, y, coord="C", degrees=False ):
+    """
+    if coord=C : x->ra, y->dec
+    if coord=E : x->phi, y->theta
+    returns the anitpode position
+    """
+    if coord=="C":
+        Y, X = hp.vec2ang( -hp.ang2vec(0.5*np.pi-y,x) )
+        Y = 0.5*np.pi - Y
+    elif coord=="E":
+        Y, X = hp.vec2ang( -hp.ang2vec(y,x) )
+    return X, Y
+
+#=================================================
+
 def line_of_sight( ifo1, ifo2, coord="E", tgeocent=None, degrees=False ):
     """
     returns the line-of-sight between two detectors in either Earth-fixed ("E") or Celestial ("C") coordinates.
@@ -192,4 +207,12 @@ def mutualinformation( count, bins=None ):
     entj = np.sum( (weights*count)[truth] * np.log( (weights*count)[truth] ) )
 
     return mi, -entj
+
+def compute_mi( theta, phi, Nbins, weights=None ):
+    theta_bins = np.linspace(0, np.pi, Nbins+1)
+    phi_bins = np.linspace(-np.pi, np.pi, Nbins+1)
+
+    count = np.histogram2d( phi, theta, bins=(phi_bins, theta_bins), weights=weights )[0]
+
+    return mutualinformation( count, bins=None )
 

@@ -18,6 +18,7 @@ import numpy as np
 import healpy as hp
 
 import stats
+import triangulate
 
 from optparse import OptionParser
 
@@ -44,7 +45,18 @@ parser.add_option("-p", "--projection", default="astro mollweide", type="string"
 
 parser.add_option("-t", "--tag", default="", type="string")
 
+parser.add_option("", "--figtype", default=[], action="append", type="string")
+parser.add_option("", "--dpi", default=500, type="int")
+
+parser.add_option("", "--line-of-sight", default=[], action="append", type="string", help="eg: HL")
+parser.add_option("", "--zenith", default=[], action="append", type="string", help="eg: H")
+parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
+parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial")
+
 opts, args = parser.parse_args()
+
+if not opts.figtype:
+    opts.figtype.append( "png" )
 
 if opts.tag:
 	opts.tag = "_%s"%opts.tag
@@ -73,7 +85,8 @@ else:
 
 labels = sorted(maps.keys())
 
-#==========================================================
+if (opts.line_of_sight or opts.zenith) and (opts.gps==None):
+    opts.gps = float(raw_input("gps = "))
 
 #==========================================================
 ### load posteriors from fits files
@@ -102,7 +115,29 @@ for label in labels:
 	d['estang'] = stats.estang(post, nside=nside)
 
 #=================================================
-### iterate through pairs and compute statistics
+
+### figure out positions for line-of-sight and zenith markers
+if opts.line_of_sight:
+    line_of_sight = []
+    for ifos in opts.line_of_sight:
+        y, x = triangulate.line_of_sight(ifos[1], ifos[0], coord=opts.coord, tgeocent=opts.gps, degrees=False)
+        X, Y = triangulate.antipode( x, y, coord=opts.coord, degrees=False)
+        line_of_sight.append( (ifos, (y,x), (Y,X)) )
+else:
+    line_of_sight = []
+
+if opts.zenith:
+    zenith = []
+    for ifo in opts.zenith:
+        y, x = triangulate.overhead(ifo, coord=opts.coord, tgeocent=opts.gps, degrees=False)
+        X, Y = triangulate.antipode( x, y, coord=opts.coord, degrees=False)
+        zenith.append( (ifo, (y,x), (Y,X)) )
+else:
+    zenith = []
+
+#=================================================
+
+### iterate through and plot
 
 figind = 0
 for ind, label1 in enumerate(labels):
@@ -140,13 +175,39 @@ for ind, label1 in enumerate(labels):
 		fig.text(0.1, 0.9, label1.replace("_","\_"), color='b', ha='center', va='center')
 		fig.text(0.9, 0.9, label2.replace("_","\_"), color='r', ha='center', va='center')
 
-		figname = "%s/%s-%s%s.png"%(opts.output_dir, label1, label2, opts.tag)
-		if opts.verbose:
-			print "\t", figname
-		plt.savefig( figname)
-#		fig.savefig( figname)
-		plt.close( fig )
+        	for ifos, (y,x), (Y,X) in line_of_sight:
+	                if x > np.pi:
+                	        ax.plot( x-2*np.pi, y, color='k', marker='o', markersize=2 )
+        	                ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
+	                else:
+                	        ax.plot( x, y, color='k', marker='o', markersize=2 )
+        	                ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
+	                if X > np.pi:
+                	        ax.plot( X-2*np.pi, Y, color='k', marker='o', markersize=2 )
+        	                ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+	                else:
+                	        ax.plot( X, Y, color='k', marker='o', markersize=2 )
+        	                ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+
+	        for ifo, (y,x), (Y,X) in zenith:
+                	if x > np.pi:
+        	                ax.plot( x-2*np.pi, y, color='k', marker='s', markersize=2 )
+	                        ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom' )
+                	else:
+        	                ax.plot( x, y, color='k', marker='s', markersize=2 )
+	                        ax.text( x, y, " "+ifo+"+", ha='left', va='bottom' )
+                	if X > np.pi:
+        	                ax.plot( X-2*np.pi, Y, color='k', marker='s', markersize=2 )
+	                        ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom' )
+                	else:
+        	                ax.plot( X, Y, color='k', marker='s', markersize=2 )
+	                        ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom' )
+
+		for figtype in opts.figtype:
+  			figname = "%s/%s-%s%s.%s"%(opts.output_dir, label1, label2, opts.tag, figtype)
+			if opts.verbose:
+				print "\t", figname
+			plt.savefig( figname, dpi=opts.dpi )
+			plt.close( fig )
 
 		figind += 1
-
-

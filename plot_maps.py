@@ -18,13 +18,20 @@ import numpy as np
 import healpy as hp
 
 import stats
+import triangulate
 
 from optparse import OptionParser
+
+#==========================================================
+
+colors = ['b', 'r', 'g', 'm', 'c', 'k', 'y']
 
 #==========================================================
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
+
+parser.add_option("", "--stack-posteriors", default=False, action="store_true")
 
 parser.add_option("-l", "--logarithmic", default=False, action="store_true")
 
@@ -49,6 +56,11 @@ parser.add_option("-T", "--transparent", default=False, action="store_true")
 
 parser.add_option("", "--figtype", default=[], action="append", type="string")
 parser.add_option("", "--dpi", default=500, type="int")
+
+parser.add_option("", "--line-of-sight", default=[], action="append", type="string", help="eg: HL")
+parser.add_option("", "--zenith", default=[], action="append", type="string", help="eg: H")
+parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
+parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial")
 
 opts, args = parser.parse_args()
 
@@ -77,12 +89,43 @@ else:
 
 labels = sorted(maps.keys())
 
-#==========================================================
+if (opts.line_of_sight or opts.zenith) and (opts.gps==None):
+    opts.gps = float(raw_input("gps = "))
+
+#=================================================
+
+### figure out positions for line-of-sight and zenith markers
+if opts.line_of_sight:
+    line_of_sight = []
+    for ifos in opts.line_of_sight:
+        y, x = triangulate.line_of_sight(ifos[1], ifos[0], coord=opts.coord, tgeocent=opts.gps, degrees=False)
+        X, Y = triangulate.antipode( x, y, coord=opts.coord, degrees=False)
+        line_of_sight.append( (ifos, (y,x), (Y,X)) ) 
+else:
+    line_of_sight = []
+
+if opts.zenith:
+    zenith = []
+    for ifo in opts.zenith:
+        y, x = triangulate.overhead(ifo, coord=opts.coord, tgeocent=opts.gps, degrees=False)
+        X, Y = triangulate.antipode( x, y, coord=opts.coord, degrees=False)
+        zenith.append( (ifo, (y,x), (Y,X)) )
+else:
+    zenith = []
 
 #==========================================================
 ### load posteriors from fits files
 
 figind = 0
+if opts.stack_posteriors:
+	stack_fig = plt.figure(figind, figsize=(opts.figwidth, opts.figheight) )
+	if opts.projection:
+        	stack_ax = plt.subplot(111, projection=opts.projection)
+	else:
+        	stack_ax = plt.subplot(111)
+	stack_ax.grid( True )
+	figind += 1
+
 for label in labels:
         d = maps[label]
         fits = d['fits']
@@ -115,6 +158,34 @@ for label in labels:
 
 	lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
 
+	for ifos, (y,x), (Y,X) in line_of_sight:
+		if x > np.pi:
+	        	ax.plot( x-2*np.pi, y, color='k', marker='o', markersize=2 )
+        	        ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
+		else:
+	        	ax.plot( x, y, color='k', marker='o', markersize=2 )
+        	        ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
+		if X > np.pi:	
+        	        ax.plot( X-2*np.pi, Y, color='k', marker='o', markersize=2 )
+	                ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+		else:
+                	ax.plot( X, Y, color='k', marker='o', markersize=2 )
+	                ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+
+	for ifo, (y,x), (Y,X) in zenith:
+		if x > np.pi:
+	        	ax.plot( x-2*np.pi, y, color='k', marker='s', markersize=2 )
+                	ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom' )
+		else:
+	        	ax.plot( x, y, color='k', marker='s', markersize=2 )
+        	        ax.text( x, y, " "+ifo+"+", ha='left', va='bottom' )
+		if X > np.pi:
+	        	ax.plot( X-2*np.pi, Y, color='k', marker='s', markersize=2 )
+                	ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom' )
+		else:
+	        	ax.plot( X, Y, color='k', marker='s', markersize=2 )
+        	        ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom' )
+
 	if opts.transparent:
 		fig.patch.set_alpha(0.)
 		ax.patch.set_alpha(0.)
@@ -127,5 +198,27 @@ for label in labels:
 		plt.savefig( figname, dpi=opts.dpi )
 	plt.close( fig )
 
+        if opts.stack_posteriors:
+		plt.sca( stack_ax )
+#		lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
+		lalinf_plot.healpix_contour( cpost, levels=[0.1, 0.5, 0.9], alpha=0.75, label=label, colors=colors[(figind-1)%len(colors)] )
+		stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=colors[(figind-1)%len(colors)], ha='left', va='top')
+
 	figind += 1
+
+if opts.stack_posteriors:
+	plt.figure( 0 )
+	plt.sca( stack_ax )
+
+        if opts.transparent:
+                stack_fig.patch.set_alpha(0.)
+                stack_ax.patch.set_alpha(0.)
+                stack_ax.set_alpha(0.)
+
+        for figtype in opts.figtype:
+                figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)
+                if opts.verbose:
+                        print "\t", figname
+                plt.savefig( figname, dpi=opts.dpi )
+        plt.close( stack_fig )
 
