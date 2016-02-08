@@ -14,14 +14,14 @@ from optparse import OptionParser
 
 #=================================================
 
-def compute_mi( theta, phi, Nbins, weights=None ):
-    theta_bins = np.linspace(0, np.pi, Nbins+1)
-    phi_bins = np.linspace(-np.pi, np.pi, Nbins+1)
-
-    count = np.histogram2d( phi, theta, bins=(phi_bins, theta_bins), weights=weights )[0]
-
-    return triangulate.mutualinformation( count, bins=None )
-#    return triangulate.mutualinformation( count, bins=(theta_bins, phi_bins) )
+#def compute_mi( theta, phi, Nbins, weights=None ):
+#    theta_bins = np.linspace(0, np.pi, Nbins+1)
+#    phi_bins = np.linspace(-np.pi, np.pi, Nbins+1)
+#
+#    count = np.histogram2d( phi, theta, bins=(phi_bins, theta_bins), weights=weights )[0]
+#
+#    return triangulate.mutualinformation( count, bins=None )
+###    return triangulate.mutualinformation( count, bins=(theta_bins, phi_bins) )
 
 #=================================================
 
@@ -88,7 +88,7 @@ for arg in args:
     if opts.mutualinformation:
         Nbins = max(100, int(npix**0.5/5))
         theta, phi = hp.pix2ang(nside, np.arange(npix))
-        mi, entj = compute_mi( theta, phi, Nbins, weights=m )
+        mi, entj = triangulate.compute_mi( theta, phi, Nbins, weights=m )
         print "\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
         maps[label].update( {'mutualinformation':mi/entj} )
 
@@ -126,7 +126,7 @@ for opt in opts.los:
         Nbins = max(100, int(npix**0.5/5))
 
         if opts.mutualinformation:
-            mi, entj = compute_mi( rtheta, rphi, Nbins, weights=m )
+            mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
         if opts.plots:
             figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.color_map )
@@ -182,7 +182,7 @@ for ifo in opts.overhead:
         Nbins = max(100, int(npix**0.5/5))
 
         if opts.mutualinformation:
-            mi, entj = compute_mi( rtheta, rphi, Nbins, weights=m )
+            mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi/entj)
         if opts.plots:
             figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.colormap )
