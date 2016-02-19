@@ -60,7 +60,7 @@ parser.add_option("", "--dpi", default=500, type="int")
 parser.add_option("", "--line-of-sight", default=[], action="append", type="string", help="eg: HL")
 parser.add_option("", "--zenith", default=[], action="append", type="string", help="eg: H")
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
-parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial")
+parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
 
 opts, args = parser.parse_args()
 
@@ -89,7 +89,7 @@ else:
 
 labels = sorted(maps.keys())
 
-if (opts.line_of_sight or opts.zenith) and (opts.gps==None):
+if (opts.line_of_sight or opts.zenith) and (opts.coord!="E") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
 
 #=================================================
@@ -100,6 +100,9 @@ if opts.line_of_sight:
     for ifos in opts.line_of_sight:
         y, x = triangulate.line_of_sight(ifos[1], ifos[0], coord=opts.coord, tgeocent=opts.gps, degrees=False)
         X, Y = triangulate.antipode( x, y, coord=opts.coord, degrees=False)
+        if opts.coord=="E": ### convert theta->dec
+            y = 0.5*np.pi - y
+            Y = 0.5*np.pi - Y
         line_of_sight.append( (ifos, (y,x), (Y,X)) ) 
 else:
     line_of_sight = []
@@ -109,6 +112,9 @@ if opts.zenith:
     for ifo in opts.zenith:
         y, x = triangulate.overhead(ifo, coord=opts.coord, tgeocent=opts.gps, degrees=False)
         X, Y = triangulate.antipode( x, y, coord=opts.coord, degrees=False)
+        if opts.coord=="E": ### convert theta->dec
+            y = 0.5*np.pi - y
+            Y = 0.5*np.pi - Y
         zenith.append( (ifo, (y,x), (Y,X)) )
 else:
     zenith = []
@@ -209,6 +215,34 @@ for label in labels:
 if opts.stack_posteriors:
 	plt.figure( 0 )
 	plt.sca( stack_ax )
+
+        for ifos, (y,x), (Y,X) in line_of_sight:
+                if x > np.pi:
+                        stack_ax.plot( x-2*np.pi, y, color='k', marker='o', markersize=2 )
+                        stack_ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
+                else:
+                        stack_ax.plot( x, y, color='k', marker='o', markersize=2 )
+                        stack_ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
+                if X > np.pi:
+                        stack_ax.plot( X-2*np.pi, Y, color='k', marker='o', markersize=2 )
+                        stack_ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+                else:
+                        stack_ax.plot( X, Y, color='k', marker='o', markersize=2 )
+                        stack_ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+
+        for ifo, (y,x), (Y,X) in zenith:
+                if x > np.pi:
+                        stack_ax.plot( x-2*np.pi, y, color='k', marker='s', markersize=2 )
+                        stack_ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom' )
+                else:
+                        stack_ax.plot( x, y, color='k', marker='s', markersize=2 )
+                        stack_ax.text( x, y, " "+ifo+"+", ha='left', va='bottom' )
+                if X > np.pi:
+                        stack_ax.plot( X-2*np.pi, Y, color='k', marker='s', markersize=2 )
+                        stack_ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom' )
+                else:
+                        stack_ax.plot( X, Y, color='k', marker='s', markersize=2 )
+                        stack_ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom' )
 
         if opts.transparent:
                 stack_fig.patch.set_alpha(0.)
