@@ -32,6 +32,7 @@ parser = OptionParser(usage=usage, description=description)
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
 parser.add_option("", "--stack-posteriors", default=False, action="store_true")
+parser.add_option("", "--stack-posteriors-background", default=None, type="string", help="a FITS file to plot in the background of the stacked plot")
 
 parser.add_option("-l", "--logarithmic", default=False, action="store_true")
 
@@ -131,6 +132,14 @@ if opts.stack_posteriors:
         	stack_ax = plt.subplot(111)
 	stack_ax.grid( True )
 	figind += 1
+
+	if opts.stack_posteriors_background:
+		if opts.verbose:
+			print "reading map from", fits
+		post, header = hp.read_map( opts.stack_posteriors_background, h=True )
+		if opts.verbose:
+			print "plotting background for stackedPosteriors"
+		lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
 
 for label in labels:
         d = maps[label]
