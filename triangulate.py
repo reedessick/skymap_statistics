@@ -113,6 +113,69 @@ def __line_of_sight_Evec( ifo1, ifo2, normed=True ):
 
 #=================================================
 
+def time_delay( theta, phi, ifo1, ifo2, coord="E", tgeocent=None, degrees=False ):
+    """
+    returns the time delay between two ifo's (in seconds)
+
+    interprets direction as (theta, phi) or (dec, ra) depending on \"coord\"
+    """
+    if ifo1 not in detectors.keys():
+        raise ValueError("ifo1=%s not understood"%ifo1)
+    if ifo2 not in detectors.keys():
+        raise ValueError("ifo2=%s not understood"%ifo2)
+
+    dr = detectors[ifo1]['dr'] - detectors[ifo2]['dr']
+
+    if degrees:
+        theta *= deg2rad
+        phi *= deg2rad
+
+    if coord=="C":
+        theta, phi = __celest2earth( theta, phi, tgeocent )
+
+    theta = theta%np.pi
+    phi = phi%(2*np.pi)
+
+    return np.sum( hp.ang2vec( theta, phi)*dr )
+
+def time_delay_locus( dt, ifo1, ifo2, coord="E", tgeocent=None, Nsamp=101, degrees=False ):
+    """
+    returns a locus of points with the time delay between ifo's equal to dt
+    """
+    if ifo1 not in detectors.keys():
+        raise ValueError("ifo1=%s not understood"%ifo1)
+    if ifo2 not in detectors.keys():
+        raise ValueError("ifo2=%s not understood"%ifo2)
+
+    ### compute associated polar angle in line-of-sight frame 
+    dr = detectors[ifo1]['dr'] - detectors[ifo2]['dr']
+    cosTheta = dt / np.sum(dr*dr)**0.5
+
+    ### in line-of-sight frame, define curves
+    theta = np.ones((Nsamp,), dtype=float)*np.arccos(cosTheta)
+    phi = np.linspace(0, 2*np.pi, Nsamp)
+
+    ### rotate from line-of-sight frame to Earth-Fixed frame
+    thetaPole, phiPole = line_of_sight( ifo2, ifo1, coord="E", tgeocent=None, degrees=False )
+    theta, phi = rotate2pole( theta, phi, -thetaPole, phiPole, degrees=False )
+
+    ### rotate if needed and convert to degrees if needed
+    if coord=="C":
+        dec, ra = __earth2celest( theta, phi, tgeocent )
+        
+        if degrees:
+            dec *= rad2deg
+            phi *= rad2deg
+        return dec, ra
+
+    elif coord=="E":
+        if degrees:
+            theta *= rad2deg
+            phi *= rad2deg
+        return theta, phi
+
+#=================================================
+
 def overhead( ifo, coord="E", tgeocent=None, degrees=False ):
     """
     get the overhead direction of an ifo. 
@@ -160,6 +223,8 @@ def rotate2pole( theta, phi, thetaPole, phiPole, degrees=False ):
     accomplished through successive applications of healpy.Rotator objects
     """
     newt, newp = hp.Rotator( deg=degrees, rot=[phiPole, -thetaPole, 0], eulertype="ZYZ" )( theta, phi )
+    newt, newp = hp.Rotator( deg=degrees, rot=[-phiPole], eulertype="Z" )( newt, newp )
+
     return newt, newp
 
 #=================================================

@@ -59,7 +59,20 @@ parser.add_option("", "--figtype", default=[], action="append", type="string")
 parser.add_option("", "--dpi", default=500, type="int")
 
 parser.add_option("", "--line-of-sight", default=[], action="append", type="string", help="eg: HL")
+parser.add_option("", "--line-of-sight-color", default='k', type='string', help="the text and marker color for line-of-sight annotations")
+
 parser.add_option("", "--zenith", default=[], action="append", type="string", help="eg: H")
+parser.add_option("", "--zenith-color", default='k', type='string', help='the text and marker color for zenith annotations')
+
+parser.add_option("", "--time-delay", default=[], action="append", type="string", help="eg: HL")
+parser.add_option("", "--time-delay-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in radians and this option requires two arguments (--time-delay-Dec-RA ${dec} ${ra}). If suppplied, we use this point to define time-delays (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi")
+parser.add_option("", "--time-delay-degrees", default=False, action="store_true", help="interpret --time-delay-Dec-RA as degrees")
+parser.add_option("", "--time-delay-color", default='k', type='string', help='the line color for time-delay lines')
+
+parser.add_option("", "--marker-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in adians and this option requires two arguments (--marker-Dec-RA ${dec} ${ra}). If suppplied, we label this point with a circles (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi.")
+parser.add_option("", "--marker-degrees", default=False, action="store_true", help="interpret --marker-Dec-RA as degrees")
+parser.add_option("", "--marker-color", default='k', type='string', help='the edge-color for the markers')
+
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
 
@@ -69,28 +82,28 @@ if not opts.figtype:
     opts.figtype.append( "png" )
 
 if opts.tag:
-	opts.tag = "_%s"%opts.tag
+    opts.tag = "_%s"%opts.tag
 
 if opts.graceid:
-        from ligo.gracedb.rest import GraceDb
-        gracedb = gracedb = GraceDb(opts.gdb_url)
+    from ligo.gracedb.rest import GraceDb
+    gracedb = gracedb = GraceDb(opts.gdb_url)
 
 if opts.graceid and len(opts.graceid)!=len(args):
-        raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
+    raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
 
 maps = {}
 if opts.graceid:
-	for gid, arg in zip(opts.graceid, args):
-		label, fits = arg.split(",")
-		maps[label] = {"fits":fits, "graceid":gid}
+    for gid, arg in zip(opts.graceid, args):
+        label, fits = arg.split(",")
+        maps[label] = {"fits":fits, "graceid":gid}
 else:
-	for arg in args:
-		label, fits = arg.split(",")
-		maps[label] = {"fits":fits}
+    for arg in args:
+        label, fits = arg.split(",")
+        maps[label] = {"fits":fits}
 
 labels = sorted(maps.keys())
 
-if (opts.line_of_sight or opts.zenith) and (opts.coord!="E") and (opts.gps==None):
+if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA)) and (opts.coord!="E") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
 
 #=================================================
@@ -120,148 +133,219 @@ if opts.zenith:
 else:
     zenith = []
 
+### figure out points for time_delay
+if opts.time_delay:
+    time_delay = []
+    for dec, ra in opts.time_delay_Dec_RA:
+        if opts.time_delay_degrees:
+            dec *= triangulate.deg2rad
+            ra *= triangulate.deg2rad
+        for ifos in opts.time_delay:
+            dt = triangulate.time_delay( dec, ra, ifos[1], ifos[0], coord=opts.coord, tgeocent=opts.gps, degrees=False )
+            y, x = triangulate.time_delay_locus( dt, ifos[1], ifos[0], coord=opts.coord, tgeocent=opts.gps, degrees=False )
+
+            if opts.coord=="E": ### convert theta-> dec
+                y = 0.5*np.pi - y
+
+            truth = x>np.pi
+            Y = y[truth]
+            X = x[truth] - 2*np.pi
+
+            truth = x<=np.pi
+            y = y[truth]
+            x = x[truth]
+
+            if len(x) and len(X):
+                inds = x.argsort()
+                x = x[inds]
+                y = y[inds]
+                inds = X.argsort()
+                X = X[inds]
+                Y = Y[inds]  
+
+            if len(X):
+                x = np.concatenate( ([X[-1]], x) )
+                y = np.concatenate( ([Y[-1]], y) )
+
+            time_delay.append( ((y ,x), (Y, X)) )
+else:
+    time_delay = [] 
+
+### figure out points for markers
+if opts.marker_Dec_RA:
+    if opts.coord=="E":
+        marker_Dec_RA=[]
+        for dec, ra in opts.marker_Dec_RA:
+            if opts.marker_degrees:
+                dec *= triangulate.deg2rad
+                ra *= triangulate.deg2rad
+            if ra > np.pi:
+                ra -= 2*np.pi
+            marker_Dec_RA.append( (0.5*np.pi-dec, ra) )
+    else: ### opts.coord=="C"
+        marker_Dec_RA = []
+        for dec, ra in opts.marker_Dec_RA:
+            if opts.marker_degrees:
+                dec *= triangulate.deg2rad
+                ra *= triangulate.deg2rad
+            if ra > np.pi:
+                ra -= 2*np.pi
+            marker_Dec_RA.append( (dec, ra) )
+else:
+    marker_Dec_RA = []
+
 #==========================================================
 ### load posteriors from fits files
 
 figind = 0
 if opts.stack_posteriors:
-	stack_fig = plt.figure(figind, figsize=(opts.figwidth, opts.figheight) )
-	if opts.projection:
-        	stack_ax = plt.subplot(111, projection=opts.projection)
-	else:
-        	stack_ax = plt.subplot(111)
-	stack_ax.grid( True )
-	figind += 1
+    stack_fig = plt.figure(figind, figsize=(opts.figwidth, opts.figheight) )
+    if opts.projection:
+        stack_ax = plt.subplot(111, projection=opts.projection)
+    else:
+        stack_ax = plt.subplot(111)
+    stack_ax.grid( True )
+    figind += 1
 
-	if opts.stack_posteriors_background:
-		if opts.verbose:
-			print "reading map from", fits
-		post, header = hp.read_map( opts.stack_posteriors_background, h=True )
-		if opts.verbose:
-			print "plotting background for stackedPosteriors"
-		lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
+    if opts.stack_posteriors_background:
+        if opts.verbose:
+            print "reading map from", fits
+        post, header = hp.read_map( opts.stack_posteriors_background, h=True )
+        if opts.verbose:
+            print "plotting background for stackedPosteriors"
+        lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
 
 for label in labels:
-        d = maps[label]
-        fits = d['fits']
+    fits = maps[label]['fits']
+    if opts.verbose:
+        print "reading map from", fits
+    post, header = hp.read_map( fits, h=True )
+    npix = len(post)
+    if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
+        post = hp.nest2ring(nside, post)
+    nside = hp.npix2nside(npix)
+    if opts.verbose:
+        print "\tnside=%d"%nside
+
+    cpost = np.empty(post.shape)
+    indecies = np.argsort(post)[::-1]
+    cpost[indecies] = np.cumsum(post[indecies])
+
+    fig = plt.figure( figind, figsize=(opts.figwidth, opts.figheight) )
+    if opts.projection:
+        ax = plt.subplot(111, projection=opts.projection)
+    else:
+        ax = plt.subplot(111)
+    ax.grid( True )
+
+    lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
+
+    for ifos, (y,x), (Y,X) in line_of_sight:
+        if x > np.pi:
+            ax.plot( x-2*np.pi, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+        else:
+            ax.plot( x, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+        if X > np.pi:	
+            ax.plot( X-2*np.pi, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
+        else:
+            ax.plot( X, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
+
+    for ifo, (y,x), (Y,X) in zenith:
+        if x > np.pi:
+            ax.plot( x-2*np.pi, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+        else:
+            ax.plot( x, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            ax.text( x, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+        if X > np.pi:
+            ax.plot( X-2*np.pi, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
+        else:
+            ax.plot( X, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
+
+    for dec, ra in marker_Dec_RA:
+        ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4 )
+
+    for (y, x), (Y, X) in time_delay:
+        if len(x):
+            ax.plot( x, y, color=opts.time_delay_color )
+        if len(X):
+            ax.plot( X, Y, color=opts.time_delay_color )
+
+    if opts.transparent:
+        fig.patch.set_alpha(0.)
+        ax.patch.set_alpha(0.)
+        ax.set_alpha(0.)
+
+    for figtype in opts.figtype:
+        figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
         if opts.verbose:
-                print "reading map from", fits
-	post, header = hp.read_map( fits, h=True )
-        npix = len(post)
-        if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
-		post = hp.nest2ring(nside, post)
-        nside = hp.npix2nside(npix)
-        if opts.verbose:
-                print "\tnside=%d"%nside
+            print "\t", figname
+        plt.savefig( figname, dpi=opts.dpi )
+    plt.close( fig )
 
-	cpost = np.empty(post.shape)
-	indecies = np.argsort(post)[::-1]
-	cpost[indecies] = np.cumsum(post[indecies])
+    if opts.stack_posteriors:
+        plt.sca( stack_ax )
+#        lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
+        lalinf_plot.healpix_contour( cpost, levels=[0.1, 0.5, 0.9], alpha=0.75, label=label, colors=colors[(figind-1)%len(colors)] )
+        stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=colors[(figind-1)%len(colors)], ha='left', va='top')
 
-        d['post'] = post
-	d['cpost'] = cpost
-        d['npix'] = npix
-        d['nside'] = nside
-	d['estang'] = stats.estang(post, nside=nside)
-
-	fig = plt.figure( figind, figsize=(opts.figwidth, opts.figheight) )
-	if opts.projection:
-		ax = plt.subplot(111, projection=opts.projection)
-	else:
-		ax = plt.subplot(111)
-	ax.grid( True )
-
-	lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
-
-	for ifos, (y,x), (Y,X) in line_of_sight:
-		if x > np.pi:
-	        	ax.plot( x-2*np.pi, y, color='k', marker='o', markersize=2 )
-        	        ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
-		else:
-	        	ax.plot( x, y, color='k', marker='o', markersize=2 )
-        	        ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
-		if X > np.pi:	
-        	        ax.plot( X-2*np.pi, Y, color='k', marker='o', markersize=2 )
-	                ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
-		else:
-                	ax.plot( X, Y, color='k', marker='o', markersize=2 )
-	                ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
-
-	for ifo, (y,x), (Y,X) in zenith:
-		if x > np.pi:
-	        	ax.plot( x-2*np.pi, y, color='k', marker='s', markersize=2 )
-                	ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom' )
-		else:
-	        	ax.plot( x, y, color='k', marker='s', markersize=2 )
-        	        ax.text( x, y, " "+ifo+"+", ha='left', va='bottom' )
-		if X > np.pi:
-	        	ax.plot( X-2*np.pi, Y, color='k', marker='s', markersize=2 )
-                	ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom' )
-		else:
-	        	ax.plot( X, Y, color='k', marker='s', markersize=2 )
-        	        ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom' )
-
-	if opts.transparent:
-		fig.patch.set_alpha(0.)
-		ax.patch.set_alpha(0.)
-		ax.set_alpha(0.)
-
-	for figtype in opts.figtype:
-	    	figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
-		if opts.verbose:
-			print "\t", figname
-		plt.savefig( figname, dpi=opts.dpi )
-	plt.close( fig )
-
-        if opts.stack_posteriors:
-		plt.sca( stack_ax )
-#		lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
-		lalinf_plot.healpix_contour( cpost, levels=[0.1, 0.5, 0.9], alpha=0.75, label=label, colors=colors[(figind-1)%len(colors)] )
-		stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=colors[(figind-1)%len(colors)], ha='left', va='top')
-
-	figind += 1
+    figind += 1
 
 if opts.stack_posteriors:
-	plt.figure( 0 )
-	plt.sca( stack_ax )
+    plt.figure( 0 )
+    plt.sca( stack_ax )
 
-        for ifos, (y,x), (Y,X) in line_of_sight:
-                if x > np.pi:
-                        stack_ax.plot( x-2*np.pi, y, color='k', marker='o', markersize=2 )
-                        stack_ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
-                else:
-                        stack_ax.plot( x, y, color='k', marker='o', markersize=2 )
-                        stack_ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom' )
-                if X > np.pi:
-                        stack_ax.plot( X-2*np.pi, Y, color='k', marker='o', markersize=2 )
-                        stack_ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
-                else:
-                        stack_ax.plot( X, Y, color='k', marker='o', markersize=2 )
-                        stack_ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom' )
+    for ifos, (y,x), (Y,X) in line_of_sight:
+        if x > np.pi:
+            stack_ax.plot( x-2*np.pi, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            stack_ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+        else:
+            stack_ax.plot( x, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            stack_ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+        if X > np.pi:
+            stack_ax.plot( X-2*np.pi, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            stack_ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
+        else:
+            stack_ax.plot( X, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+            stack_ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
 
-        for ifo, (y,x), (Y,X) in zenith:
-                if x > np.pi:
-                        stack_ax.plot( x-2*np.pi, y, color='k', marker='s', markersize=2 )
-                        stack_ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom' )
-                else:
-                        stack_ax.plot( x, y, color='k', marker='s', markersize=2 )
-                        stack_ax.text( x, y, " "+ifo+"+", ha='left', va='bottom' )
-                if X > np.pi:
-                        stack_ax.plot( X-2*np.pi, Y, color='k', marker='s', markersize=2 )
-                        stack_ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom' )
-                else:
-                        stack_ax.plot( X, Y, color='k', marker='s', markersize=2 )
-                        stack_ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom' )
+    for ifo, (y,x), (Y,X) in zenith:
+        if x > np.pi:
+            stack_ax.plot( x-2*np.pi, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            stack_ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+        else:
+            stack_ax.plot( x, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            stack_ax.text( x, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+        if X > np.pi:
+            stack_ax.plot( X-2*np.pi, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            stack_ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
+        else:
+            stack_ax.plot( X, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+            stack_ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
 
-        if opts.transparent:
-                stack_fig.patch.set_alpha(0.)
-                stack_ax.patch.set_alpha(0.)
-                stack_ax.set_alpha(0.)
+    for dec, ra in marker_Dec_RA:
+        stack_ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4 )
 
-        for figtype in opts.figtype:
-                figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)
-                if opts.verbose:
-                        print "\t", figname
-                plt.savefig( figname, dpi=opts.dpi )
-        plt.close( stack_fig )
+    for (y, x), (Y, X) in time_delay:
+        if len(x):
+            stack_ax.plot( x, y, color=opts.time_delay_color )
+        if len(X):
+            stack_ax.plot( X, Y, color=opts.time_delay_color )
 
+    if opts.transparent:
+        stack_fig.patch.set_alpha(0.)
+        stack_ax.patch.set_alpha(0.)
+        stack_ax.set_alpha(0.)
+
+    for figtype in opts.figtype:
+        figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)
+        if opts.verbose:
+            print "\t", figname
+        plt.savefig( figname, dpi=opts.dpi )
+    plt.close( stack_fig )
