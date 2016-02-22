@@ -68,10 +68,12 @@ parser.add_option("", "--time-delay", default=[], action="append", type="string"
 parser.add_option("", "--time-delay-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in radians and this option requires two arguments (--time-delay-Dec-RA ${dec} ${ra}). If suppplied, we use this point to define time-delays (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi")
 parser.add_option("", "--time-delay-degrees", default=False, action="store_true", help="interpret --time-delay-Dec-RA as degrees")
 parser.add_option("", "--time-delay-color", default='k', type='string', help='the line color for time-delay lines')
+parser.add_option("", "--time-delay-alpha", default=1.0, type='float', help='the alpha saturation for time-delay lines')
 
 parser.add_option("", "--marker-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in adians and this option requires two arguments (--marker-Dec-RA ${dec} ${ra}). If suppplied, we label this point with a circles (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi.")
 parser.add_option("", "--marker-degrees", default=False, action="store_true", help="interpret --marker-Dec-RA as degrees")
 parser.add_option("", "--marker-color", default='k', type='string', help='the edge-color for the markers')
+parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alpha saturation for markers')
 
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
@@ -147,27 +149,13 @@ if opts.time_delay:
             if opts.coord=="E": ### convert theta-> dec
                 y = 0.5*np.pi - y
 
-            truth = x>np.pi
-            Y = y[truth]
-            X = x[truth] - 2*np.pi
+            x[x>np.pi] -= 2*np.pi ### ensure that everything is between -pi and pi
+            
+            ### find big jumps in azimuthal angle and split up the plotting jobs
+            d = np.concatenate( ([0],np.nonzero(np.abs(x[1:]-x[:-1])>np.pi)[0]+1,[len(x)]) )
+            for istart, iend in zip(d[:-1], d[1:]):
+                time_delay.append( (y[istart:iend], x[istart:iend]) )
 
-            truth = x<=np.pi
-            y = y[truth]
-            x = x[truth]
-
-            if len(x) and len(X):
-                inds = x.argsort()
-                x = x[inds]
-                y = y[inds]
-                inds = X.argsort()
-                X = X[inds]
-                Y = Y[inds]  
-
-            if len(X):
-                x = np.concatenate( ([X[-1]], x) )
-                y = np.concatenate( ([Y[-1]], y) )
-
-            time_delay.append( ((y ,x), (Y, X)) )
 else:
     time_delay = [] 
 
@@ -268,14 +256,11 @@ for label in labels:
             ax.plot( X, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
             ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
 
-    for dec, ra in marker_Dec_RA:
-        ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4 )
+    for y, x in time_delay:
+        ax.plot( x, y, color=opts.time_delay_color, alpha=opts.time_delay_alpha )
 
-    for (y, x), (Y, X) in time_delay:
-        if len(x):
-            ax.plot( x, y, color=opts.time_delay_color )
-        if len(X):
-            ax.plot( X, Y, color=opts.time_delay_color )
+    for dec, ra in marker_Dec_RA:
+        ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4, alpha=opts.marker_alpha )
 
     if opts.transparent:
         fig.patch.set_alpha(0.)
@@ -329,14 +314,11 @@ if opts.stack_posteriors:
             stack_ax.plot( X, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
             stack_ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
 
-    for dec, ra in marker_Dec_RA:
-        stack_ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4 )
+    for y, x in time_delay:
+        stack_ax.plot( x, y, color=opts.time_delay_color, alpha=opts.time_delay_alpha )
 
-    for (y, x), (Y, X) in time_delay:
-        if len(x):
-            stack_ax.plot( x, y, color=opts.time_delay_color )
-        if len(X):
-            stack_ax.plot( X, Y, color=opts.time_delay_color )
+    for dec, ra in marker_Dec_RA:
+        stack_ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4, alpha=opts.marker_alpha )
 
     if opts.transparent:
         stack_fig.patch.set_alpha(0.)

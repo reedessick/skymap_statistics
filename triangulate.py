@@ -138,7 +138,7 @@ def time_delay( theta, phi, ifo1, ifo2, coord="E", tgeocent=None, degrees=False 
 
     return np.sum( hp.ang2vec( theta, phi)*dr )
 
-def time_delay_locus( dt, ifo1, ifo2, coord="E", tgeocent=None, Nsamp=101, degrees=False ):
+def time_delay_locus( dt, ifo1, ifo2, coord="E", tgeocent=None, Nsamp=1001, degrees=False ):
     """
     returns a locus of points with the time delay between ifo's equal to dt
     """
