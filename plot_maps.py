@@ -41,7 +41,7 @@ parser.add_option("-W", "--figwidth", default=9, type="float")
 
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
-parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB! Not yet implemented.")
+#parser.add_option("", "--graceid", default=[], type="string", action="append", help="will upload annotations to GraceDB events. if used, there must be one graceid per argment. DO NOT USE UNLESS YOU HAVE LALSuite AND PERMISSION TO ANNOTATE GraceDB! Not yet implemented.")
 
 parser.add_option('', '--gdb-url', default='https://gracedb.ligo.org/api', type='string')
 parser.add_option('', '--tag-as-sky-loc', default=False, action='store_true')
@@ -78,6 +78,8 @@ parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alp
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
 
+parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
+
 opts, args = parser.parse_args()
 
 if not opts.figtype:
@@ -86,22 +88,26 @@ if not opts.figtype:
 if opts.tag:
     opts.tag = "_%s"%opts.tag
 
-if opts.graceid:
-    from ligo.gracedb.rest import GraceDb
-    gracedb = gracedb = GraceDb(opts.gdb_url)
+#if opts.graceid:
+#    from ligo.gracedb.rest import GraceDb
+#    gracedb = gracedb = GraceDb(opts.gdb_url)
 
-if opts.graceid and len(opts.graceid)!=len(args):
-    raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
+#if opts.graceid and len(opts.graceid)!=len(args):
+#    raise ValueError("when supplying --graceid, you must supply the same number of graceid entries and fits files")
 
 maps = {}
-if opts.graceid:
-    for gid, arg in zip(opts.graceid, args):
-        label, fits = arg.split(",")
-        maps[label] = {"fits":fits, "graceid":gid}
-else:
-    for arg in args:
-        label, fits = arg.split(",")
-        maps[label] = {"fits":fits}
+#if opts.graceid:
+#    for gid, arg in zip(opts.graceid, args):
+#        label, fits = arg.split(",")
+#        maps[label] = {"fits":fits, "graceid":gid}
+#else:
+#    for arg in args:
+#        label, fits = arg.split(",")
+#        maps[label] = {"fits":fits}
+for arg in args:
+    label, fits = arg.split(",")
+    maps[label] = {"fits":fits}
+
 
 labels = sorted(maps.keys())
 
@@ -267,6 +273,9 @@ for label in labels:
         ax.patch.set_alpha(0.)
         ax.set_alpha(0.)
 
+    if opts.outline_labels:
+        lalinf_plot.outline_text(stack_ax)
+
     for figtype in opts.figtype:
         figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
         if opts.verbose:
@@ -324,6 +333,9 @@ if opts.stack_posteriors:
         stack_fig.patch.set_alpha(0.)
         stack_ax.patch.set_alpha(0.)
         stack_ax.set_alpha(0.)
+
+    if opts.outline_labels:
+        lalinf_plot.outline_text(stack_ax)
 
     for figtype in opts.figtype:
         figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)

@@ -73,6 +73,8 @@ parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alp
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
 
+parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
+
 opts, args = parser.parse_args()
 
 if not opts.figtype:
@@ -290,6 +292,10 @@ for ind, label1 in enumerate(labels):
                     fig.patch.set_alpha(0.)
                     ax.patch.set_alpha(0.)
                     ax.set_alpha(0.)
+
+                if opts.outline_labels:
+		    lalinf_plot.outline_text(stack_ax)
+
 
 		for figtype in opts.figtype:
   			figname = "%s/%s-%s%s.%s"%(opts.output_dir, label1, label2, opts.tag, figtype)
