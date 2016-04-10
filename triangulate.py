@@ -34,14 +34,14 @@ detectors["V"] = {"dr":__V_dr__, "nx":__V_nx__, "ny":__V_ny__}
 def __earth2celest( t, p, tgeocent ):
     from lal.lal import GreenwichMeanSiderealTime as GMST
     gmst = GMST( tgeocent )
-    ra = (p+gmst)%(2*np.pi) ### rotate to get RA
+    ra = (gmst-p)%(2*np.pi) ### rotate to get RA
     dc = 0.5*np.pi - t
     return dc, ra
 
 def __celest2earth( dec, ra, tgeocent ):
     from lal.lal import GreenwichMeanSiderealTime as GMST
     gmst = GMST( tgeocent )
-    p = (ra-gmst)%(2*np.pi) ### rotate to get RA
+    p = (gmst-p)%(2*np.pi) ### rotate to get RA
     t = 0.5*np.pi - dec
     return t, p
 
