@@ -8,7 +8,7 @@ author = "R. Essick (reed.essick@ligo.org)"
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-plt.rcParams.update( {"text.usetex":True} )
+#plt.rcParams.update( {"text.usetex":True} )
 try:
 	from lalinference import plot as lalinf_plot
 except:
@@ -72,6 +72,7 @@ parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alp
 
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
+parser.add_option("", "--continents", default=False, action="store_true", help="draw the continents on the map. Only used if --coord=E and --projection=mollweide")
 
 parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
 
@@ -109,6 +110,11 @@ labels = sorted(maps.keys())
 
 if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA)) and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
+
+opts.continents =  opts.continents and (opts.coord=="E") and (opts.projection=="mollweide")
+if opts.continents:
+    import os
+    import json
 
 #==========================================================
 ### load posteriors from fits files
@@ -246,7 +252,7 @@ for ind, label1 in enumerate(labels):
                 if opts.background:
                     lalinf_plot.healpix_heatmap( bkgnd, cmap=plt.get_cmap(opts.color_map) )
 		c1 = lalinf_plot.healpix_contour( cpost1, levels=opts.credible_interval, colors='b', alpha=0.75, label=label1 )
-		c2 = lalinf_plot.healpix_contour( cpost2, levels=opts.credible_interval, colors='r', alpha=0.75, label=label2 )
+		c2 = lalinf_plot.healpix_contour( cpost2, levels=opts.credible_interval, colors='g', alpha=0.75, label=label2 )
 #		for c in c2.collections:
 #			c.set_linestyle('dashed')
 
@@ -255,30 +261,42 @@ for ind, label1 in enumerate(labels):
 		fig.text(0.9, 0.9, label2.replace("_","\_"), color='r', ha='center', va='center')
 
                 for ifos, (y,x), (Y,X) in line_of_sight:
-                    if x > np.pi:
-                        ax.plot( x-2*np.pi, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
-                        ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+                    if opts.projection=="mollweide":
+                        if x > np.pi:
+                            ax.plot( x-2*np.pi, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+                            ax.text( x-2*np.pi, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+                        else:
+                            ax.plot( x, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+                            ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
+                        if X > np.pi:
+                            ax.plot( X-2*np.pi, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+                            ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
+                        else:
+                            ax.plot( X, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
+                            ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
                     else:
                         ax.plot( x, y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
                         ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=opts.line_of_sight_color )
-                    if X > np.pi:
-                        ax.plot( X-2*np.pi, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
-                        ax.text( X-2*np.pi, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
-                    else:
                         ax.plot( X, Y, color=opts.line_of_sight_color, markeredgecolor=opts.line_of_sight_color, marker='o', markersize=2 )
                         ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=opts.line_of_sight_color )
 
                 for ifo, (y,x), (Y,X) in zenith:
-                    if x > np.pi:
-                        ax.plot( x-2*np.pi, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
-                        ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+                    if opts.projection=="mollweide":
+                        if x > np.pi:
+                            ax.plot( x-2*np.pi, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+                            ax.text( x-2*np.pi, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+                        else:
+                            ax.plot( x, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+                            ax.text( x, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
+                        if X > np.pi:
+                            ax.plot( X-2*np.pi, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+                            ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
+                        else:
+                            ax.plot( X, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
+                            ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
                     else:
                         ax.plot( x, y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
                         ax.text( x, y, " "+ifo+"+", ha='left', va='bottom', color=opts.zenith_color )
-                    if X > np.pi:
-                        ax.plot( X-2*np.pi, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
-                        ax.text( X-2*np.pi, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
-                    else:
                         ax.plot( X, Y, color=opts.zenith_color, markeredgecolor=opts.zenith_color, marker='s', markersize=2 )
                         ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=opts.zenith_color )
 
@@ -296,6 +314,14 @@ for ind, label1 in enumerate(labels):
                 if opts.outline_labels:
 		    lalinf_plot.outline_text(stack_ax)
 
+                if opts.continents:
+                    geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
+                    with open(geojson_filename, 'r') as geojson_file:
+                        geojson = json.load(geojson_file)
+                    for shape in geojson['geometries']:
+                        verts = np.deg2rad(shape['coordinates'])
+                        color='k'
+                        ax.plot(verts[:, 0], verts[:, 1], color=color, linewidth=0.5)
 
 		for figtype in opts.figtype:
   			figname = "%s/%s-%s%s.%s"%(opts.output_dir, label1, label2, opts.tag, figtype)
