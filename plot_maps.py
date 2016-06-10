@@ -13,6 +13,9 @@ try:
 	from lalinference import cmap
 except:
 	raise StandardError("Could not import lalinference.plot")
+plt.rcParams.update({
+  'font.family' : 'serif',
+   })
 
 import numpy as np
 import healpy as hp
@@ -32,6 +35,7 @@ parser.add_option("-v", "--verbose", default=False, action="store_true")
 
 parser.add_option("", "--stack-posteriors", default=False, action="store_true")
 parser.add_option("", "--stack-posteriors-background", default=None, type="string", help="a FITS file to plot in the background of the stacked plot")
+parser.add_option("", "--stack-posteriors-linewidths", default=1, type="float", help="the linewidth for contours on stacked plot")
 
 parser.add_option("-l", "--logarithmic", default=False, action="store_true")
 
@@ -312,7 +316,7 @@ for label in labels:
     if opts.stack_posteriors:
         plt.sca( stack_ax )
 #        lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
-        lalinf_plot.healpix_contour( cpost, levels=[0.1, 0.5, 0.9], alpha=0.5, label=label, colors=colors[(figind-1)%len(colors)] )
+        lalinf_plot.healpix_contour( cpost, levels=[0.1, 0.5, 0.9], alpha=0.5, label=label, colors=colors[(figind-1)%len(colors)], linewidths=opts.stack_posteriors_linewidths )
         stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=colors[(figind-1)%len(colors)], ha='left', va='top')
 
     figind += 1

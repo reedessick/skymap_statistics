@@ -13,6 +13,9 @@ try:
 	from lalinference import plot as lalinf_plot
 except:
 	raise StandardError("Could not import lalinference.plot")
+plt.rcParams.update({
+  'font.family' : 'serif',
+   })
 
 import numpy as np
 import healpy as hp
@@ -28,6 +31,7 @@ parser = OptionParser(usage=usage, description=description)
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
 parser.add_option("", "--background", default=None, type="string", help="a FITS file to plot in the background of the stacked plot")
+parser.add_option("", "--linewidths", default=1, type="float", help="the linewidth for contours")
 
 parser.add_option("-c", "--credible-interval", default=[], type='float', action='append', help='compute the overlap and intersection of the credible intervals reported in the maps')
 
@@ -251,8 +255,8 @@ for ind, label1 in enumerate(labels):
 
                 if opts.background:
                     lalinf_plot.healpix_heatmap( bkgnd, cmap=plt.get_cmap(opts.color_map) )
-		c1 = lalinf_plot.healpix_contour( cpost1, levels=opts.credible_interval, colors='b', alpha=0.75, label=label1 )
-		c2 = lalinf_plot.healpix_contour( cpost2, levels=opts.credible_interval, colors='g', alpha=0.75, label=label2 )
+		c1 = lalinf_plot.healpix_contour( cpost1, levels=opts.credible_interval, colors='b', alpha=0.75, label=label1, linewidths=opts.linewidths )
+		c2 = lalinf_plot.healpix_contour( cpost2, levels=opts.credible_interval, colors='g', alpha=0.75, label=label2, linewidths=opts.linewidths )
 #		for c in c2.collections:
 #			c.set_linestyle('dashed')
 
