@@ -28,6 +28,8 @@ from optparse import OptionParser
 
 colors = ['b', 'r', 'g', 'm', 'c', 'k', 'y']
 
+axpos = [0.03, 0.03, 0.94, 0.94]
+
 #==========================================================
 parser = OptionParser(usage=usage, description=description)
 
@@ -204,9 +206,9 @@ figind = 0
 if opts.stack_posteriors:
     stack_fig = plt.figure(figind, figsize=(opts.figwidth, opts.figheight) )
     if opts.projection:
-        stack_ax = plt.subplot(111, projection=opts.projection)
+        stack_ax = stack_fig.add_axes(axpos, projection=opts.projection)
     else:
-        stack_ax = plt.subplot(111)
+        stack_ax = stack_fig.add_axes(axpos)
     stack_ax.grid( True )
     figind += 1
 
@@ -236,9 +238,9 @@ for label in labels:
 
     fig = plt.figure( figind, figsize=(opts.figwidth, opts.figheight) )
     if opts.projection:
-        ax = plt.subplot(111, projection=opts.projection)
+        ax = fig.add_axes(axpos, projection=opts.projection)
     else:
-        ax = plt.subplot(111)
+        ax = fig.add_axes(axpos)
     ax.grid( True )
 
     lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )

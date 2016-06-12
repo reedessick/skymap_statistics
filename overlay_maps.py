@@ -26,6 +26,10 @@ import triangulate
 from optparse import OptionParser
 
 #==========================================================
+
+axpos = [0.03, 0.03, 0.94, 0.94]
+
+#==========================================================
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
@@ -248,9 +252,9 @@ for ind, label1 in enumerate(labels):
 		
 		fig = plt.figure( figind, figsize=(opts.figwidth, opts.figheight) )
 		if opts.projection:
-			ax = plt.subplot(111, projection=opts.projection)
+			ax = fig.add_axes(axpos, projection=opts.projection)
 		else:
-			ax = plt.subplot(111)
+			ax = fig.add_axes(axpos)
 		ax.grid( True )
 
                 if opts.background:
