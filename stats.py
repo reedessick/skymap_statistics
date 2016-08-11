@@ -62,12 +62,18 @@ def __to_cumulative(posterior):
 	returns a map corresponding to cumulative probabilities at each pixel
 	assumes ``greedy binning'' algorithm
 	"""
-	cum = np.zeros_like( posterior )
-	c = 0.0
-	for i in posterior.argsort()[::-1]:
-		c += posterior[i]
-		cum[i] = c
-	return cum
+        ranking = posterior.argsort()[::-1] ### find out ordering
+        cum = np.empty_like(posterior)
+        cum[ranking] = np.cumsum( posterior[ranking] ) ### and assign it to the correct indecies within cum
+        return cum
+ 
+        ### this looks really slow...
+#	cum = np.zeros_like( posterior )
+#	c = 0.0
+#	for i in posterior.argsort()[::-1]:
+#		c += posterior[i]
+#		cum[i] = c
+#	return cum
 
 ###
 def credible_region(posterior, conf):
