@@ -136,7 +136,10 @@ def time_delay( theta, phi, ifo1, ifo2, coord="E", tgeocent=None, degrees=False 
     theta = theta%np.pi
     phi = phi%(2*np.pi)
 
-    return np.sum( hp.ang2vec( theta, phi)*dr )
+    if isinstance(theta, float):
+        return np.sum( hp.ang2vec( theta, phi)*dr )
+    else:
+        return np.sum( hp.ang2vec( theta, phi)*dr, axis=1 )
 
 def time_delay_locus( dt, ifo1, ifo2, coord="E", tgeocent=None, Nsamp=1001, degrees=False ):
     """
