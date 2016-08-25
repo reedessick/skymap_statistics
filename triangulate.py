@@ -47,6 +47,85 @@ def __celest2earth( dec, ra, tgeocent ):
 
 #=================================================
 
+def rotateRAC2C( ra, gps1, gps2 ):
+    """
+    rotates the RA according to the change in gps
+
+    takes ra at gps1 and rotates it so that the earth-fixed coordinates are invarient but the time has changed to gps2
+    """
+    gmst2 = GMST( gps2 )
+    gmst1 = GMST( gps1 )
+
+    return (ra - gmst1 + gmst2)%(twopi)
+
+def rotateRAC2E( ra, gps ):
+    """
+    rotates ra -> earth fixed coords
+    """
+    gmst = GMST( gps )
+    return (ra - gmst)%(twopi)
+
+def rotateRAE2C( phi, gps ):
+    """
+    rotates earth fixed coords -> ra
+    """
+    gmst = GMST( gps )
+    return (phi + gmst)%(twopi)
+
+def rotateMap( posterior, dphi ):
+    """
+    rotates phi -> phi+dphi
+    """
+    npix = len(posterior)
+    nside = hp.npix2nside( npix )
+    theta, phi = hp.pix2ang( nside, np.arange(npix) )
+    phi += dphi
+
+    new_pix = hp.ang2pix( nside, theta, phi )
+
+    return posterior[new_pix]
+
+def rotateMapC2C( posterior, old_gps, new_gps ):
+    """
+    returns a rotated map that keeps the posterior in the same relative position to the detectors at the new_gps time 
+    as it was at the old_gps time.
+    """
+    npix = len(posterior)
+    nside = hp.npix2nside( npix )
+
+    theta, new_phi = hp.pix2ang( nside, np.arange( npix ) )
+    phi = rotateRAC2C( new_phi, new_gps, old_gps ) ### rotate the RA according to times
+                                                   ### need to map the RAs at the new gps time into the RAs at the old gps time
+
+    new_pix = hp.ang2pix( nside, theta, phi )
+
+    return posterior[new_pix]
+
+def rotateMapC2E( posterior, gps ):
+    npix = len(posterior)
+    nside = hp.npix2nside( npix )
+
+    theta, phi = hp.pix2ang( nside, np.arange( npix ) )
+    ra = rotateRAE2C( phi, gps ) ### rotate phi to get ra -> needed to determine original indexing
+
+    new_pix = hp.ang2pix( nside, theta, ra )
+
+    return posterior[new_pix]
+
+def rotateMapE2C( posterior, gps ):
+    npix = len(posterior)
+    nside = hp.npix2nside( npix )
+
+    theta, ra = hp.pix2ang( nside, np.arange( npix ) )
+    phi = rotateRAC2E( ra, gps ) ### rotate the RA to get phi -> needed to determine original indexing
+
+    new_pix = hp.ang2pix( nside, theta, phi )
+
+    return posterior[new_pix]
+
+
+#=================================================
+
 def antipode( x, y, coord="C", degrees=False ):
     """
     if coord=C : x->ra, y->dec

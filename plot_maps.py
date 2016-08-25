@@ -297,7 +297,7 @@ for label in labels:
         ax.set_alpha(0.)
 
     if opts.outline_labels:
-        lalinf_plot.outline_text(stack_ax)
+        lalinf_plot.outline_text(ax)
 
     if opts.continents:
         geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
