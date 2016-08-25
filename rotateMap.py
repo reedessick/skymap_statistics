@@ -52,7 +52,7 @@ if opts.source_coord=="C":
     elif opts.target_coord=="E":
         if opts.verbose:
             print "  rotating to Geographic coordinates (E) at time=%.3f"%gps
-        post = triangulate.rotateMAPC2E( post, gps )
+        post = triangulate.rotateMapC2E( post, gps )
         
     else:
         raise ValueError('--target-ccord must be either "C" or "E"')
@@ -64,7 +64,7 @@ elif opts.source_coord=="E":
     if opts.target_coord=="C":
         if opts.verbose:
             print "  rotating to Equatorial coordinates (C) at time=%.3f"%gps
-        post = triangulate.rotateMAPE2C( post, gps )
+        post = triangulate.rotateMapE2C( post, gps )
 
     elif opts.target_coord=="E":
         if opts.verbose:
@@ -80,4 +80,4 @@ else:
 
 if opts.verbose:
     print "writing to : %s"%outFITS
-hp.write_map( post, outFITS )
+hp.write_map( outFITS, post )

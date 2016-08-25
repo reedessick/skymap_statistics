@@ -38,6 +38,8 @@ parser.add_option("-v", "--verbose", default=False, action="store_true")
 parser.add_option("", "--stack-posteriors", default=False, action="store_true")
 parser.add_option("", "--stack-posteriors-background", default=None, type="string", help="a FITS file to plot in the background of the stacked plot")
 parser.add_option("", "--stack-posteriors-linewidths", default=1, type="float", help="the linewidth for contours on stacked plot")
+parser.add_option("", "--stack-posteriors-alpha", default=1.0, type="float", help="the alpha for contours on stacked plot")
+parser.add_option("", "--stack-posteriors-levels", default=[], type='float', action='append', help='the confidence levels for contours in stacked plot')
 
 parser.add_option("-l", "--logarithmic", default=False, action="store_true")
 
@@ -79,6 +81,9 @@ parser.add_option("", "--marker-Dec-RA", nargs=2, default=[], action="append", t
 parser.add_option("", "--marker-degrees", default=False, action="store_true", help="interpret --marker-Dec-RA as degrees")
 parser.add_option("", "--marker-color", default='k', type='string', help='the edge-color for the markers')
 parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alpha saturation for markers')
+parser.add_option("", "--marker", default='o', type='string', help="the actual marker shape used")
+parser.add_option("", "--marker-size", default=4, type='float', help='the size of the marker')
+parser.add_option("", "--marker-edge-width", default=1, type='float', help='the edge width of the marker')
 
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
@@ -124,6 +129,9 @@ opts.continents =  opts.continents and (opts.coord=="E") and (opts.projection=="
 if opts.continents:
     import os
     import json
+
+if opts.stack_posteriors and (not opts.stack_posteriors_levels):
+    opts.stack_posteriors_levels = [0.1, 0.5, 0.9]
 
 #=================================================
 
@@ -289,7 +297,7 @@ for label in labels:
         ax.plot( x, y, color=opts.time_delay_color, alpha=opts.time_delay_alpha )
 
     for dec, ra in marker_Dec_RA:
-        ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4, alpha=opts.marker_alpha )
+        ax.plot( ra, dec, linestyle='none', marker=opts.marker, markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=opts.marker_size, alpha=opts.marker_alpha, markeredgewidth=opts.marker_edge_width )
 
     if opts.transparent:
         fig.patch.set_alpha(0.)
@@ -318,7 +326,7 @@ for label in labels:
     if opts.stack_posteriors:
         plt.sca( stack_ax )
 #        lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(opts.color_map) )
-        lalinf_plot.healpix_contour( cpost, levels=[0.1, 0.5, 0.9], alpha=0.5, label=label, colors=colors[(figind-1)%len(colors)], linewidths=opts.stack_posteriors_linewidths )
+        lalinf_plot.healpix_contour( cpost, levels=opts.stack_posteriors_levels, alpha=opts.stack_posteriors_alpha, label=label, colors=colors[(figind-1)%len(colors)], linewidths=opts.stack_posteriors_linewidths )
         stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=colors[(figind-1)%len(colors)], ha='left', va='top')
 
     figind += 1
@@ -372,7 +380,7 @@ if opts.stack_posteriors:
         stack_ax.plot( x, y, color=opts.time_delay_color, alpha=opts.time_delay_alpha )
 
     for dec, ra in marker_Dec_RA:
-        stack_ax.plot( ra, dec, linestyle='none', marker='o', markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=4, alpha=opts.marker_alpha )
+        stack_ax.plot( ra, dec, linestyle='none', marker=opts.marker, markerfacecolor='none', markeredgecolor=opts.marker_color, markersize=opts.marker_size, alpha=opts.marker_alpha, markeredgewidth=opts.marker_edge_width )
 
     if opts.transparent:
         stack_fig.patch.set_alpha(0.)
@@ -394,6 +402,6 @@ if opts.stack_posteriors:
     for figtype in opts.figtype:
         figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)
         if opts.verbose:
-            print "\t", figname
+            print figname
         plt.savefig( figname, dpi=opts.dpi )
     plt.close( stack_fig )

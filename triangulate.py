@@ -1,12 +1,19 @@
 description = """compute quantities about skymaps based on known detector locations and how triangulation works"""
 author = "Reed Essick (reed.essick@ligo.org)"
 
+#=================================================
+
 import numpy as np
 import healpy as hp
+
+from lal.lal import GreenwichMeanSiderealTime as GMST
 
 #=================================================
 
 rad2deg = 180/np.pi
+deg2rad = 1./rad2deg
+
+twopi = 2*np.pi
 
 c = 299792458.0 #m/s
 
