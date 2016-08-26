@@ -111,7 +111,6 @@ for ifos in opts.time_delay:
     maxDt = np.abs( triangulate.time_delay( t, p, ifos[0], ifos[1], coord='E' ) )
     sampDt = np.linspace(-maxDt, maxDt, opts.Nsamp)
     spacer = np.ones_like(sampDt)
-    kde = np.zeros_like(sampDt)
 
     xmin = maxDt
     xmax = -maxDt
@@ -141,7 +140,7 @@ for ifos in opts.time_delay:
         big_sampDt = np.outer( sampDt, np.ones_like(dt) )
 
         kde = np.sum( big_post * np.exp( -( (big_dt - big_sampDt)/big_sigma )**2 ) / (twopi**0.5 * big_sigma), axis=-1 )
-        kde /= np.sum(kde)
+        kde /= np.sum(kde)*(sampDt[1]-sampDt[0])
 
         subset = sampDt[kde>10**(opts.xlim_dB/10)*np.max(kde)]
         xmax = max(xmax, np.max(subset))
