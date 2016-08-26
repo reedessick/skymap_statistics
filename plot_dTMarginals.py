@@ -148,7 +148,11 @@ for ifos in opts.time_delay:
         xmin = min(xmin, np.min(subset))
 
         ### plot
-        ax.plot( sampDt*1e3, kde*1e3, label=label, color=colors[cind%len(colors)] )
+        color = colors[cind%len(colors)]
+        ax.plot( sampDt*1e3, kde*1e3, label=label, color=color )
+
+        fig.text( axpos[0]+0.01*axpos[2], axpos[1]+0.99*axpos[-1]-cind*0.05, label, color=color, ha='left', va='top' )
+
         cind += 1
 
     ### add markers
@@ -176,7 +180,7 @@ for ifos in opts.time_delay:
 
     ax.grid(True, which='both')
 
-    ax.legend(loc='best')
+#    ax.legend(loc='best')
 
     for figtype in opts.figtype:
         figname = "%s/dT_%s%s.%s"%(opts.output_dir, ifos, opts.tag, figtype)
