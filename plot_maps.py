@@ -174,7 +174,7 @@ if opts.time_delay:
             if opts.coord=="E": ### convert theta-> dec
                 y = 0.5*np.pi - y
 
-            x[x>np.pi] -= 2*np.pi ### ensure that everything is between -pi and pi
+                x[x>np.pi] -= 2*np.pi ### ensure that everything is between -pi and pi
             
             ### find big jumps in azimuthal angle and split up the plotting jobs
             d = np.concatenate( ([0],np.nonzero(np.abs(x[1:]-x[:-1])>np.pi)[0]+1,[len(x)]) )
@@ -201,8 +201,8 @@ if opts.marker_Dec_RA:
             if opts.marker_degrees:
                 dec *= triangulate.deg2rad
                 ra *= triangulate.deg2rad
-            if ra > np.pi:
-                ra -= 2*np.pi
+#            if ra > np.pi:
+#                ra -= 2*np.pi
             marker_Dec_RA.append( (dec, ra) )
 else:
     marker_Dec_RA = []
