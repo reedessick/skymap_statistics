@@ -110,7 +110,7 @@ if opts.stack_posteriors and (not opts.stack_posteriors_levels):
 line_of_sight = mw.gen_line_of_sight( opts.line_of_sight, coord=opts.coord, gps=opts.gps )
 
 ### figure out postions for zenith markers
-zenith = mw.gen_zenith( IFOs, coord=opts.coord, gps=opts.gps )
+zenith = mw.gen_zenith( opts.zenith, coord=opts.coord, gps=opts.gps )
 
 ### figure out points for time_delay
 time_delay = mw.gen_time_delay( opts.time_delay_Dec_RA, opts.time_delay, coord=opts.coord, gps=opts.gps, degrees=opts.time_delay_degrees )
