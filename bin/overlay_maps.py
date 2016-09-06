@@ -110,7 +110,7 @@ for label in labels:
     fits = d['fits']
     if opts.verbose:
         print "reading map from", fits
-    post, header = hp.read_map( fits, h=True )
+    post, header = hp.read_map( fits, h=True, verbose=False )
     if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
         post = hp.nest2ring(nside, post)
 
@@ -136,7 +136,7 @@ marker_Dec_RA = mw.gen_marker_Dec_RA( opts.marker_Dec_RA, coord=opts.coord, gps=
 
 figind = 0
 if opts.background:
-    bkgnd = hp.read_map(opts.background)
+    bkgnd = hp.read_map(opts.background, verbose=False)
 
 for ind, label1 in enumerate(labels):
     d1 = maps[label1]

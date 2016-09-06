@@ -179,7 +179,7 @@ def __line_of_sight_Evec( ifo1, ifo2, normed=True ):
 
     line-of-sight is measured from ifo1 to ifo2
     """
-    dr = detectors[ifo2]['dr'] - detectors[ifo1]['dr']
+    dr = detectors[ifo2].dr - detectors[ifo1].dr
     if normed:
         dr /= np.sum(dr**2)**0.5
     return dr
@@ -197,7 +197,7 @@ def time_delay( theta, phi, ifo1, ifo2, coord="E", tgeocent=None, degrees=False 
     if ifo2 not in detectors.keys():
         raise ValueError("ifo2=%s not understood"%ifo2)
 
-    dr = detectors[ifo1]['dr'] - detectors[ifo2]['dr']
+    dr = detectors[ifo1].dr - detectors[ifo2].dr
 
     if degrees:
         theta *= deg2rad
@@ -224,7 +224,7 @@ def time_delay_locus( dt, ifo1, ifo2, coord="E", tgeocent=None, Nsamp=1001, degr
         raise ValueError("ifo2=%s not understood"%ifo2)
 
     ### compute associated polar angle in line-of-sight frame 
-    dr = detectors[ifo1]['dr'] - detectors[ifo2]['dr']
+    dr = detectors[ifo1].dr - detectors[ifo2].dr
     cosTheta = dt / np.sum(dr*dr)**0.5
 
     ### in line-of-sight frame, define curves
@@ -286,8 +286,8 @@ def __overhead_Evec( ifo ):
     """
     a helper function to get the overhead direction
     """
-    nx = detectors[ifo]['nx']
-    ny = detectors[ifo]['ny']
+    nx = detectors[ifo].nx
+    ny = detectors[ifo].ny
     return np.array( [ nx[1]*ny[2] - nx[2]*ny[1] , -nx[0]*ny[2] + nx[2]*ny[0] , nx[0]*ny[1] - nx[1]*ny[0] ] ) ### take cross product by hand...
 
 #=================================================

@@ -132,7 +132,7 @@ if opts.stack_posteriors:
     if opts.stack_posteriors_background:
         if opts.verbose:
             print "reading map from", fits
-        post, header = hp.read_map( opts.stack_posteriors_background, h=True )
+        post, header = hp.read_map( opts.stack_posteriors_background, h=True, verbose=False )
         if opts.verbose:
             print "plotting background for stackedPosteriors"
         mw.heatmap( post, stack_ax, color_map=opts.color_map )
@@ -161,7 +161,7 @@ for label in labels:
     fits = maps[label]['fits']
     if opts.verbose:
         print "reading map from", fits
-    post, header = hp.read_map( fits, h=True )
+    post, header = hp.read_map( fits, h=True, verbose=False )
     npix = len(post)
     if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
         post = hp.nest2ring(nside, post)
