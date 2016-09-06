@@ -106,7 +106,7 @@ def heatmap( post, ax, color_map='OrRd' ):
     plt.sca( ax )
     lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(color_map) )
 
-def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, color='b', linewidths=1 ):
+def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1 ):
     '''
     generate mollweide projection of contours with requested annotations
     '''
@@ -118,7 +118,7 @@ def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, color='b', linewidths=
     lalinf_plot.healpix_contour( cpost,
                                  levels=levels,
                                  alpha=alpha,
-                                 colors=color,
+                                 colors=colors,
                                  linewidths=linewidths )
 
 #-------------------------------------------------

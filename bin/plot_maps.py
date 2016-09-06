@@ -215,7 +215,6 @@ for label in labels:
         mw.contour( post, 
                     stack_ax, 
                     colors     = color, 
-                    projection = opts.projection,
                     levels     = opts.stack_posteriors_levels, 
                     alpha      = opts.stack_posteriors_alpha, 
                     linewidths = opts.stack_posteriors_linewidths )

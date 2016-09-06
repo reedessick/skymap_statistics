@@ -159,7 +159,6 @@ for ind, label1 in enumerate(labels):
         c1 = mw.contour( post1, 
                          ax, 
                          colors     = 'b', 
-                         projection = opts.porjection, 
                          levels     = opts.levels, 
                          alpha      = opts.alpha, 
                          linewidths = opts.linewidths )
@@ -168,7 +167,6 @@ for ind, label1 in enumerate(labels):
         c2 = mw.contour( post2,
                          ax, 
                          colors     = 'g', 
-                         projection = opts.porjection, 
                          levels     = opts.levels, 
                          alpha      = opts.alpha, 
                          linewidths = opts.linewidths )
