@@ -89,6 +89,9 @@ if not opts.figtype:
 if opts.tag:
     opts.tag = "_%s"%opts.tag
 
+if not os.path.exists(opts.output_dir):
+    os.makedirs(opts.output_dir)
+
 maps = {}
 for arg in args:
     label, fits = arg.split(",")

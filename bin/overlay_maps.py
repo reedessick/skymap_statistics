@@ -82,6 +82,9 @@ if not opts.figtype:
 if opts.tag:
     opts.tag = "_%s"%opts.tag
 
+if not os.path.exists(opts.output_dir):
+    os.makedirs(opts.output_dir)
+
 if not opts.levels:
     opts.levels = [0.10, 0.50, 0.90]
 else:
