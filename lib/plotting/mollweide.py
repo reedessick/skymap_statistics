@@ -28,7 +28,7 @@ twopi = 2*np.pi
 
 ### actual plotting and figure manipulation
 
-def gen_figax( figind, figheight=5, figwidth=9, projection=None ):
+def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None ):
     '''
     generates figure and axis in the set-up we prefer
     '''
