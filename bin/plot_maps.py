@@ -216,7 +216,7 @@ for label in labels:
                     stack_ax, 
                     colors     = color, 
                     projection = opts.projection,
-                    levels     = opts.stack_posterior_levels, 
+                    levels     = opts.stack_posteriors_levels, 
                     alpha      = opts.stack_posteriors_alpha, 
                     linewidths = opts.stack_posteriors_linewidths )
         stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=color, ha='left', va='top')
