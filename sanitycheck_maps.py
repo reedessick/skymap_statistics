@@ -29,13 +29,13 @@ parser.add_option("-H", "--figheight", default=5, type="float")
 parser.add_option("-W", "--figwidth", default=9, type="float")
 
 parser.add_option("-L", "--line-of-sight", dest="los", default=[], action="append", type="string", help="eg: HL")
-parser.add_option("-O", "--overhead", default=[], action="append", type="string", help="eg: H")
+parser.add_option("-O", "--zenith", default=[], action="append", type="string", help="eg: H")
 
 parser.add_option("-p", "--plots", default=False, action="store_true", help="make plots in the new frame of reference")
 parser.add_option("-m", "--mutualinformation", default=False, action="store_true", help="compute the mutual information in the new frame of reference")
 
 parser.add_option("-c", "--coord", default="C", type="string", help="\"C\" or \"E\"")
-parser.add_option("-T", "--t_geocent", default=None, type=float)
+parser.add_option("-T", "--gps", default=None, type=float)
 
 parser.add_option("-l", "--log", default=False, action="store_true", help="log scale histograms")
 parser.add_option("-C", "--contour", default=False, action="store_true", help="plot contours instead of images")
@@ -50,8 +50,8 @@ opts, args = parser.parse_args()
 if opts.coord not in ["C", "E"]:
     raise ValueError("--coord=%s not understood"%(opts.coord))
 
-if opts.coord=="C" and opts.t_geocent==None:
-    opts.t_geocent = float( raw_input("t_geocent = ") )
+if opts.coord=="C" and opts.gps==None:
+    opts.gps = float( raw_input("gps = ") )
 
 if opts.tag:
     opts.tag = "_%s"%(opts.tag)
@@ -66,7 +66,7 @@ for arg in args:
     label, filename = arg.split(",")
     if opts.verbose:
         print "\t%s <- %s"%(label, filename)
-    m = hp.read_map( filename )
+    m = hp.read_map( filename, verbose=False )
     npix = len(m)
     nside = hp.npix2nside( npix )
     if opts.verbose:
@@ -94,7 +94,7 @@ for opt in opts.los:
     if opts.verbose:
         print "\t %s -> %s"%(ifo1, ifo2)
 
-    t, p = triangulate.line_of_sight( ifo1, ifo2, coord=opts.coord, tgeocent=opts.t_geocent )
+    t, p = triangulate.line_of_sight( ifo1, ifo2, coord=opts.coord, tgeocent=opts.gps )
     if opts.coord=="C":
         t = 0.5*np.pi - t ### convert from dec to theta    
 
@@ -137,14 +137,14 @@ for opt in opts.los:
 
 #=================================================
 
-### distance from overhead
-if opts.verbose and len(opts.overhead):
-    print "overhead"
-for ifo in opts.overhead:
+### distance from zenith
+if opts.verbose and len(opts.zenith):
+    print "zenith"
+for ifo in opts.zenith:
     if opts.verbose:
         print "\t%s"%(ifo)
 
-    t, p = triangulate.overhead( ifo, coord=opts.coord, tgeocent=opts.t_geocent )
+    t, p = triangulate.overhead( ifo, coord=opts.coord, tgeocent=opts.gps )
     if opts.coord=="C":
         t = 0.5*np.pi - t ### convert from dec to theta
 
@@ -178,7 +178,7 @@ for ifo in opts.overhead:
     plt.setp(rproj.get_yticklabels(), visible=False)
     plt.setp(tproj.get_xticklabels(), visible=False)
 
-    figname = "%s/overhead-%s%s.png"%(opts.output_dir, ifo, opts.tag)
+    figname = "%s/zenith-%s%s.png"%(opts.output_dir, ifo, opts.tag)
     if opts.verbose:
         print "\t%s"%(figname)
     fig.savefig( figname )

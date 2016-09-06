@@ -111,8 +111,9 @@ def annotate( ax, SRCs, IFOs, maxDt, color='k', alpha=1.0, coord='C', gps=None, 
 #-----------
 
 def genHist_fig_ax( figind, figwidth=9, figheight=5 ):
-    fig, plt.figure(figind, figsize=(figwidth, figheight) )
-    ax = fig.add_axes(primetime)
+    fig = plt.figure(figind, figsize=(figwidth, figheight) )
+
+    ax    = fig.add_axes(primetime)
     rproj = fig.add_axes(right_proj)
     tproj = fig.add_axes(top_proj)
 
