@@ -5,12 +5,16 @@ author      = "R. Essick (reed.essick@ligo.org)"
 
 #==========================================================
 
+import os
+
 import numpy as np
 import healpy as hp
 
 import triangulate
 
 from plotting import mollweide as mw
+plt = mw.plt
+lalinf_plot = mw.lalinf_plot
 
 from optparse import OptionParser
 
@@ -170,7 +174,7 @@ for ind, label1 in enumerate(labels):
                          levels     = opts.levels, 
                          alpha      = opts.alpha, 
                          linewidths = opts.linewidths )
-        fig.text(0.9, 0.9, label2.replace("_","\_"), color='r', ha='center', va='center')
+        fig.text(0.9, 0.9, label2.replace("_","\_"), color='g', ha='center', va='center')
 
         mw.annotate( ax,
                      projection          = opts.projection,

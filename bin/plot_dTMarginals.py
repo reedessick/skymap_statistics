@@ -5,6 +5,8 @@ author      = "R. Essick (reed.essick@ligo.org)"
 
 #-------------------------------------------------
 
+import os
+
 import stats
 import triangulate 
 
@@ -94,14 +96,14 @@ for ifos in opts.time_delay:
         print "time delay between %s and %s"%(ifos[0], ifos[1])
 
     ### get max dt allowed
-    sampDt = gen_sampDt( ifos, Nsamp=opts.Nsamp )
+    sampDt = ct.gen_sampDt( ifos, Nsamp=opts.Nsamp )
     maxDt = sampDt[-1]
 
     ### compute and plot marginals
     fig, ax = ct.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
     figind += 1
 
-    ax.set_xlim(xmin=maxDt, xmax=-maxDt)
+    ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
     for cind, label in enumerate(labels):
         if opts.verbose:
@@ -113,8 +115,8 @@ for ifos in opts.time_delay:
 
         ### plot
         color = colors[cind%len(colors)]
-        ct.plot( sampDT, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
-        fig.text(0.10+0.05, 0.95-0.05*(figind-1), label, color=color, ha='left', va='top')
+        ct.plot( ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
+        fig.text(0.10+0.02, 0.93-0.05*cind, label, color=color, ha='left', va='top')
 
     ### annotate the plot
     ct.annotate( ax, 
@@ -131,8 +133,6 @@ for ifos in opts.time_delay:
     ### decorate
     ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
     ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
-
-    ax.legend(loc='best')
 
     if opts.no_yticks:
         ax.set_yticklabels([])

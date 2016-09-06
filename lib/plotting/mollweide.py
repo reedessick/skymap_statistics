@@ -11,7 +11,7 @@ try:
         from lalinference import cmap
 except:
         raise StandardError("Could not import lalinference.plot")
-plt.rcParams.update({'font.family' : 'serif' })
+plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
 
 import numpy as np
 import healpy as hp

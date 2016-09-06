@@ -6,7 +6,7 @@ author      = "reed.essick@ligo.org"
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-plt.rcParams.update({'font.family':'serif'})
+plt.rcParams.update({'font.family':'serif', 'text.usetex':True})
 
 import stats
 import triangulate
@@ -74,9 +74,11 @@ def plot( ax, sampDt, marg, color='k', label=None, xlim_dB=-20 ):
     '''
     plot data
     '''
+    xmin, xmax = ax.get_xlim()
+
     ax.plot( sampDt*1e3, marg*1e-3, label=label, color=color )
 
-    subset = sampDt[marg > 10**(xlim_dB/10)*np.max(marg)]
+    subset = sampDt[marg > 10**(xlim_dB/10)*np.max(marg)]*1e3
     ax.set_xlim( xmin=min(xmin, np.min(subset)), xmax=max(xmax, np.max(subset)) )
 
 def set_xlim( ax, xmin=None, xmax=None ):
@@ -183,6 +185,6 @@ def gen_sampDt( IFOs, Nsamp=501 ):
     '''
     generate sample points for KDE generation
     '''
-    t, p = triangulate.line_of_sight( ifos[0], ifos[1], coord='E' )
-    maxDt = np.abs( triangulate.time_delay( t, p, ifos[0], ifos[1], coord='E' ) )
+    t, p = triangulate.line_of_sight( IFOs[0], IFOs[1], coord='E' )
+    maxDt = np.abs( triangulate.time_delay( t, p, IFOs[0], IFOs[1], coord='E' ) )
     return np.linspace(-maxDt, maxDt, Nsamp)
