@@ -116,7 +116,7 @@ for label in labels:
 #=================================================
 
 ### figure out positions for line-of-sight and zenith markers
-line_of_sight = mw.gen_line_of_sigth( opts.line_of_sight, coord=opts.coord, gps=opts.gps )
+line_of_sight = mw.gen_line_of_sight( opts.line_of_sight, coord=opts.coord, gps=opts.gps )
 
 ### figure out postions for zenith markers
 zenith = mw.gen_zenith( IFOs, coord=opts.coord, gps=opts.gps )
