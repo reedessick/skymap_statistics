@@ -70,7 +70,7 @@ parser.add_option("", "--marker-color", default='k', type='string', help='the ed
 parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alpha saturation for markers')
 parser.add_option("", "--marker", default='o', type='string', help="the actual marker shape used")
 parser.add_option("", "--marker-size", default=4, type='float', help='the size of the marker')
-parser.add_option("", "--marker-edge-width", default=1, type='float', help='the edge width of the marker')
+parser.add_option("", "--marker-edgewidth", default=1, type='float', help='the edge width of the marker')
 
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
