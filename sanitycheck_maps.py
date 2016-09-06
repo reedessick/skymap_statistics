@@ -7,10 +7,11 @@ author      = "reed.essick@ligo.org"
 
 import triangulate
 
-from plotting import cartesian as ct
-
 import healpy as hp
 import numpy as np
+
+from plotting import cartesian as ct
+plt = ct.plt
 
 from optparse import OptionParser
 
@@ -24,8 +25,11 @@ parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
-parser.add_option("-L", "--line-of-sight", dest="los", default=[], action="append", type="string", help="ifo1,ifo2")
-parser.add_option("-O", "--overhead", default=[], action="append", type="string", help="ifo")
+parser.add_option("-H", "--figheight", default=5, type="float")
+parser.add_option("-W", "--figwidth", default=9, type="float")
+
+parser.add_option("-L", "--line-of-sight", dest="los", default=[], action="append", type="string", help="eg: HL")
+parser.add_option("-O", "--overhead", default=[], action="append", type="string", help="eg: H")
 
 parser.add_option("-p", "--plots", default=False, action="store_true", help="make plots in the new frame of reference")
 parser.add_option("-m", "--mutualinformation", default=False, action="store_true", help="compute the mutual information in the new frame of reference")
@@ -36,7 +40,6 @@ parser.add_option("-T", "--t_geocent", default=None, type=float)
 parser.add_option("-l", "--log", default=False, action="store_true", help="log scale histograms")
 parser.add_option("-C", "--contour", default=False, action="store_true", help="plot contours instead of images")
 
-parser.add_option("-g", "--grid", default=False, action="store_true")
 parser.add_option("-o", "--output-dir", default=".", type="string")
 parser.add_option("-t", "--tag", default="", type="string")
 
@@ -81,14 +84,13 @@ labels = sorted(maps.keys())
 
 #=================================================
 
-raise NotImplementedError("CHANGE ME TO PLAY NICELY WITH plotting.cartesian")
-
+figind = 0
 
 ### line-of-sight
 if opts.verbose and len(opts.los):
     print "line-of-sight"
 for opt in opts.los:
-    ifo1, ifo2 = opt.split(",")
+    ifo1, ifo2 = opt
     if opts.verbose:
         print "\t %s -> %s"%(ifo1, ifo2)
 
@@ -96,7 +98,8 @@ for opt in opts.los:
     if opts.coord=="C":
         t = 0.5*np.pi - t ### convert from dec to theta    
 
-    figax = None
+    fig, ax, rproj, tproj = ct.genHist_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+    figind += 1
 
     for cind, label in enumerate(labels):
         color = colors[cind%len(colors)]
@@ -108,6 +111,7 @@ for opt in opts.los:
         npix = maps[label]['npix']
         
         theta, phi = hp.pix2ang(nside, np.arange(npix))
+
         ### rotate
         rtheta, rphi = triangulate.rotate2pole( theta, phi, t, p )
 
@@ -116,28 +120,20 @@ for opt in opts.los:
         if opts.mutualinformation:
             mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
+
         if opts.plots:
-            figax = ct.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.color_map )
-            figax[0].text(0.99, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='right', va='top')
+            ct.histogram2d( rtheta, rphi, ax, rproj, tproj, Nbins=Nbins, weights=m, log=opts.log, contour=opts.contour, color=color, cmap=opts.color_map )
+            fig.text(0.99, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='right', va='top')
 
-    if figax:
-        fig, ax = figax
-        ### decorate
-	for a in ax:
-		a.grid(opts.grid, which="both")
-	plt.setp(ax[2].get_yticklabels(), visible=False)
-	plt.setp(ax[1].get_xticklabels(), visible=False)
+    ### decorate
+    plt.setp(rproj.get_yticklabels(), visible=False)
+    plt.setp(tproj.get_xticklabels(), visible=False)
 
-        figname = "%s/los-%s-%s%s.png"%(opts.output_dir, ifo1, ifo2, opts.tag)
-        if opts.verbose:
-            print "\t%s"%(figname)
-        fig.savefig( figname )
-        plt.close( fig )
-
-"""
-use this to look for whether the rings are "concentric" or "centered" where we expect them to be.
-should show up as lines of constant lattitude
-"""
+    figname = "%s/los-%s-%s%s.png"%(opts.output_dir, ifo1, ifo2, opts.tag)
+    if opts.verbose:
+        print "\t%s"%(figname)
+    fig.savefig( figname )
+    plt.close( fig )
 
 #=================================================
 
@@ -152,7 +148,8 @@ for ifo in opts.overhead:
     if opts.coord=="C":
         t = 0.5*np.pi - t ### convert from dec to theta
 
-    figax = None
+    fig, ax, rproj, tproj = ct.genHist_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+    figind += 1
 
     for cind, label in enumerate(labels):
         color = colors[cind%len(colors)]
@@ -164,6 +161,7 @@ for ifo in opts.overhead:
         npix = maps[label]['npix']
 
         theta, phi = hp.pix2ang(nside, np.arange(npix))
+
         ### rotate
         rtheta, rphi = triangulate.rotate2pole( theta, phi, t, p )
 
@@ -173,25 +171,15 @@ for ifo in opts.overhead:
             mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi/entj)
         if opts.plots:
-            figax = ct.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.colormap )
-            figax[0].text(0.99, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='right', va='top')
+            ct.histogram2d( rtheta, rphi, ax, rproj, tproj, Nbins=Nbins, weights=m, log=opts.log, contour=opts.contour, color=color, cmap=opts.colormap )
+            fig.text(0.99, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='right', va='top')
 
-    if figax:
-        fig, ax = figax
-        ### decorate
-        for a in ax:
-                a.grid(opts.grid, which="both")
-        plt.setp(ax[2].get_yticklabels(), visible=False)
-        plt.setp(ax[1].get_xticklabels(), visible=False)
+    ### decorate
+    plt.setp(rproj.get_yticklabels(), visible=False)
+    plt.setp(tproj.get_xticklabels(), visible=False)
 
-        figname = "%s/overhead-%s%s.png"%(opts.output_dir, ifo, opts.tag)
-        if opts.verbose:
-            print "\t%s"%(figname)
-        fig.savefig( figname )
-        plt.close( fig )
-
-"""
-use this to look for the "distance from the bulk" or other similar measures.
-should allow us to measure how "unlikely" a certain sky location is
-"""
-
+    figname = "%s/overhead-%s%s.png"%(opts.output_dir, ifo, opts.tag)
+    if opts.verbose:
+        print "\t%s"%(figname)
+    fig.savefig( figname )
+    plt.close( fig )
