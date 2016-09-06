@@ -99,4 +99,4 @@ def summarize( post, ifo, coord='C', gps=None, fitsname=None ):
     if fitsname:
         hp.write_map( fitsname, Fp**2+Fx**2, column_names='Fx^2+F+^2' )
 
-    return (Fpind]**2 + Fx[mapind]**2, p[mapind], Fx[mapind]), (np.sum( map*(Fp**2 + Fx**2) ), np.sum( map*Fp ), np.sum( map*Fx ))
+    return (Fp[mapind]**2 + Fx[mapind]**2, p[mapind], Fx[mapind]), (np.sum( map*(Fp**2 + Fx**2) ), np.sum( map*Fp ), np.sum( map*Fx ))
