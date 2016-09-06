@@ -1,18 +1,27 @@
 #!/usr/bin/python
 usage       = "sanitycheck_maps.py [--options] label,fits label,fits label,fits ..."
 description = "generate some sanity checks based on basic triangulation"
-author      = "reed.essick@ligo.org"
-
-#=================================================
+author      = "R. Essick (reed.essick@ligo.org)"
 
 import triangulate
-
-from plotting import cartesian as ct
+import visualize
+plt = visualize.plt
 
 import healpy as hp
 import numpy as np
 
 from optparse import OptionParser
+
+#=================================================
+
+#def compute_mi( theta, phi, Nbins, weights=None ):
+#    theta_bins = np.linspace(0, np.pi, Nbins+1)
+#    phi_bins = np.linspace(-np.pi, np.pi, Nbins+1)
+#
+#    count = np.histogram2d( phi, theta, bins=(phi_bins, theta_bins), weights=weights )[0]
+#
+#    return triangulate.mutualinformation( count, bins=None )
+###    return triangulate.mutualinformation( count, bins=(theta_bins, phi_bins) )
 
 #=================================================
 
@@ -53,6 +62,12 @@ if opts.coord=="C" and opts.t_geocent==None:
 if opts.tag:
     opts.tag = "_%s"%(opts.tag)
 
+if opts.color_map == "cylon":
+    try:
+        from lalinference import cmap
+    except:
+        raise ValueError('could not import lalinference')
+
 #=================================================
 
 ### read in maps
@@ -80,9 +95,6 @@ for arg in args:
 labels = sorted(maps.keys())
 
 #=================================================
-
-raise NotImplementedError("CHANGE ME TO PLAY NICELY WITH plotting.cartesian")
-
 
 ### line-of-sight
 if opts.verbose and len(opts.los):
@@ -117,7 +129,7 @@ for opt in opts.los:
             mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformationDistance(%s) : %.6f"%(label, mi/entj)
         if opts.plots:
-            figax = ct.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.color_map )
+            figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.color_map )
             figax[0].text(0.99, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='right', va='top')
 
     if figax:
@@ -173,7 +185,7 @@ for ifo in opts.overhead:
             mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
             print "\t\tmutualinformation(%s) : %.6f nats"%(label, mi/entj)
         if opts.plots:
-            figax = ct.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.colormap )
+            figax = visualize.histogram2d( rtheta, rphi, Nbins=Nbins, weights=m, figax=figax, log=opts.log, contour=opts.contour, color=color, cmap=opts.colormap )
             figax[0].text(0.99, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='right', va='top')
 
     if figax:

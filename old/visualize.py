@@ -1,5 +1,7 @@
 description = "module to hold plotting functions"
-author = "Reed Essick (reed.essick@ligo.org)"
+author      = "reed.essick@ligo.org"
+
+#=================================================
 
 import numpy as np
 

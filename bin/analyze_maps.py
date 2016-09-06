@@ -1,0 +1,126 @@
+#!/usr/bin/python
+usage       = "analyze_maps.py [--options] label1,fits1 label2,fits2 ..."
+description = "computes several descriptive statistics about the maps provided"
+author      = "reed.essick@ligo.org"
+
+#==========================================================
+
+import stats
+
+import numpy as np
+import healpy as hp
+
+from optparse import OptionParser
+
+#==========================================================
+
+parser = OptionParser(usage=usage, description=description)
+
+parser.add_option("-v", "--verbose", default=False, action="store_true")
+parser.add_option("-V", "--Verbose", default=False, action="store_true")
+
+parser.add_option("-d", "--degrees", default=False, action="store_true")
+
+parser.add_option("", "--pvalue", default=False, type="string", help="\"theta, phi\" in the coordinate system of these maps for which we compute the pvalue (the confidence associated with the minimum credible region that marginally includes this location)")
+parser.add_option("", "--searched-area", default=False, type="string" )
+
+parser.add_option("-H", "--entropy", default=False, action="store_true", help='computes the entropy of the map')
+
+parser.add_option("-c", "--credible-interval", default=[], type='float', action='append', help='computes the size, max(dtheta), and num/size of disjoint regions for each confidence region. This argument can be supplied multiple times to analyze multiple confidence regions.')
+parser.add_option("", "--no-credible-interval-dtheta", default=False, action="store_true", help='does not compute max(dtheta) for each confidence region. This may be desired if computational speed is an issue, because the max(dtheta) algorithm scales as Npix^2.')
+parser.add_option("", "--no-credible-interval-disjoint-regions", default=False, action="store_true", help="does not compute number,size of disjoint regions for each confidence region.")
+
+opts, args = parser.parse_args()
+
+opts.verbose = opts.verbose or opts.Verbose
+
+if opts.pvalue:
+    theta, phi = [float(l) for l in opts.pvalue.split(",")]
+if opts.searched_area:
+    stheta, sphi = [float(l) for l in opts.searched_area.split(",")]
+
+opts.credible_interval = sorted(opts.credible_interval)
+
+#==========================================================
+if opts.degrees:
+    unit = "deg"
+    areaunit = "deg2"
+    angle_conversion = 180/np.pi
+    if opts.pvalue:
+        theta /= angle_conversion
+        phi /= angle_conversion
+    if opts.searched_area:
+        stheta /= angle_conversion
+        sphi /= angle_conversion
+else:
+    unit = "radians"
+    areaunit = "stradians"
+    angle_conversion = 1.0
+
+#==========================================================
+
+for ind, arg in enumerate(args):
+    label, fits = arg.split(',')
+    messages = []
+
+    print label
+
+    if opts.verbose:
+        print "\treading map from %s"%(fits)
+    post, header = hp.read_map( fits, h=True )
+    NEST = (dict(header)['ORDERING']=='NEST')
+    npix = len(post)
+    nside = hp.npix2nside(npix)
+
+    print "\tnside=%d"%(nside)
+
+    pixarea = hp.nside2pixarea(nside, degrees=opts.degrees)
+
+    print "\tpixarea=%.6f %s"%(pixarea, areaunit)
+
+    ### compute statistics and report them
+    if opts.pvalue:
+        if opts.Verbose:
+            print "\t\tpvalue"
+        pvalue = stats.p_value(post, theta, phi, nside=nside)
+        messages.append( "cdf(%s) = %.3f %s"%(opts.pvalue, pvalue*100, "%") )
+
+    if opts.searched_area:
+        if opts.Verbose:
+            print "\t\tsearched_area"
+        sa = stats.searched_area(post, stheta, sphi, nside=nside, degrees=opts.degrees)
+        messages.append( "searched_area(%s) = %.3f %s"%(opts.searched_area, sa, areaunit) )
+		
+    # entropy -> size
+    if opts.entropy:
+        if opts.Verbose:
+            print "\t\tentropy"
+            entropy = pixarea * 2**(stats.entropy(post, base=2.0))
+        messages.append( "entropy = %.3f %s"%(entropy, areaunit) )
+
+    # CR -> size, max(dtheta)
+    if opts.Verbose:
+        print "\t\tCredible Regions"
+    cr = {}
+    for CR, conf in zip(stats.credible_region(post, opts.credible_interval), opts.credible_interval):
+        if opts.Verbose:
+            print "\t\tCR : %.6f"%(conf)
+        header = "%.3f %s CR"%(conf*100, "%")
+        size = pixarea*len(CR)
+        messages.append( "%s: size = %.3f %s"%(header, size, areaunit) )
+
+        if not opts.no_credible_interval_dtheta:
+            if opts.Verbose:
+                print "\t\t\tmax_dtheta"
+#            max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta(CR, nside, nest=NEST, safe=True))
+            max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta_fast(CR, nside, nest=NEST, safe=True))
+            messages.append( "%s: max(dtheta) = %.3f %s"%(header, max_dtheta, unit) )
+
+        if not opts.no_credible_interval_disjoint_regions:
+            if opts.Verbose:
+				print "\t\t\tdisjoint_regions"
+            sizes = sorted([len(_)*pixarea for _ in stats.__into_modes(nside, CR, nest=NEST)])
+            messages.append( "%s: disjoint regions : (%s) %s"%(header, ", ".join(["%.3f"%x for x in sizes]), areaunit ) )
+
+    for message in messages:
+        print "\t", message

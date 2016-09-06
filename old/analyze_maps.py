@@ -1,7 +1,7 @@
 #!/usr/bin/python
-usage = "python analyze_maps.py [--options] label1,fits1 label2,fits2 ..."
+usage       = "analyze_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several descriptive statistics about the maps provided"
-author = "R. Essick (reed.essick@ligo.org)"
+author      = "R. Essick (reed.essick@ligo.org)"
 
 #==========================================================
 
@@ -13,6 +13,7 @@ import stats
 from optparse import OptionParser
 
 #==========================================================
+
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")

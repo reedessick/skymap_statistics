@@ -1,7 +1,7 @@
 #!/usr/bin/python
-usage = "python overlay_maps.py [--options] label1,fits1 label2,fits2 ..."
+usage       = "overlay_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "overlays skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_contour"
-author = "R. Essick (reed.essick@ligo.org)"
+author      = "R. Essick (reed.essick@ligo.org)"
 
 #==========================================================
 
@@ -30,6 +30,7 @@ from optparse import OptionParser
 axpos = [0.03, 0.03, 0.94, 0.94]
 
 #==========================================================
+
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")

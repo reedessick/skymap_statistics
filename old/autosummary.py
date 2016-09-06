@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
+usage       = """autosummary.py [--options] gracedid graceid graceid ..."""
 description = """the author is far too well educated to spend his time on data entry, so this automates the comparisons he put together of various skymaps. Assumes that all relevant information is attached to GraceDb (as it should be)."""
-usage = """autosummary.py [--options] gracedid graceid graceid ..."""
-author = "Reed Essick (reed.essick@ligo.org)"
+author      = "Reed Essick (reed.essick@ligo.org)"
+
+#=================================================
 
 import os
 import sys
