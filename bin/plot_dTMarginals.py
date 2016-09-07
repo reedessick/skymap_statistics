@@ -100,7 +100,7 @@ for ifos in opts.time_delay:
     maxDt = sampDt[-1]
 
     ### compute and plot marginals
-    fig, ax = ct.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+    fig, ax = ct.genDT_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
     figind += 1
 
     ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...

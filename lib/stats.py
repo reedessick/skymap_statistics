@@ -457,5 +457,3 @@ def spotcheck(posterior1, posterior2, conf):
 	if isinstance(conf, (int,float)):
 		conf = np.array([conf])
 	return [np.sum(posterior2[pix]) for pix in credible_region(posterior1, conf) ], [np.sum(posterior1[pix]) for pix in credible_region(posterior2, conf) ]
-
-

@@ -43,6 +43,9 @@ parser.add_option("-C", "--contour", default=False, action="store_true", help="p
 parser.add_option("-o", "--output-dir", default=".", type="string")
 parser.add_option("-t", "--tag", default="", type="string")
 
+parser.add_option("", "--figtype", default=[], action="append", type="string")
+parser.add_option("", "--dpi", default=500, type="int")
+
 parser.add_option("", "--color-map", default="Reds", type="string", help="Default=\"Reds\"")
 
 opts, args = parser.parse_args()
@@ -55,6 +58,9 @@ if opts.coord=="C" and opts.gps==None:
 
 if opts.tag:
     opts.tag = "_%s"%(opts.tag)
+
+if not opts.figtype:
+    opts.figtype.append( "png" )
 
 #=================================================
 
@@ -129,10 +135,11 @@ for opt in opts.los:
     plt.setp(rproj.get_yticklabels(), visible=False)
     plt.setp(tproj.get_xticklabels(), visible=False)
 
-    figname = "%s/los-%s-%s%s.png"%(opts.output_dir, ifo1, ifo2, opts.tag)
-    if opts.verbose:
-        print "\t%s"%(figname)
-    fig.savefig( figname )
+    for figtype in opts.figtype:
+        figname = "%s/los-%s-%s%s.%s"%(opts.output_dir, ifo1, ifo2, opts.tag, figtype)
+        if opts.verbose:
+            print "\t%s"%(figname)
+        fig.savefig( figname, dpi=opts.dpi )
     plt.close( fig )
 
 #=================================================
@@ -178,8 +185,9 @@ for ifo in opts.zenith:
     plt.setp(rproj.get_yticklabels(), visible=False)
     plt.setp(tproj.get_xticklabels(), visible=False)
 
-    figname = "%s/zenith-%s%s.png"%(opts.output_dir, ifo, opts.tag)
-    if opts.verbose:
-        print "\t%s"%(figname)
-    fig.savefig( figname )
+    for figtype in opts.figtype:
+        figname = "%s/zenith-%s%s.%s"%(opts.output_dir, ifo, opts.tag, figtype)
+        if opts.verbose:
+            print "\t%s"%(figname)
+        fig.savefig( figname, dpi=opts.dpi )
     plt.close( fig )
