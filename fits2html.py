@@ -21,6 +21,8 @@ from plotting import cartesian as ct
 import detector_cache
 import antenna
 
+import html
+
 import numpy as np
 import healpy as hp
 
@@ -129,8 +131,7 @@ if opts.verbose:
 
 #-------------------------------------------------
 
-data = {} ### store filenames and misc data
-          ### probably want to replace this with some kind of class that knows how to write an html document and supporting data files
+data = html.snglFITS( fits ) ### store filenames and misc data
 
 #-------------------------------------------------
 
