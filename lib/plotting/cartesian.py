@@ -123,7 +123,7 @@ def genHist_fig_ax( figind, figwidth=9, figheight=5 ):
 
     return fig, ax, rproj, tproj
 
-def histogram2d( theta, phi, ax, rproj, tproj, weights=None, Nbins=250, color='b', log=False, contour=False, cmap="jet" ):
+def histogram2d( theta, phi, ax, rproj, tproj, weights=None, Nbins=250, color='b', log=False, contour=False, levels=[0.1, 0.5, 0.9], cmap="jet", alpha=1.0 ):
     """
     custom plot for skymap analysis
     """
@@ -136,18 +136,29 @@ def histogram2d( theta, phi, ax, rproj, tproj, weights=None, Nbins=250, color='b
 
     ### 2D histogram
     tp_count = np.histogram2d( theta, phi, bins=(theta_bins, phi_bins), weights=weights )[0]
+
     if contour:
+        ### convert to cumulative count for countours!
+        shape = tp_count.shape
+
+        tp_count = tp_count.flatten()
+        tp_cum = np.empty(tp_count.shape)
+        order = np.argsort(tp_count)[::-1]
+        tp_cum[order] = np.cumsum( tp_count[order] )
+
+        tp_cum = np.reshape(tp_cum, shape)
+
         if log:
-            ax.contour( phi_dots, theta_dots, np.log10(tp_count), colors=color, alpha=0.5 )
+            ax.contour( phi_dots, theta_dots, np.log10(tp_cum), colors=color, alpha=alpha, levels=levels )
         else:
-            ax.contour( phi_dots, theta_dots, tp_count, colors=color, alpha=0.5 )
+            ax.contour( phi_dots, theta_dots, tp_cum, colors=color, alpha=alpha, levels=levels )
     else:
         im = matplotlib.image.NonUniformImage( ax, interpolation='bilinear', cmap=plt.get_cmap(cmap) )
         if log:
             im.set_data( phi_dots, theta_dots[::-1], np.log10(tp_count[::-1,:]) )
         else:
             im.set_data( phi_dots, theta_dots[::-1], tp_count[::-1,:] )
-        im.set_alpha( 0.001 )
+        im.set_alpha( alpha )
         ax.images.append( im )
 
     ax.set_xlim( xmin=-180.0, xmax=180.0 )
@@ -160,7 +171,7 @@ def histogram2d( theta, phi, ax, rproj, tproj, weights=None, Nbins=250, color='b
 
     ### theta projection
     theta_count = np.histogram( theta, bins=theta_bins, weights=weights )[0]
-    rproj.plot( theta_count, theta_dots[::-1], color=color )
+    rproj.plot( theta_count, theta_dots[::-1], color=color, alpha=alpha)
     rproj.set_ylim( ymin=0.0, ymax=180.0 )
     rproj.set_xlabel( "$p(\\theta)$" )
     plt.setp(rproj.get_yticklabels(), visible=False)
@@ -170,7 +181,7 @@ def histogram2d( theta, phi, ax, rproj, tproj, weights=None, Nbins=250, color='b
 
     ### phi proejection
     phi_count = np.histogram( phi, bins=phi_bins, weights=weights )[0]
-    tproj.plot( phi_dots, phi_count, color=color )
+    tproj.plot( phi_dots, phi_count, color=color, alpha=alpha )
     tproj.set_xlim( xmin=-180.0, xmax=180.0 )
     tproj.set_ylabel( "$p(\phi)$" )
     plt.setp(tproj.get_xticklabels(), visible=False)
