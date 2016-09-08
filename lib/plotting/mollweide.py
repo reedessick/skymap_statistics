@@ -3,6 +3,9 @@ author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
 
+import os
+import json
+
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
@@ -92,7 +95,7 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
     if continents:
         geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
         file_obj = open(geojson_filename, 'r')
-        geojson = json.load(geojson_file)
+        geojson = json.load(geojson_filename)
         file_obj.close()
 
         for shape in geojson['geometries']:
