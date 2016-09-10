@@ -66,61 +66,61 @@ for ind, arg in enumerate(args):
     print label
 
     if opts.verbose:
-        print "\treading map from %s"%(fits)
+        print "    reading map from %s"%(fits)
     post, header = hp.read_map( fits, h=True )
     NEST = (dict(header)['ORDERING']=='NEST')
     npix = len(post)
     nside = hp.npix2nside(npix)
 
-    print "\tnside=%d"%(nside)
+    print "    nside=%d"%(nside)
 
     pixarea = hp.nside2pixarea(nside, degrees=opts.degrees)
 
-    print "\tpixarea=%.6f %s"%(pixarea, areaunit)
+    print "    pixarea=%.6f %s"%(pixarea, areaunit)
 
     ### compute statistics and report them
     if opts.pvalue:
         if opts.Verbose:
-            print "\t\tpvalue"
+            print "        pvalue"
         pvalue = stats.p_value(post, theta, phi, nside=nside)
         messages.append( "cdf(%s) = %.3f %s"%(opts.pvalue, pvalue*100, "%") )
 
     if opts.searched_area:
         if opts.Verbose:
-            print "\t\tsearched_area"
+            print "        searched_area"
         sa = stats.searched_area(post, stheta, sphi, nside=nside, degrees=opts.degrees)
         messages.append( "searched_area(%s) = %.3f %s"%(opts.searched_area, sa, areaunit) )
 		
     # entropy -> size
     if opts.entropy:
         if opts.Verbose:
-            print "\t\tentropy"
+            print "        entropy"
             entropy = pixarea * 2**(stats.entropy(post, base=2.0))
         messages.append( "entropy = %.3f %s"%(entropy, areaunit) )
 
     # CR -> size, max(dtheta)
     if opts.Verbose:
-        print "\t\tCredible Regions"
+        print "        Credible Regions"
     cr = {}
     for CR, conf in zip(stats.credible_region(post, opts.credible_interval), opts.credible_interval):
         if opts.Verbose:
-            print "\t\tCR : %.6f"%(conf)
+            print "        CR : %.6f"%(conf)
         header = "%.3f %s CR"%(conf*100, "%")
         size = pixarea*len(CR)
         messages.append( "%s: size = %.3f %s"%(header, size, areaunit) )
 
         if not opts.no_credible_interval_dtheta:
             if opts.Verbose:
-                print "\t\t\tmax_dtheta"
+                print "            max_dtheta"
 #            max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta(CR, nside, nest=NEST, safe=True))
             max_dtheta = angle_conversion*np.arccos(stats.min_all_cos_dtheta_fast(CR, nside, nest=NEST, safe=True))
             messages.append( "%s: max(dtheta) = %.3f %s"%(header, max_dtheta, unit) )
 
         if not opts.no_credible_interval_disjoint_regions:
             if opts.Verbose:
-				print "\t\t\tdisjoint_regions"
+				print "            disjoint_regions"
             sizes = sorted([len(_)*pixarea for _ in stats.__into_modes(nside, CR, nest=NEST)])
             messages.append( "%s: disjoint regions : (%s) %s"%(header, ", ".join(["%.3f"%x for x in sizes]), areaunit ) )
 
     for message in messages:
-        print "\t", message
+        print "    "+message

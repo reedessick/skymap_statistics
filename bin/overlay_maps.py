@@ -207,6 +207,6 @@ for ind, label1 in enumerate(labels):
         for figtype in opts.figtype:
             figname = "%s/%s-%s%s.%s"%(opts.output_dir, label1, label2, opts.tag, figtype)
             if opts.verbose:
-                print "\t", figname
+                print "    "+figname
             plt.savefig( figname, dpi=opts.dpi )
         plt.close( fig )

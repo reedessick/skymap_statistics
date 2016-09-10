@@ -167,7 +167,7 @@ for label in labels:
         post = hp.nest2ring(nside, post)
     nside = hp.npix2nside(npix)
     if opts.verbose:
-        print "\tnside=%d"%nside
+        print "    nside=%d"%nside
 
     fig, ax = mw.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, projection=opts.projection )
     figind += 1
@@ -205,7 +205,7 @@ for label in labels:
     for figtype in opts.figtype:
         figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
         if opts.verbose:
-            print "\t", figname
+            print "    "+figname
         plt.savefig( figname, dpi=opts.dpi )
     plt.close( fig )
 

@@ -30,6 +30,8 @@ parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action='store_true')
 
+parser.add_option("", "--stack-posteriors", default=False, action="store_true")
+
 parser.add_option("-H", "--figheight", default=5, type="float")
 parser.add_option("-W", "--figwidth", default=9, type="float")
 
@@ -80,6 +82,8 @@ if opts.verbose:
 maps = {}
 for arg in args:
     label, fits = arg.split(",")
+    if opts.verbose:
+        print "    %s -> %s"%(fits, label)
     post = hp.read_map(fits, verbose=False)
     if opts.nside!=None:
         post = stats.resample( post, opts.nside )
@@ -100,52 +104,92 @@ for ifos in opts.time_delay:
     maxDt = sampDt[-1]
 
     ### compute and plot marginals
-    fig, ax = ct.genDT_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
-    figind += 1
+    if opts.stack_posteriors:
+        stack_fig, stack_ax = ct.genDT_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+        figind += 1
 
-    ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
+        stack_ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
     for cind, label in enumerate(labels):
         if opts.verbose:
-            print "    ", label
+            print "    "+label
 
         post  = maps[label]['post']
 
         kde = ct.post2marg( post, ifos, sampDt, coord=opts.coord, gps=opts.gps ) 
 
         ### plot
-        color = colors[cind%len(colors)]
-        ct.plot( ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
-        fig.text(0.10+0.02, 0.93-0.05*cind, label, color=color, ha='left', va='top')
+        fig, ax = ct.genDT_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+        figind += 1
 
-    ### annotate the plot
-    ct.annotate( ax, 
-                 opts.time_delay_Dec_RA, 
-                 ifos,
-                 maxDt,  
-                 coord   = opts.coord, 
-                 gps     = opts.gps, 
-                 color   = opts.time_delay_color, 
-                 alpha   = opts.time_delay_alpha, 
-                 degrees = opts.time_delay_degrees,
-               )
+        ct.plot( ax, sampDt, kde, label=label, color='b', xlim_dB=opts.xlim_dB )
 
-    ### decorate
-    ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
-    ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
+        ### annotate the plot
+        ct.annotate( ax, 
+                     opts.time_delay_Dec_RA, 
+                     ifos,
+                     maxDt,  
+                     coord   = opts.coord, 
+                     gps     = opts.gps, 
+                     color   = opts.time_delay_color, 
+                     alpha   = opts.time_delay_alpha, 
+                     degrees = opts.time_delay_degrees,
+                   )
 
-    if opts.no_yticks:
-        ax.set_yticklabels([])
+        ### decorate
+        ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
+        ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-    if opts.transparent:
-        stack_fig.patch.set_alpha(0.)
-        stack_ax.patch.set_alpha(0.)
-        stack_ax.set_alpha(0.)
+        if opts.no_yticks:
+            ax.set_yticklabels([])
 
-    ### save figure
-    for figtype in opts.figtype:
-        figname = "%s/dT_%s%s.%s"%(opts.output_dir, ifos, opts.tag, figtype)
-        if opts.verbose:
-            print figname
-        fig.savefig(figname, dpi=opts.dpi)
-    plt.close(fig)
+        if opts.transparent:
+            fig.patch.set_alpha(0.)
+            ax.patch.set_alpha(0.)
+            ax.set_alpha(0.)
+
+        ### save figure
+        for figtype in opts.figtype:
+            figname = "%s/dT-%s_%s%s.%s"%(opts.output_dir, ifos, label, opts.tag, figtype)
+            if opts.verbose:
+                print "      "+figname
+            fig.savefig(figname, dpi=opts.dpi)
+        plt.close(fig)
+
+        if opts.stack_posteriors:
+            color = colors[cind%len(colors)]
+            ct.plot( stack_ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
+            stack_fig.text(0.10+0.02, 0.93-0.05*cind, label, color=color, ha='left', va='top')
+
+    if opts.stack_posteriors:
+        ### annotate the plot
+        ct.annotate( stack_ax, 
+                     opts.time_delay_Dec_RA, 
+                     ifos,
+                     maxDt,  
+                     coord   = opts.coord, 
+                     gps     = opts.gps, 
+                     color   = opts.time_delay_color, 
+                     alpha   = opts.time_delay_alpha, 
+                     degrees = opts.time_delay_degrees,
+                   )
+
+        ### decorate
+        stack_ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
+        stack_ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
+
+        if opts.no_yticks:
+            stack_ax.set_yticklabels([])
+
+        if opts.transparent:
+            stack_fig.patch.set_alpha(0.)
+            stack_ax.patch.set_alpha(0.)
+            stack_ax.set_alpha(0.)
+
+        ### save figure
+        for figtype in opts.figtype:
+            figname = "%s/dT-%s_stacked%s.%s"%(opts.output_dir, ifos, opts.tag, figtype)
+            if opts.verbose:
+                print figname
+            stack_fig.savefig(figname, dpi=opts.dpi)
+        plt.close(stack_fig)

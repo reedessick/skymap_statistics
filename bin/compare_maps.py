@@ -77,7 +77,7 @@ for label in labels:
         post = hp.nest2ring(nside, post)
     nside = hp.npix2nside(npix)
     if opts.verbose:
-        print "\tnside=%d"%nside
+        print "    nside=%d"%nside
 
     if opts.rankmap: ### convert maps to rankmpas, not posteriors
         post = stats.rankmap( post, npix=npix, normed=True )
@@ -113,13 +113,13 @@ for ind, label1 in enumerate(labels):
 
         if nside2 > nside:
             if opts.verbose:
-                print "\tresampling %s : %d -> %d"%(label2, nside2, nside)
+                print "    resampling %s : %d -> %d"%(label2, nside2, nside)
             post2 = stats.resample(Post2[:], nside)
         else:
             post2 = Post2[:]
         if nside1 > nside:
             if opts.verbose:
-                print "\tresampling %s : %d -> %d"%(label1, nside1, nside)
+                print "    resampling %s : %d -> %d"%(label1, nside1, nside)
             post1 = stats.resample(Post1[:], nside)
         else:
             post1 = Post1
@@ -127,86 +127,86 @@ for ind, label1 in enumerate(labels):
         pixarea = hp.nside2pixarea( nside, degrees=opts.degrees )
 
         if opts.verbose:
-            print "\tnside : %d"%(nside)
-            print "\tpixarea : %.6f %s"%(pixarea, areaunit)
+            print "    nside : %d"%(nside)
+            print "    pixarea : %.6f %s"%(pixarea, areaunit)
 
         messages = []
 	
         ### compute statistics
         if opts.dMAP:
             if opts.Verbose:
-                print "\t\tdMAP"
+                print "        dMAP"
             t1, p1 = d1['estang']
             t2, p2 = d2['estang']
             messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
 
         if opts.fidelity:
             if opts.Verbose:
-                print "\t\tfidelity"
+                print "        fidelity"
             messages.append( "fidelity : %.5f"%(stats.fidelity(post1, post2)) )
 
         if opts.joint_entropy:
             if opts.Verbose:
-                print "\t\tjoint_entropy"
+                print "        joint_entropy"
             messages.append( "joint entropy : %.5f %s"%(pixarea * 2**(stats.indep_joint_entropy(post1, post2, base=2.0)), areaunit) )
 
         if opts.symKL:
             if opts.Verbose:
-                print "\t\tsymKL"
+                print "        symKL"
             messages.append( "symmetric KL divergence : %.5f"%stats.symmetric_KLdivergence(post1, post2) )
 
         if opts.symKL_walk:
             if opts.Verbose:
-                print "\t\tsymKL_walk"
+                print "        symKL_walk"
             messages.append( "hierarchical symmetric KL divergence : %.5f at nside=%d"%stats.symmetric_KLdivergence_walk( post1, post2, base=2.0, nside=nside ) )
 
         if opts.mse:
             if opts.Verbose:
-                print "\t\tmse"
+                print "        mse"
             messages.append( "mean square error : %.5e"%stats.mse(post1, post2) )
 
         if opts.peak_snr:
             if opts.Verbose:
-                print "\t\tpeak_snr"
+                print "        peak_snr"
             messages.append( "peak SNR : (%.5f, %.5f)"%(stats.peak_snr(post1, post2)) )
 
         if opts.structural_similarity:
             if opts.Verbose:
-                print "\t\tstructural_similarity"
+                print "        structural_similarity"
             messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.min(np.mean(post1),np.mean(post2)), c2=0.01*np.min(np.var(post1), np.var(post2)) ) )
 
         if opts.pearson:
             if opts.Verbose:
-                print "\t\tpearson"
+                print "        pearson"
             messages.append( "pearson : %.5f"%stats.pearson(post1, post2) )
 
         if opts.dot:
             if opts.Verbose:
-                print "\t\tdot"
+                print "        dot"
             messages.append( "dot : %.5f"%stats.dot(post1, post2) )
 
         if opts.spotcheck:
             if opts.Verbose:
-              print "\t\tspotcheck"
+              print "        spotcheck"
             p12, p21 = stats.spotcheck(post1, post2, opts.spotcheck)
             for conf, a, b in zip( opts.spotcheck, p12, p21 ):
                 messages.append( "spotcheck %.3f %s: (%.5f, %.5f)"%(conf*100, "%", a, b) )
 
         if opts.Verbose:
-            print "\t\tCredible Regions"
+            print "        Credible Regions"
         for conf, pix1, pix2 in zip(opts.credible_interval, stats.credible_region(post1, opts.credible_interval), stats.credible_region(post2, opts.credible_interval) ):
             if opts.Verbose:
-                print "\t\tCR: %.6f"%(conf)
+                print "        CR: %.6f"%(conf)
             header = "%.3f %s CR"%(conf*100, "%")
 
             messages.append( "%s : %s = %.3f %s"%(header, label1, pixarea*len(pix1) , areaunit) )
             messages.append( "%s : %s = %.3f %s"%(header, label2, pixarea*len(pix2) , areaunit) )
 
             if opts.Verbose:
-                print "\t\tgeometric_overlap"
+                print "        geometric_overlap"
             i, u = stats.geometric_overlap(pix1, pix2, nside=nside, degrees=opts.degrees)
             messages.append( "%s : intersection = %.3f %s"%(header, i, areaunit) )
             messages.append( "%s : union = %.3f %s"%(header, u, areaunit) )
 
         for message in messages:
-            print "\t", message
+            print "    "+message
