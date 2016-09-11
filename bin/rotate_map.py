@@ -1,5 +1,5 @@
 #!/usr/bin/python
-usage       = "rotateMap.py [--options] gps input.fits.gz output.fits.gz"
+usage       = "rotate_map.py [--options] gps input.fits.gz output.fits.gz"
 description = "reads in the map and rotates it from geographic to equatorial coordinates or vice versa"
 author      = "reed.essick@ligo.org"
 

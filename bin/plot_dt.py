@@ -1,5 +1,5 @@
 #!/usr/bin/python
-usage       = "plot_dTMarginals.py [--options] label,FITS label,FITS ..."
+usage       = "plot_dt.py [--options] label,FITS label,FITS ..."
 description = "plot the marigals for time of flight between the two specified IFOs"
 author      = "R. Essick (reed.essick@ligo.org)"
 
