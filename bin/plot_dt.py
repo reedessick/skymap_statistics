@@ -122,6 +122,8 @@ for ifos in opts.time_delay:
         fig, ax = ct.genDT_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
         figind += 1
 
+        ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
+
         ct.plot( ax, sampDt, kde, label=label, color='b', xlim_dB=opts.xlim_dB )
 
         ### annotate the plot
