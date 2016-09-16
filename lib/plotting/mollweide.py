@@ -88,7 +88,7 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
                  markerfacecolor='none',
                  markeredgecolor=marker_color,
                  markersize=marker_size,
-                 markeredgewidth=marker_edge_width,
+                 markeredgewidth=marker_edgewidth,
                  alpha=marker_alpha )
 
     ### add continents
