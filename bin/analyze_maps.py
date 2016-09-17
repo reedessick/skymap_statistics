@@ -67,7 +67,7 @@ for ind, arg in enumerate(args):
 
     if opts.verbose:
         print "    reading map from %s"%(fits)
-    post, header = hp.read_map( fits, h=True )
+    post, header = hp.read_map( fits, h=True, verbose=False )
     NEST = (dict(header)['ORDERING']=='NEST')
     npix = len(post)
     nside = hp.npix2nside(npix)
@@ -95,7 +95,7 @@ for ind, arg in enumerate(args):
     if opts.entropy:
         if opts.Verbose:
             print "        entropy"
-            entropy = pixarea * 2**(stats.entropy(post, base=2.0))
+        entropy = pixarea * 2**(stats.entropy(post, base=2.0))
         messages.append( "entropy = %.3f %s"%(entropy, areaunit) )
 
     # CR -> size, max(dtheta)

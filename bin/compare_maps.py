@@ -71,7 +71,7 @@ for label in labels:
     fits = d['fits']
     if opts.verbose:
         print "reading map from", fits
-    post, header = hp.read_map( fits, h=True )
+    post, header = hp.read_map( fits, h=True, verbose=False )
     npix = len(post)
     if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
         post = hp.nest2ring(nside, post)
@@ -94,16 +94,12 @@ for ind, label1 in enumerate(labels):
     d1 = maps[label1]
     Post1 = d1['post']
     nside1 = d1['nside']
-    if opts.graceid:
-		gid1 = d1['graceid']
 
     for label2 in labels[ind+1:]:
 
         d2 = maps[label2]
         Post2 = d2['post']
         nside2 = d2['nside']
-        if opts.graceid:
-            gid2 = d2['graceid']
 
         print "%s vs %s"%(label1, label2)
 

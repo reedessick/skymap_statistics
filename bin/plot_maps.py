@@ -211,7 +211,7 @@ for label in labels:
 
     ### plot contribution to stacked posteriors
     if opts.stack_posteriors:
-        color = colors[(figind-1)%len(colors)]
+        color = colors[(figind-2)%len(colors)]
         mw.contour( post, 
                     stack_ax, 
                     colors     = color, 
