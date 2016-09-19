@@ -112,6 +112,8 @@ If we wish to produce the equivalent projection in Equatorial coordinates, we ca
 
 > python -c "import healpy as hp ; import numpy as np ; post=hp.read_map('H-antennaNorm_Equatorial.fits') ; hp.write_map('H-antennaNorm_Equatorial.fits', post/np.sum(post)) ; post=hp.read_map('L-antennaNorm_Equatorial.fits') ; hp.write_map('L-antennaNorm_Equatorial.fits', post/np.sum(post))"
 
+> plot_maps.py -v myMap,EquatorialMap.fits.gz --projection "astro mollweide" --coord C --tag Equatorial --gps ${gps} --line-of-sight HL --line-of-sight HV --line-of-sight LV --zenith H --zenith L --zenith V --time-delay HL --time-delay HV --time-delay LV --time-delay-Dec-RA -70 135 --time-delay-degrees --marker-Dec-RA -70 135 --marker-degrees
+
 > plot_maps.py -v LHO,H-antennaNorm_Equatorial.fits LLO,L-antennaNorm_Equatorial.fits --projection "astro mollweide" --coord C --tag Equatorial --gps ${gps} --stack-posteriors --stack-posteriors-background EquatorialMap.fits.gz --stack-posteriors-levels 0.10 --stack-posteriors-levels 0.25 --stack-posteriors-levels 0.50 --stack-posteriors-levels 0.75 --stack-posteriors-levels 0.90 --line-of-sight HL --line-of-sight HV --line-of-sight LV --zenith H --zenith L --zenith V
 
 We'll also quickly generate a marginal distribution for the delay-time between LHO and LLO. We can do this with either map; notice how the output is identical.
