@@ -94,6 +94,8 @@ class snglFITS(object):
                   dpi        = 500,
                   graceid    = None, ### if supplied, upload files and reference them in the html document
                   graceDbURL = 'https://gracedb.ligo.org/api/',
+                  ### options for json reference files
+                  json_nside = 128,
                   ### general options about annotation and which plots to build
                   ifos = [],
                   ### general options about colors, shading, and labeling
@@ -127,7 +129,7 @@ class snglFITS(object):
 
         ### general things about FITS file
         self.fitsname = fitsname
-        self.gps      = gps
+        self.label    = os.path.basename(fitsname).split('.')[0]
 
         self.readFITS() ### read in FITS and store local copies
 
@@ -135,6 +137,7 @@ class snglFITS(object):
         for ifo in ifos:
             assert detector_cache.detectors.has_key(ifo), "ifo=%s is not understood!"%ifo
         self.ifos = sorted(ifos)
+
         self.ifo_pairs = []
         for ind, ifo1 in enumerate(self.ifos):
             for ifo2 in self.ifos[ind+1:]:
@@ -192,6 +195,9 @@ class snglFITS(object):
         ### options for statistics
         self.base = base 
         self.conf = conf
+
+        ### options for json reference files
+        self.json_nside = json_nside
 
         ### local references for plotting
         self.figind = 0
@@ -263,7 +269,7 @@ class snglFITS(object):
                 ax.set_alpha(0.)
 
             ### save just the heatmap
-            figname = "heatmap%s%s.%s"%(coord, self.tag, self.figtype)
+            figname = "%s_heatmap%s%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
                 print "  "+figname
             self.mollweide[coord] = fig.saveAndUpload( figname )
@@ -293,7 +299,7 @@ class snglFITS(object):
                       )
 
             ### save heatmap + fancy crap
-            figname = "heatmap%s-annotated%s.%s"%(coord, self.tag, self.figtype)
+            figname = "%s_heatmap%s-annotated%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
                 print "  "+figname
             self.mollweide[coord+" ann"] = fig.saveAndUpload( figname )
@@ -319,7 +325,7 @@ class snglFITS(object):
                 fig.text(0.01, 0.99-0.05*ind, ifo, color=color, ha='left', va='top')
 
             ### save heatmap + fancy crap + antenna pattern contours
-            figname = "heatmap%s-antennas%s.%s"%(coord, self.tag, self.figtype)
+            figname = "%s_heatmap%s-antennas%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
                 print "  "+figname
             self.mollweide[coord+" ant"] = fig.saveAndUpload( figname )
@@ -335,11 +341,14 @@ class snglFITS(object):
         if verbose:
             print "building time-delay marginals"
         self.dT = dict()
+        obj = dict()
 
         for ifo1, ifo2 in self.ifo_pairs:
             ifos = "".join([ifo1, ifo2])
             if verbose:
                 print "  %s - %s"%(ifo1, ifo2)
+
+            d = dict()
 
             sampDt = ct.get_sampDt( ifos, Nsamp=opts.dT_Nsamp )
             maxDt = sampDt[-1]
@@ -356,7 +365,9 @@ class snglFITS(object):
                 kde = ct.post2marg( postE, ifos, sampDt, coord='E' )
 
             ### compute statistics of the marginal
-            raise NotImplementedError('compute statistics for dT marginals: entropy, information (in base)')
+            d['H'] = stats.entropy( kde, base=self.base )
+            d['I'] = stats.information( kde, base=self.base )
+            obj[ifos] = {'H':d['H'], 'I':d['I']}
 
             ### plot
             ct.plot( ax, sampDt, kde, xlim_dB=self.dT_xlim_dB )
@@ -374,10 +385,10 @@ class snglFITS(object):
                 ax.set_alpha(0.)
 
             ### save just dT marginals
-            figname = "dT_%s%s.%s"%(ifos, opts.tag, opts.figtype)
+            figname = "%s_dT_%s%s.%s"%(self.label, ifos, opts.tag, opts.figtype)
             if verbose:
                 print "  "+figname
-            self.dT['dT '+ifos] = fig.saveAndUpload( figname )
+            d['fig'] = fig.saveAndUpload( figname )
 
             ### annotate the plot
             ct.annotate( ax,
@@ -392,13 +403,26 @@ class snglFITS(object):
                        )
 
             ### save annotated dT marginals
-            figname = "dT_%s-annotated%s.%s"%(ifos, opts.tag, opts.figtype)
+            figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, opts.tag, opts.figtype)
             if opts.verbose:
                 print figname
-            self.dT['dT ann '+ifos] = fig.saveAndUpload( figname )
+            d['ann fig'] = fig.saveAndUpload( figname )
 
             plt.close(fig.fig)
             del fig
+
+            self.dT['dT '+ifos] = d
+
+        ### upload json file
+        jsonname = "%s_dT%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.dTREF = Json( obj,
+                           self.output_dir,
+                           self.output_url,
+                           graceid    = self.graceid,
+                           graceDbURL = self.graceDbURL,
+                         ).saveAndUpload( jsonname )
 
     def make_los(self, verbose=False):
         '''
@@ -407,6 +431,7 @@ class snglFITS(object):
         if verbose:
             print "building line-of-sight cartesian projections"
         self.los = dict() 
+        obj = dict()
 
         for ifo1, ifo2 in self.ifo_pairs:
             if verbose:
@@ -424,8 +449,8 @@ class snglFITS(object):
             Nbins = max(100, int(npix**0.5/5))
 
             ### compute mutual info
-            raise NotImplementedError('compute mutual information distance')
-#            mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=self.postE )
+            mi, Hj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=self.postE )
+            obj["%s%s"%(ifo1,ifo2)] = {'MI':mi, 'Hj':Hj}
 
             ### plot
             ct.histogram2d( rtheta, 
@@ -441,7 +466,7 @@ class snglFITS(object):
                           )
 
             ### save
-            figname = "los-%s-%s%s.%s"%(ifo1, ifo2, self.tag, self.figtype)
+            figname = "%s_los-%s-%s%s.%s"%(self.label, ifo1, ifo2, self.tag, self.figtype)
             if verbose:
                 print "  "+figname
             self.los['%s%s'%(ifo1,ifo2)] = fig.saveAndUpload( figname )
@@ -449,122 +474,123 @@ class snglFITS(object):
             plt.close( fig.fig )
             del fig
 
+        ### make json
+        jsonname = "%s_los%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.losREF = Json( obj,
+                            self.output_dir,
+                            self.output_url,
+                            graceid    = self.graceid,
+                            graceDbURL = self.graceDbURL,
+                          ).saveAndUpload( jsonname )
+
+
     def make_json(self, verbose=False):
         '''
         write map in C coords to json file
         '''
-        raise NotImplementedError
+        jsonname = "%s_postC%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.jsPost = Json( list(stats.resample(self.postC, self.json_nside)), 
+                             self.output_dir, 
+                             self.output_url, 
+                             graceid    = self.graceid, 
+                             graceDbURL = self.graceDbURL,
+                           ).saveAndUpload( jsonname )
 
     def make_cumulative_json(self, verbose=False):
         '''
         write cumulative map in C coords to json file
         '''
-        raise NotImplementedError
+        jsonname = "%s_cpostC%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.jsCPost = Json( list(stats.__to_cumulative(stats.resample(self.postC, self.json_nside))),
+                              self.output_dir, 
+                              self.output_url, 
+                              graceid    = self.graceid,
+                              graceDbURL = self.graceDbURL,
+                            ).saveAndUpload( jsonname )
 
     def make_confidence_regions(self, verbose=False):
         '''
-        compute confidence regions
+        compute confidence regions, statistics about them, and a plot
+        we compute confidence region sizes, max(dTheta), and the number and size of modes
         '''
-        raise NotImplementedError
+        if verbose:
+            print "analyzing confidence regions"
+        self.maxDtheta = []
+        self.Modes     = []
+        pixarea = hp.nside2pixarea( self.nside, degrees=True )
+        for cr in stats.credible_region(self.postC, self.conf):
+            self.maxDtheta.append( np.arccos(stats.min_all_cos_dtheta(cr, self.nside))*180/np.pi )
+            self.modes.append( [pixarea*len(_) for _ in stats.__into_modes(self.nside, cr)] )
+       
+        ### write json file
+        jsonname = "%s_CRStats%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.jsCR = Json( {'modes':self.modes, 'maxDtheta':self.maxDtheta, 'conf':self.conf},
+                          self.output_dir, 
+                          self.output_url, 
+                          graceid    = self.graceid,
+                          graceDbURL = self.graceDbURL,
+                        ).saveAndUpload( jsonname )
+ 
+        ### make confidence region figure!
+        fig, ax = ct.genCR_fig_ax( self.figind )
+        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        ct.plot( ax, self.conf, [np.sum(_) for _ in self.modes] )
+
+        ax.set_xlabel('confidence')
+        ax.set_ylabel('confidence region [deg$^2$]')
+
+        figname = "%s_crSize%s.%s"%(self.label, self.tag, self.figtype)
+        if opts.verbose:
+            print "  "+figname
+        fig.saveAndUpload( figname )
+
+        plt.close( fig.fig )
 
     def make_antenna_patterns(self, verbose=False):
         '''
         compute antenna pattern statistics
         '''
-        raise NotImplementedError
+        if verbose:
+            print "computing antenna pattern statistics"
+        self.ant = {}
+
+        for ifo in self.ifos:
+            Fp, Fx = detector_cache.detectors[ifo].antenna_patterns( self.theta, self.phi, 0.0 )
+
+            mapIND = self.postE.argmax()
+            self.ant[ifo] = {'map': Fp[mapIND]**2 + Fx[mapIND]**2, 'ave':np.sum(self.postE * (Fp**2 + Fx**2))}
+
+        ### make json
+        jsonname = "%s_AntStats%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.jsAnt = Json( self.ant,
+                           self.output_dir,
+                           self.output_url,
+                           graceid    = self.graceid,
+                           graceDbURL = self.graceDbURL,
+                         ).saveAndUpload( jsonname )
 
 
-        '''
-if opts.verbose:
-    print "computing statistics"
+    def make_postviz(self, verbose=False ):
+        raise NotImplementedError('need to map posterior_samples.dat into postviz interactive html page')
 
-data['nside'] = nside
-
-### information measures
-if opts.verbose:
-    print "  information measures"
-data['H'] = stats.entropy( postC, base=opts.base )
-data['I'] = stats.information( postC, base=opts.base )
-
-### size of confidence regions
-if opts.verbose:
-    print "  confidence regions"
-pixarea = hp.nside2pixarea( nside )
-cr = stats.credible_region(postC, opts.conf)
-cr_size = [len(_)*pixarea for _ in cr]
-data['CR size'] = zip( opts.conf, cr_size )
-
-fig, ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
-figind += 1
-
-ct.plot( ax, opts.conf, cr_size )
-
-ax.set_xlabel('confidence')
-ax.set_ylabel('confidence region [deg$^2$]')
-
-figname = "%s/crSize%s.%s"%(outdir, opts.tag, opts.figtype)
-if opts.verbose:
-    print "    %s"%(figname)
-fig.savefig( figname )
-data['CR fig'] = figname
-
-### antenna patterns
-if opts.verbose:
-    print "  antenna patterns"
-
-mapind = np.argmax(postE)
-for ifo in opts.ifo:
-    if opts.verbose:
-        print "    %s"%ifo
-
-    Fp, Fx = detector_cache.detectors[ifo].antenna_patterns( theta, phi, 0.0 ) ### in Geographic coordinates
-
-    ### MAP values
-    mapind = np.argmax(postE)
-    data['%s ant map'%ifo] = Fp[mapind]**2 + Fx[mapind]**2
-
-    ### averaged over posterior
-    data['%s ant ave'%ifo] = np.sum( postE*(Fp**2 + Fx**2) )
-
-#-------------------------------------------------
-
-### if we have posterior_samples.dat, generate postviz (only relevant for LIB and LALInf)
-
-if opts.posterior_samples:
-    raise NotImplementedError('parser posterior_samples and generate postviz page')
-    ### use opts.posterior_samples_var to determine headers
-    ### use opts.posterior_samples_decrement to get newNSIDE = nside/opts.posterior_samples_decrement, and use newNSIDE when (greedy) binning samples
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def make_distanceFITS(self, verbose=False ):
+        raise NotImplementedError('need to map posteriors into "distances" and provide a FITS file with this mapping')
 
     def toSTR(self):
+        raise NotImplementedError('re-write this so that it references URLs saved in the attributes of this object!\n<img> should be straightforward but importing the json data files may not be...')
+
         htmlSTR = """<head>
 </head>
 <body>
@@ -605,12 +631,15 @@ if opts.posterior_samples:
 
         return htmlSTR
 
-    def write(self, filename):
-        file_obj = open(filename, "w")
+    def write(self, verbose=False):
+        htmlname = os.path.join( self.output_dir, "%s%s.html"%(self.label, self.tag) )
+        if verbose:
+            print "  "+htmlname
+        file_obj = open(htmlname, "w")
         file_obj.write( self.toSTR() )
         file_obj.close()
 
-#---------------------------------------------------------------------------------------------------
+#-------------------------------------------------
 
 class multFITS(object):
     '''

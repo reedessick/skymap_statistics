@@ -71,6 +71,10 @@ parser.add_option("", "--dT-xlim-dB", default=-20, type='float')
 parser.add_option("", "--base", default=2.0, type='float', help='base of logarithm used to compute entropy and information')
 parser.add_option("", "--conf", default=[], action='append', type='float', help='the confidence levels used to evaluate size of map')
 
+# options about json representation
+
+parser.add_option('', '--json-nside', default=128, type='int', help='resample the posterior to this nside when writing json representations') 
+
 # general options
 
 parser.add_option('-o', '--output-dir', default='.', type='string')
@@ -154,6 +158,29 @@ snglfits = html.snglFITS( fits,
                           ### options for computing statistics
                           base = opts.base,
                           conf = opts.conf,
+                          ### options about json representation of posterior
+                          json_nside = opts.json_nside,
                         )
 
-snglfits.write(verbose=opts.verbose) ### generate all data and write html document
+#-----------
+
+### generate all figures, data, etc
+snglFITS.readFITS( verbose=opts.verbose ) ### read in FITS files
+
+snglFITS.make_mollweide( verbose=opts.verbose ) ### make mollweide plots
+
+snglFITS.make_dT( verbose=opts.verbose ) ### make time-delay historgrams, et al
+
+snglFITS.make_los( verbose=opts.verbose ) ### make line-of-sight projections
+
+snglFITS.make_json( verbose=opts.verbose ) ### make json representations of the posterior
+snglFITS.make_cumulative_json( verbose=opts.verbose )
+
+snglFITS.make_confidence_regions( verbose=opts.verbose ) ### make confidence region stuff
+
+snglFITS.make_antenna_patterns( verbose=opts.verbose ) ### compute antenna pattern statistics
+
+#-----------
+
+### generate final html document
+snglfits.write(verbose=opts.verbose)
