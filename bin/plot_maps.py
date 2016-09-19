@@ -14,14 +14,11 @@ import healpy as hp
 from plotting import mollweide as mw
 plt = mw.plt
 lalinf_plot = mw.lalinf_plot
+from plotting import colors
 
 from optparse import OptionParser
 
 #================================================-
-
-colors = ['b', 'r', 'g', 'm', 'c', 'k', 'y']
-
-#=================================================
 
 ### parse arguments
 
@@ -129,6 +126,8 @@ if opts.stack_posteriors:
     stack_fig, stack_ax = mw.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, projection=opts.projection )
     figind += 1
 
+    genColor = colors.getColor()
+
     if opts.stack_posteriors_background:
         if opts.verbose:
             print "reading map from", fits
@@ -211,10 +210,9 @@ for label in labels:
 
     ### plot contribution to stacked posteriors
     if opts.stack_posteriors:
-        color = colors[(figind-2)%len(colors)]
         mw.contour( post, 
                     stack_ax, 
-                    colors     = color, 
+                    colors     = genColor.next(), 
                     levels     = opts.stack_posteriors_levels, 
                     alpha      = opts.stack_posteriors_alpha, 
                     linewidths = opts.stack_posteriors_linewidths )

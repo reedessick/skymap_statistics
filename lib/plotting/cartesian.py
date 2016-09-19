@@ -25,9 +25,21 @@ primetime  = [0.10, 0.10, 0.65, 0.55]
 right_proj = [0.76, 0.10, 0.19, 0.55]
 top_proj   = [0.10, 0.66, 0.65, 0.29]
 
+cr_axpos = [0.10, 0.10, 0.85, 0.85]
+
 #-------------------------------------------------
 
 ### actual plotting and figure manipulation
+
+def genCR_fig_ax( figind, figwidth=6, figheight=5):
+    '''
+    generates figure and axis in the set-up we prefer
+    '''
+    fig = plt.figure(figind, figsize=(figwidth, figheight))
+    ax = fig.add_axes(cr_axpos)
+    ax.grid( True )
+
+    return fig, ax
 
 def genDT_fig_ax( figind, figwidth=9, figheight=5 ):
     '''

@@ -15,12 +15,9 @@ import numpy as np
 
 from plotting import cartesian as ct
 plt = ct.plt
+from plotting import colors
 
 from optparse import OptionParser
-
-#-------------------------------------------------
-
-colors = ['b', 'r', 'g', 'm', 'c', 'k', 'y']
 
 #-------------------------------------------------
 
@@ -108,6 +105,8 @@ for ifos in opts.time_delay:
         stack_fig, stack_ax = ct.genDT_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
         figind += 1
 
+        genColor = colors.getColor()
+
         stack_ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
     for cind, label in enumerate(labels):
@@ -159,7 +158,7 @@ for ifos in opts.time_delay:
         plt.close(fig)
 
         if opts.stack_posteriors:
-            color = colors[cind%len(colors)]
+            color = genColor.next()
             ct.plot( stack_ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
             stack_fig.text(0.10+0.02, 0.93-0.05*cind, label, color=color, ha='left', va='top')
 
