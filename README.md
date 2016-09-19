@@ -1,6 +1,8 @@
 # skymap_statistics
 simple module and exectutables to quantify skymaps and compare them. Also contains plotting and visualization routines, as well as a script that builds friendly html documents summarizing this information (intended to be used with GraceDb).
 
+WARNING: heatmaps with projection="mollweide" appear to be buggy at this time. This appears to be associated with actually rendering the plot rather than any issue with rotating maps or coordinate transformations. It is currently under investigation but, until it can be resolved, we recommend only examining contours with projection="mollweide" (for some reason, those are *not* buggy, which suggests the issue is within lalinference.plot.healpix_heatmap).
+
 --------------------------------------------------
 
 # executables
