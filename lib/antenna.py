@@ -4,6 +4,7 @@ author      = "reed.essick@ligo.org"
 #-------------------------------------------------
 
 import numpy as np
+import healpy as hp
 
 #-------------------------------------------------
 
@@ -15,7 +16,7 @@ def antenna_patterns(theta, phi, psi, nx, ny, freqs=None, dt=0.0, dr=None):
 
     Antenna patterns are computed accoring to Eqn. B7 from Anderson, et all PhysRevD 63(04) 2003
     """
-    n_pix, theta, phi, psi = check_theta_phi_psi(theta, phi, psi)
+    n_pix = len(theta)
 
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
@@ -86,8 +87,9 @@ def summarize( post, ifo, coord='C', gps=None, fitsname=None ):
     psi = 0.0 ### may want to pick a better choice than this...
 
     if coord=="C": ### rotate ra->phi
+        ### note: we should probably delegate to triangulate.rotateRAC2E here, but the import order is difficult...
         from lal.lal import GreenwichMeanSiderealTime as GMST
-        gmst = GMST( opts.gps )
+        gmst = GMST( gps )
         phi = (phi-gmst)%(2*np.pi)
 
     ### find MAP coordinate
@@ -96,7 +98,8 @@ def summarize( post, ifo, coord='C', gps=None, fitsname=None ):
     phiMAP = theta[mapind]
 
     Fp, Fx = ifo.antenna_patterns( theta, phi, psi )
-    if fitsname:
-        hp.write_map( fitsname, Fp**2+Fx**2, column_names='Fx^2+F+^2' )
 
-    return (Fp[mapind]**2 + Fx[mapind]**2, p[mapind], Fx[mapind]), (np.sum( map*(Fp**2 + Fx**2) ), np.sum( map*Fp ), np.sum( map*Fx ))
+    if fitsname:
+        hp.write_map( fitsname, Fp**2+Fx**2, column_names=['Fx^2+F+^2'] )
+
+    return (Fp[mapind]**2 + Fx[mapind]**2, Fp[mapind], Fx[mapind]), (np.sum( post*(Fp**2 + Fx**2) ), np.sum( post*Fp ), np.sum( post*Fx ))

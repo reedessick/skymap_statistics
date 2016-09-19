@@ -6,7 +6,7 @@ author = "Reed Essick (reed.essick@ligo.org)"
 import numpy as np
 import healpy as hp
 
-import detector_cache
+import detector_cache 
 
 from lal.lal import GreenwichMeanSiderealTime as GMST
 

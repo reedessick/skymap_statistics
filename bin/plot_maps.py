@@ -210,9 +210,10 @@ for label in labels:
 
     ### plot contribution to stacked posteriors
     if opts.stack_posteriors:
+        color = genColor.next()
         mw.contour( post, 
                     stack_ax, 
-                    colors     = genColor.next(), 
+                    colors     = color, 
                     levels     = opts.stack_posteriors_levels, 
                     alpha      = opts.stack_posteriors_alpha, 
                     linewidths = opts.stack_posteriors_linewidths )

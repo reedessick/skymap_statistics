@@ -5,6 +5,8 @@ author      = "R. Essick (reed.essick@ligo.org)"
 
 #-------------------------------------------------
 
+import os
+
 import numpy as np
 import healpy as hp
 
@@ -51,7 +53,7 @@ if opts.verbose:
     print "reading map from %s"%fitsname
 
 ### load map
-post = hp.read_map( fitsname )
+post = hp.read_map( fitsname, verbose=False )
 
 for ifo in opts.observatory:
     if opts.write_fits:
