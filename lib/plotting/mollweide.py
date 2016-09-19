@@ -107,7 +107,7 @@ def heatmap( post, ax, color_map='OrRd' ):
     generate mollweide projection of heatmap with requested annotations
     '''
     plt.sca( ax )
-    lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(color_map) )
+    lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(color_map) ) ### is this buggy when projection=="mollweide"?
 
 def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1 ):
     '''
