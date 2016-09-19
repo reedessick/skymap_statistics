@@ -4,7 +4,7 @@ author      = "reed.essick@ligo.org"
 #-------------------------------------------------
 
 colors = 'b g r c m k y'.split()
-N = len(colors
+N = len(colors)
 
 #-------------------------------------------------
 
