@@ -1,0 +1,159 @@
+#!/usr/bin/python
+usage       = "fits2html.py [--options] fits"
+description = "generates plots and statistics summarizing a FITS file, and writes html documents to display the results"
+author      = "reed.essick@ligo.org"
+
+#-------------------------------------------------
+
+import html
+
+from optparse import OptionParser
+
+#-------------------------------------------------
+
+parser = OptionParser(usage=usage, description=description)
+
+#--- 
+
+parser.add_option('-v', '--verbose', default=False, action='store_true')
+
+# options about graceDb uploads
+parser.add_option('-g', '--graceid', default=None, type='string')
+parser.add_option('-G', '--graceDbURL', default='https://gracedb.ligo.org/api/', type='string')
+
+# options about input FITS file
+
+parser.add_option('', '--posterior-samples', default=None, type='string', help='path to posterior_samples.dat. If supplied, will be used to build an interactive \"postviz\" page. CURRENTLY NOT YET IMPLEMENTED!')
+parser.add_option('', '--posterior-samples-var', default=[], action='append', type='string', help='the column headers that should be included in the postviz corner plots.')
+parser.add_option('', '--posterior-samples-decrement', default=4, type='int', help='the factor by which we divide nside (from the FITS file) to define the nside used with the postviz representation')
+
+# options about network
+
+parser.add_option('-i', '--ifo', default=[], type='string', action='append')
+
+# general plotting options
+
+parser.add_option('', '--color-map', default='OrRd', type='string', help='color map for heatmaps')
+parser.add_option("-T", "--transparent", default=False, action="store_true")
+parser.add_option("", "--no-yticks", default=False, action="store_true")
+
+parser.add_option("", "--time-delay-color", default='k', type='string', help='the line color for time-delay lines')
+parser.add_option("", "--time-delay-alpha", default=1.0, type='float', help='the alpha saturation for time-delay lines')
+
+# plotting options for mollweide
+
+parser.add_option('', "--mollweide-levels", default=[], action='append', type='float', help='levels for mollweide countours')
+parser.add_option('', '--mollweide-alpha', default=1.0, type='float', help='alpha for mollweide contours')
+parser.add_option('', '--mollweide-linewidth', default=1.0, type='float', help='linewidth for mollweide contours')
+
+parser.add_option("", "--line-of-sight-color", default='k', type='string', help="the text and marker color for line-of-sight annotations")
+
+parser.add_option("", "--zenith-color", default='k', type='string', help='the text and marker color for zenith annotations')
+
+parser.add_option("", "--marker-color", default='k', type='string', help='the edge-color for the markers')
+parser.add_option("", "--marker-alpha", default=1.0, type='float', help='the alpha saturation for markers')
+parser.add_option("", "--marker", default='o', type='string', help="the actual marker shape used")
+parser.add_option("", "--marker-size", default=4, type='float', help='the size of the marker')
+parser.add_option("", "--marker-edgewidth", default=1, type='float', help='the edge width of the marker')
+
+parser.add_option("", "--continents", default=False, action="store_true", help="draw the continents on the map")
+parser.add_option("", "--continents-color", default='k', type='string', help='the color used to draw the continents')
+parser.add_option("", "--continents-alpha", default=0.5, type='float', help='the alpha value for the contintents')
+
+# plotting options for dT marginals
+
+parser.add_option("", "--dT-Nsamp", default=501, type='int')
+parser.add_option("", "--dT-nside", default=None, type='int')
+parser.add_option("", "--dT-xlim-dB", default=-20, type='float')
+
+# options for computing statistics
+
+parser.add_option("", "--base", default=2.0, type='float', help='base of logarithm used to compute entropy and information')
+parser.add_option("", "--conf", default=[], action='append', type='float', help='the confidence levels used to evaluate size of map')
+
+# general options
+
+parser.add_option('-o', '--output-dir', default='.', type='string')
+parser.add_option('-t', '--tag', default='', type='string')
+
+parser.add_option("", "--figtype", default="png", type="string")
+parser.add_option("", "--dpi", default=500, type="int")
+
+#---
+
+opts, args = parser.parse_args()
+
+if opts.tag:
+    opts.tag = "_"+opts.tag
+
+if not opts.mollweide_levels:
+    opts.mollweide_levels = [0.10, 0.50, 0.90]
+
+if not opts.conf:
+    opts.conf = np.linspace(0, 1.0, 51)
+
+if len(args)!=1:
+    raise ValueError('please supply exactly 1 argument\n%s'%usage)
+fits = args[0]
+
+#-------------------------------------------------
+
+opts.ifo = sorted(opts.ifo)
+
+#-------------------------------------------------
+
+### create plots and summary info for map
+_ = os.path.basename(fits).split('.')[0]
+outdir = os.path.join( opts.output_dir, _ )
+outurl = os.path.join( opts.output_url, _ )
+if not os.path.exists(outdir):
+    os.makedirs(outdir)
+
+if opts.verbose:
+    print "%s\n  -> %s\n  -> %s"%(fits, outdir, outurl)
+
+#-------------------------------------------------
+
+### build the object that will write the html document
+snglfits = html.snglFITS( fits,
+                          ### general output routing
+                          output_dir = outdir,
+                          output_url = outurl,
+                          tag        = opts.tag,
+                          figtype    = opts.figtype,
+                          dpi        = opts.dpi,
+                          ### graceDb uploads
+                          graceid    = opts.graceid,
+                          graceDbURL = opts.graceDbURL,
+                          ### which ifos are important
+                          ifos = opts.ifo,
+                          ### general color options
+                          color_map   = opts.color_map,
+                          transparent = opts.transparent,
+                          no_yticks   = opts.no_yticks,
+                          ### options about mollweide projections
+                          mollweide_levels    = opts.mollweide_levels,
+                          mollweide_alpha     = opts.mollweide_alpha,
+                          mollweide_linewidth = opts.mollweide_linewidth,
+                          time_delay_color    = opts.time_delay_color,
+                          time_delay_alpha    = opts.time_delay_alpha,
+                          line_of_sight_color = opts.line_of_sight_color,
+                          zenith_color        = opts.zenith_color,
+                          marker              = opts.marker,
+                          marker_color        = opts.marker_color,
+                          marker_alpha        = opts.marker_alpha,
+                          marker_size         = opts.marker_size,
+                          marker_edgewidth    = opts.marker_edgewidth,
+                          continents          = opts.continents,
+                          continents_color    = opts.continents_color,
+                          continents_alpha    = opts.continents_alpha,
+                          ### plotting options for dT marginals
+                          dT_Nsamp     = opts.dT_Nsamp,
+                          dT_nside     = opts.dT_nside,
+                          dT_xlim_dB   = opts.dT_xlim_dB,
+                          ### options for computing statistics
+                          base = opts.base,
+                          conf = opts.conf,
+                        )
+
+snglfits.write(verbose=opts.verbose) ### generate all data and write html document
