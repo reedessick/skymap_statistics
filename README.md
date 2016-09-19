@@ -88,20 +88,29 @@ Let's start by just creating a mollweide projection in Equatorial coordinates.
 
 and the analogous projection in Geographic coordinates (with continents outlined)
 
-> plot_maps.py -v myMap,GeographicMap.fits.gz --projection "mollweide" --coord E --tag Geographic --gps ${gps} --continents
+> plot_maps.py -v myMap,GeographicMap.fits.gz --projection "mollweide" --coord E --tag Geographic --gps ${gps} \
+> --continents
 
 Now, let's make a fancier Geographic projection with annotations for a few interesting directions
 
-> plot_maps.py -v myMap,GeographicMap.fits.gz --projection "mollweide" --coord E --tag Geographic --gps ${gps} --continents --line-of-sight HL --line-of-sight HV --line-of-sight LV --zenith H --zenith L --zenith V
+> plot_maps.py -v myMap,GeographicMap.fits.gz --projection "mollweide" --coord E --tag Geographic --gps ${gps} \
+> --continents --line-of-sight HL --line-of-sight HV --line-of-sight LV --zenith H --zenith L --zenith V
 
 Let's repeat that, but add a marker for a special spot (assume and the associated triangulation rings
 
-> plot_maps.py -v myMap,GeographicMap.figs.gz --projection "mollweide" --coord E --tag Geographic --gps ${gps} --continents --line-of-sight HL --line-of-sight HV --line-of-sight LV --zenith H --zenith L --zenith V --time-delay HL --time-delay HV --time-delay LV --time-delay-Dec-RA 45 -90 --time-delay-degrees --marker-Dec-RA 45 -90 --marker-degrees
+> plot_maps.py -v myMap,GeographicMap.figs.gz --projection "mollweide" --coord E --tag Geographic --gps ${gps} \
+> --continents --line-of-sight HL --line-of-sight HV --line-of-sight LV --zenith H --zenith L --zenith V \
+> --time-delay HL --time-delay HV --time-delay LV --time-delay-Dec-RA 45 -90 --time-delay-degrees \
+> --marker-Dec-RA 45 -90 --marker-degrees
 
 This produces a pretty full plot, which shows all the basic triangulation information. For most maps, this should suffice to demonstrate the structure and patterns inherent within the posterior distribution.
 
 Now I show how to make a mollweide projection which has the antenna pattern contours (we normalized the antenna pattern map to get the contours to work well).
 
-> plot_maps.py -v antennaPatterns,H-antennaNorm_Geographic.fits --projection "mollweide" --coord E --tag Geographic --gps ${gps} --continents --stack-posteriors --stack-posteriors-background GeographicMap.fits.gz --stack-posteriors-levels 0.10 --stack-posteriors-levels 0.25 --stack-posteriors-levels 0.50 --stack-posterior-levels 0.75 --stack-posterior-levels 0.90
+> plot_maps.py -v antennaPatterns,H-antennaNorm_Geographic.fits --projection "mollweide" --coord E --tag Geographic \
+> --gps ${gps} --continents \
+> --stack-posteriors --stack-posteriors-background GeographicMap.fits.gz \
+> --stack-posteriors-levels 0.10 --stack-posteriors-levels 0.25 --stack-posteriors-levels 0.50 \
+> --stack-posterior-levels 0.75 --stack-posterior-levels 0.90
 
 Note, we use GeographicMap.fits.gz as the "background" in this plot so it is still shown as a heatmap. We then use H-antennaNorm_Geographic.fits as the map, and the --stack-posteriors option makes this a set of contours plotted on top of the heatmap in the figure called stackedPosterior_Geographic.png.
