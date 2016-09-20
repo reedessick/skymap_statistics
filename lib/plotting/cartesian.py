@@ -37,7 +37,7 @@ def genCR_fig_ax( figind, figwidth=6, figheight=5):
     '''
     fig = plt.figure(figind, figsize=(figwidth, figheight))
     ax = fig.add_axes(cr_axpos)
-    ax.grid( True )
+    ax.grid(True, which='both')
 
     return fig, ax
 
@@ -47,7 +47,7 @@ def genDT_fig_ax( figind, figwidth=9, figheight=5 ):
     '''
     fig = plt.figure(figind, figsize=(figwidth, figheight) )
     ax = fig.add_axes(dT_axpos)
-    ax.grid( True )
+    ax.grid(True, which='both')
 
     return fig, ax
 
@@ -82,7 +82,7 @@ def post2marg( post, ifos, sampDt, coord='C', gps=None ):
 
     return kde
 
-def plot( ax, sampDt, marg, color='k', label=None, xlim_dB=-20 ):
+def plot_dT( ax, sampDt, marg, color='k', label=None, xlim_dB=-20 ):
     '''
     plot data
     '''
@@ -102,7 +102,7 @@ def set_xlim( ax, xmin=None, xmax=None ):
     if xmax!=None:
         ax.set_xlim( xmax=xmax )
 
-def annotate( ax, SRCs, IFOs, maxDt, color='k', alpha=1.0, coord='C', gps=None, degrees=False ):
+def annotate( ax, SRCs=[], IFOs='HL', maxDt=0.010, color='k', alpha=1.0, coord='C', gps=None, degrees=False, twiny=True ):
     '''
     annotate plot
     '''
@@ -111,14 +111,15 @@ def annotate( ax, SRCs, IFOs, maxDt, color='k', alpha=1.0, coord='C', gps=None, 
             dec *= triangulate.deg2rad
             ra  *= triangulate.deg2rad
 
-        dt = triangulate.time_delay( dec, ra, ifos[1], ifos[0], coord=coord, tgeocent=gps, degrees=False )
+        dt = triangulate.time_delay( dec, ra, IFOs[1], IFOs[0], coord=coord, tgeocent=gps, degrees=False )
         ylim = ax.get_ylim()
-        ax.plot( [dt*1e3]*2, ylim, color=color, alpha=alpha )
+        ax.plot( [dt*1e3]*2, ylim, color=color, alpha=alpha, linestyle='--' )
         ax.set_ylim(ylim)
 
-    aX = ax.twiny()
-    aX.set_xticklabels(["$%.1f^\circ$"%(np.arccos(tick*1e-3/maxDt)*180/np.pi) for tick in ax.get_xticks()])
-    aX.set_xlim(ax.get_xlim())
+    if twiny:
+        aX = ax.twiny()
+        aX.set_xticklabels(["$%.1f^\circ$"%(np.arccos(tick*1e-3/maxDt)*180/np.pi) for tick in ax.get_xticks()])
+        aX.set_xlim(ax.get_xlim())
 
 #-----------
 
@@ -129,9 +130,9 @@ def genHist_fig_ax( figind, figwidth=9, figheight=5 ):
     rproj = fig.add_axes(right_proj)
     tproj = fig.add_axes(top_proj)
 
-    ax.grid(True)
-    rproj.grid(True)
-    tproj.grid(True)
+    ax.grid(True, which='both')
+    rproj.grid(True, which='both')
+    tproj.grid(True, which='both')
 
     return fig, ax, rproj, tproj
 

@@ -44,14 +44,14 @@ class Figure(object):
         self.graceDbURL = graceDbURL
 
     def saveAndUpload(self, figname, message='', tagname=['skymapAutosummary']):
-        figname = os.path.join(output_dir, figname)
-        self.fig.savefig( figname )
+        filename = os.path.join(self.output_dir, figname)
+        self.fig.savefig( filename )
         if self.graceid!=None:
             gdb = GraceDb(self.graceDbURL)
-            httpResponse = gdb.writeLog( self.graceid, message=message, filename=figname, tagname=tagname )
+            httpResponse = gdb.writeLog( self.graceid, message=message, filename=filename, tagname=tagname )
             ### may want to check httpResponse for errors...
 
-        return "%s/%s"%(self.output_url, figname) 
+        return os.path.join(self.output_url, figname) 
 
 class Json(object):
     '''
@@ -68,16 +68,16 @@ class Json(object):
         self.graceDbURL = graceDbURL
 
     def saveAndUpload(self, filename, message='', tagname=['skymapAutosummary']):
-        filename = os.path.join(output_dir, filename)
-        file_obj = open( filename, "w" )
+        fileName = os.path.join(self.output_dir, filename)
+        file_obj = open( fileName, "w" )
         json.dump( self.obj, file_obj )
         file_obj.close()
         if self.graceid!=None:
             gdb = GraceDb(self.graceDbURL)
-            httpResponse = gdb.writeLog( self.graceid, message=message, filename=filename, tagname=tagname )
+            httpResponse = gdb.writeLog( self.graceid, message=message, filename=fileName, tagname=tagname )
             ### may want to check httpResponse for errors...
 
-        return "%s/%s"%(self.output_url, figname)
+        return os.path.join(self.output_url, filename)
 
 #-------------------------------------------------
 
@@ -107,21 +107,20 @@ class snglFITS(object):
                   transparent = False,
                   no_yticks   = False,
                   ### options about mollweide projections
-                  mollweide_levels    = [0.1, 0.5, 0.9],
-                  mollweide_alpha     = 1.0, 
-                  mollweide_linewidth = 1.0,
-                  time_delay_color    = 'k',
-                  time_delay_alpha    = 1.0, 
-                  line_of_sight_color = 'k',
-                  zenith_color        = 'k',
-                  marker              = 'o', 
-                  marker_color        = 'k', 
-                  marker_alpha        = 1.0, 
-                  marker_size         = 4, 
-                  marker_edgewidth    = 1, 
-                  continents          = True,
-                  continents_color    = 'k',
-                  continents_alpha    = 0.5,
+                  mollweide_levels     = [0.1, 0.5, 0.9],
+                  mollweide_alpha      = 1.0, 
+                  mollweide_linewidths = 1.0,
+                  time_delay_color     = 'k',
+                  time_delay_alpha     = 1.0, 
+                  line_of_sight_color  = 'k',
+                  zenith_color         = 'k',
+                  marker               = 'o', 
+                  marker_color         = 'k', 
+                  marker_alpha         = 1.0, 
+                  marker_size          = 4, 
+                  marker_edgewidth     = 1, 
+                  continents_color     = 'k',
+                  continents_alpha     = 0.5,
                   ### plotting options for dT marginals
                   dT_Nsamp     = 1001,
                   dT_nside     = None,
@@ -134,8 +133,6 @@ class snglFITS(object):
         ### general things about FITS file
         self.fitsname = fitsname
         self.label    = os.path.basename(fitsname).split('.')[0]
-
-        self.readFITS() ### read in FITS and store local copies
 
         ### which IFOs are important
         for ifo in ifos:
@@ -153,9 +150,9 @@ class snglFITS(object):
             os.makedirs(output_dir)
 
         if graceid!=None:
-            output_url = graceDbURL+'../events/%s/files/'%(graceid)
+            self.output_url = graceDbURL+'../events/%s/files/'%(graceid)
         else:
-            output_url = output_url
+            self.output_url = output_url
 
         self.tag = tag
 
@@ -163,7 +160,7 @@ class snglFITS(object):
         self.dpi     = dpi
 
         self.graceid    = graceid
-        self.gracedbURL = graceDbURL
+        self.graceDbURL = graceDbURL
 
         ### general color schemes
         self.color_map   = color_map
@@ -171,9 +168,9 @@ class snglFITS(object):
         self.no_yticks   = no_yticks
 
         ### options for mollweide projections
-        self.mollweide_levels    = mollweide_levels
-        self.mollweide_alpha     = mollweide_alpha 
-        self.mollweide_linewidth = mollweide_linewidth
+        self.mollweide_levels     = mollweide_levels
+        self.mollweide_alpha      = mollweide_alpha 
+        self.mollweide_linewidths = mollweide_linewidths
 
         self.time_delay_color = time_delay_color
         self.time_delay_alpha = time_delay_alpha
@@ -187,7 +184,6 @@ class snglFITS(object):
         self.marker_size      = marker_size
         self.marker_edgewidth = marker_edgewidth
         
-        self.continents       = continents
         self.continents_color = continents_color
         self.continents_alpha = continents_alpha
 
@@ -210,40 +206,68 @@ class snglFITS(object):
         '''
         reads in the FITS file and sets up local copies
         '''
+        if verbose:
+            print "reading : "+self.fitsname
         ### load in map
         post, header = hp.read_map( self.fitsname, h=True, verbose=verbose )
         header = dict(header)
 
         ### ensure we are in RING ordering
-        if h['ORDERING']=='NEST':
-            post = hp.reorder( post, h['ORDERING'], r2n=1 )
+        if header['ORDERING']=='NEST':
+            post = hp.reorder( post, 'NEST', r2n=1 )
 
         ### extract gps time
-        self.gps = tconvert(h['DATE-OBS'])
+        self.gps = tconvert(header['DATE-OBS'])
 
         ### set up references to maps in C and E coordinates
         if verbose:
             print "  setting up local copies in C and E coordinates"
-        coord = h['COORDSYS']
+        coord = header['COORDSYS']
         if coord == 'C':
             self.postC = post[:]
-            self.postE = triangulate.rotateMapC2E( postC, self.gps )
+            self.postE = triangulate.rotateMapC2E( self.postC, self.gps )
         elif coord == 'E':
             self.postE = post[:]
-            self.postC = triangulate.rotateMapE2C( postE, self.gps )
+            self.postC = triangulate.rotateMapE2C( self.postE, self.gps )
         else:
             raise ValueError('COORDSYS=%s not understood!'%coord)
 
         ### set up meta-data about the map
         if verbose:
             print "  setting up local references to angles"
-        npix = len(post)
-        self.nside = hp.npix2nside( npix )
-        self.theta, self.phi = hp.pix2ang( self.nside, np.arange(npix) )
+        self.npix = len(post)
+        self.nside = hp.npix2nside( self.npix )
+        self.pixarea = hp.nside2pixarea(self.nside, degrees=True)
+        self.theta, self.phi = hp.pix2ang( self.nside, np.arange(self.npix) )
 
         ### compute basic information statistics about map
-        self.entropy     = stats.entropy( post, base=self.base )
-        self.information = stats.information( post, base=self.base )
+        self.entropy     = self.base**(stats.entropy( post, base=self.base ))*self.pixarea
+        self.information = self.base**(stats.information( post, base=self.base ))*self.pixarea
+
+        ### make json representations
+        jsonname = "%s_postC%s.js"%(self.label, self.tag)
+        if verbose:
+            print "building json represenation of postC"
+            print "  "+jsonname
+        self.jsPost = Json( list(stats.resample(self.postC, self.json_nside)),
+                             self.output_dir,
+                             self.output_url,
+                             graceid    = self.graceid,
+                             graceDbURL = self.graceDbURL,
+                           ).saveAndUpload( jsonname )
+
+        jsonname = "%s_cpostC%s.js"%(self.label, self.tag)
+        if verbose:
+            print "building json respresentation of cumulative postC"
+            print "  "+jsonname
+
+        # function resolution is somehow getting messed up here, so we resort to getattr
+        self.jsCPost = Json( list(getattr(stats, '__to_cumulative')(stats.resample(self.postC, self.json_nside))),
+                              self.output_dir,
+                              self.output_url,
+                              graceid    = self.graceid,
+                              graceDbURL = self.graceDbURL,
+                            ).saveAndUpload( jsonname )
 
     def make_mollweide(self, verbose=False):
         """
@@ -253,16 +277,16 @@ class snglFITS(object):
             print "building mollweide projections"
         self.mollweide = dict()
 
-        for projection, coord, post in [('astro hour mollweide', 'C', self.postC), ('mollweide', 'E', self.postE)]:
+        for projection, coord, post in [('astro hours mollweide', 'C', self.postC), ('mollweide', 'E', self.postE)]:
 
             ### generate figure
             fig, ax = mw.gen_fig_ax( self.figind, projection=projection )
             fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
             self.figind += 1
 
-            mw.heatmap( post, ax, color_map=opts.color_map )
+            mw.heatmap( post, ax, color_map=self.color_map )
             mw.annotate( ax,
-                         continents       = self.continents and (coord=='E'),
+                         continents       = coord=='E',
                          continents_color = self.continents_color,
                          continents_alpha = self.continents_alpha,
                        )
@@ -285,11 +309,11 @@ class snglFITS(object):
             if coord == 'C':
                 mapY = 0.5*np.pi - mapY ### convert from Theta->Dec
 
-            mw.annoate( ax,
+            mw.annotate( ax,
                         projection          = projection,
                         line_of_sight       = mw.gen_line_of_sight( self.ifo_pairs, coord=coord, gps=self.gps ),
                         line_of_sight_color = self.line_of_sight_color,
-                        zenith              = mw.gen_zenith( self.ifo, coord=coord, gps=self.gps ),
+                        zenith              = mw.gen_zenith( self.ifos, coord=coord, gps=self.gps ),
                         zenith_color        = self.zenith_color,
                         time_delay          = mw.gen_time_delay( [(mapY, mapX)], self.ifo_pairs, coord=coord, gps=self.gps, degrees=False ),
                         time_delay_color    = self.time_delay_color,
@@ -309,8 +333,8 @@ class snglFITS(object):
             self.mollweide[coord+" ann"] = fig.saveAndUpload( figname )
 
             ### add antenna patterns as contours
-            genColor = colors.getColors()
-            for ind, ifo in enumerate(self.ifo):
+            genColor = colors.getColor()
+            for ind, ifo in enumerate(self.ifos):
 
                 Fp, Fx = detector_cache.detectors[ifo].antenna_patterns( self.theta, self.phi, 0.0 )
                 ant = Fp**2 + Fx**2
@@ -324,9 +348,9 @@ class snglFITS(object):
                             colors     = color,
                             levels     = self.mollweide_levels,
                             alpha      = self.mollweide_alpha,
-                            linewidths = self.mollweide_linewidths 
+                            linewidths = self.mollweide_linewidths, 
                           )
-                fig.text(0.01, 0.99-0.05*ind, ifo, color=color, ha='left', va='top')
+                fig.fig.text(0.01, 0.99-0.05*ind, ifo, color=color, ha='left', va='top')
 
             ### save heatmap + fancy crap + antenna pattern contours
             figname = "%s_heatmap%s-antennas%s.%s"%(self.label, coord, self.tag, self.figtype)
@@ -354,7 +378,7 @@ class snglFITS(object):
 
             d = dict()
 
-            sampDt = ct.get_sampDt( ifos, Nsamp=opts.dT_Nsamp )
+            sampDt = ct.gen_sampDt( ifos, Nsamp=self.dT_Nsamp )
             maxDt = sampDt[-1]
 
             fig, ax = ct.genDT_fig_ax( self.figind )
@@ -364,9 +388,9 @@ class snglFITS(object):
             ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
             if self.dT_nside:
-                kde = ct.post2marg( stats.resample(postE, self.dT_nside), ifos, sampDt, coord='E' )
+                kde = ct.post2marg( stats.resample(self.postE, self.dT_nside), ifos, sampDt, coord='E' )
             else:
-                kde = ct.post2marg( postE, ifos, sampDt, coord='E' )
+                kde = ct.post2marg( self.postE, ifos, sampDt, coord='E' )
 
             ### compute statistics of the marginal
             d['H'] = stats.entropy( kde, base=self.base )
@@ -374,13 +398,15 @@ class snglFITS(object):
             obj[ifos] = {'H':d['H'], 'I':d['I']}
 
             ### plot
-            ct.plot( ax, sampDt, kde, xlim_dB=self.dT_xlim_dB )
+            ct.plot_dT( ax, sampDt, kde, xlim_dB=self.dT_xlim_dB, color=colors.getColor().next() ) ### always use the first color!
 
             ### decorate
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
             ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-            if opts.no_yticks:
+            ct.annotate( ax, twiny = True )
+
+            if self.no_yticks:
                 ax.set_yticklabels([])
 
             if self.transparent:
@@ -389,27 +415,28 @@ class snglFITS(object):
                 ax.set_alpha(0.)
 
             ### save just dT marginals
-            figname = "%s_dT_%s%s.%s"%(self.label, ifos, opts.tag, opts.figtype)
+            figname = "%s_dT_%s%s.%s"%(self.label, ifos, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print "    "+figname
             d['fig'] = fig.saveAndUpload( figname )
 
             ### annotate the plot
             ct.annotate( ax,
-                         [ hp.pix2ang( nside, np.argmax(postE) ) ],
+                         [ hp.pix2ang( self.nside, np.argmax(self.postE) ) ],
                          ifos,
                          maxDt,
                          coord   = 'E',
-                         gps     = opts.gps,
-                         color   = opts.time_delay_color,
-                         alpha   = opts.time_delay_alpha,
-                         degrees = opts.False,
+                         gps     = self.gps,
+                         color   = self.time_delay_color,
+                         alpha   = self.time_delay_alpha,
+                         degrees = False,
+                         twiny   = False, ### already did this
                        )
 
             ### save annotated dT marginals
-            figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, opts.tag, opts.figtype)
-            if opts.verbose:
-                print figname
+            figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, self.tag, self.figtype)
+            if verbose:
+                print "    "+figname
             d['ann fig'] = fig.saveAndUpload( figname )
 
             plt.close(fig.fig)
@@ -420,7 +447,7 @@ class snglFITS(object):
         ### upload json file
         jsonname = "%s_dT%s.js"%(self.label, self.tag)
         if verbose:
-            print "  "+jsonname
+            print "    "+jsonname
         self.dTREF = Json( obj,
                            self.output_dir,
                            self.output_url,
@@ -438,23 +465,25 @@ class snglFITS(object):
         obj = dict()
 
         for ifo1, ifo2 in self.ifo_pairs:
+            ifos = "%s%s"%(ifo1,ifo2)
             if verbose:
                 print "  %s - %s"%(ifo1, ifo2)
 
             t, p = triangulate.line_of_sight( ifo1, ifo2, coord='E' )
 
-            fig, ax, rproj, tproj = ct.genHist_fig_ax( self.figind, figwidth=opts.figwidth, figheight=opts.figheight )
+            fig, ax, rproj, tproj = ct.genHist_fig_ax( self.figind )
             fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
             self.figind += 1
 
             ### rotate
             rtheta, rphi = triangulate.rotate2pole( self.theta, self.phi, t, p )
 
-            Nbins = max(100, int(npix**0.5/5))
+            Nbins = max(100, int(self.npix**0.5/5))
 
             ### compute mutual info
             mi, Hj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=self.postE )
-            obj["%s%s"%(ifo1,ifo2)] = {'MI':mi, 'Hj':Hj}
+            obj[ifos] = {'MI':mi, 'Hj':Hj}
+            self.los[ifos] = {'MI':mi, 'Hj':Hj}
 
             ### plot
             ct.histogram2d( rtheta, 
@@ -464,16 +493,20 @@ class snglFITS(object):
                             tproj, 
                             Nbins   = Nbins, 
                             weights = self.postE, 
-                            contour = self.contour, 
-                            color   = colors.genColor().next(), ### always get the first color!
+                            color   = colors.getColor().next(), ### always get the first color!
                             cmap    = self.color_map 
                           )
+
+            ### silence marginal ticks
+            if self.no_yticks:
+                plt.setp(rproj.get_xticklabels(), visible=False)
+                plt.setp(tproj.get_yticklabels(), visible=False)
 
             ### save
             figname = "%s_los-%s-%s%s.%s"%(self.label, ifo1, ifo2, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
-            self.los['%s%s'%(ifo1,ifo2)] = fig.saveAndUpload( figname )
+                print "    "+figname
+            self.los[ifos]['fig'] = fig.saveAndUpload( figname )
 
             plt.close( fig.fig )
             del fig
@@ -481,42 +514,13 @@ class snglFITS(object):
         ### make json
         jsonname = "%s_los%s.js"%(self.label, self.tag)
         if verbose:
-            print "  "+jsonname
+            print "    "+jsonname
         self.losREF = Json( obj,
                             self.output_dir,
                             self.output_url,
                             graceid    = self.graceid,
                             graceDbURL = self.graceDbURL,
                           ).saveAndUpload( jsonname )
-
-
-    def make_json(self, verbose=False):
-        '''
-        write map in C coords to json file
-        '''
-        jsonname = "%s_postC%s.js"%(self.label, self.tag)
-        if verbose:
-            print "  "+jsonname
-        self.jsPost = Json( list(stats.resample(self.postC, self.json_nside)), 
-                             self.output_dir, 
-                             self.output_url, 
-                             graceid    = self.graceid, 
-                             graceDbURL = self.graceDbURL,
-                           ).saveAndUpload( jsonname )
-
-    def make_cumulative_json(self, verbose=False):
-        '''
-        write cumulative map in C coords to json file
-        '''
-        jsonname = "%s_cpostC%s.js"%(self.label, self.tag)
-        if verbose:
-            print "  "+jsonname
-        self.jsCPost = Json( list(stats.__to_cumulative(stats.resample(self.postC, self.json_nside))),
-                              self.output_dir, 
-                              self.output_url, 
-                              graceid    = self.graceid,
-                              graceDbURL = self.graceDbURL,
-                            ).saveAndUpload( jsonname )
 
     def make_confidence_regions(self, verbose=False):
         '''
@@ -526,39 +530,87 @@ class snglFITS(object):
         if verbose:
             print "analyzing confidence regions"
         self.maxDtheta = []
-        self.Modes     = []
-        pixarea = hp.nside2pixarea( self.nside, degrees=True )
+        self.modes     = []
+        into_modes = getattr(stats, '__into_modes') ### function resolution is getting messed, so we resort to getattr
         for cr in stats.credible_region(self.postC, self.conf):
-            self.maxDtheta.append( np.arccos(stats.min_all_cos_dtheta(cr, self.nside))*180/np.pi )
-            self.modes.append( [pixarea*len(_) for _ in stats.__into_modes(self.nside, cr)] )
-       
+            if len(cr):
+                self.maxDtheta.append( np.arccos(stats.min_all_cos_dtheta_fast(cr, self.nside))*180/np.pi )
+                self.modes.append( [self.pixarea*len(_) for _ in into_modes(self.nside, cr)] )
+            else: ### no pixels in the confidence region...
+                self.maxDtheta.append( 0 )
+                self.modes.append( [] )
+
         ### write json file
         jsonname = "%s_CRStats%s.js"%(self.label, self.tag)
         if verbose:
             print "  "+jsonname
-        self.jsCR = Json( {'modes':self.modes, 'maxDtheta':self.maxDtheta, 'conf':self.conf},
+        self.jsCR = Json( {'modes':self.modes, 'maxDtheta':self.maxDtheta, 'conf':list(self.conf)},
                           self.output_dir, 
                           self.output_url, 
                           graceid    = self.graceid,
                           graceDbURL = self.graceDbURL,
                         ).saveAndUpload( jsonname )
  
-        ### make confidence region figure!
+        ### make confidence region figures!
+        self.CR = dict()
+
+        # size
         fig, ax = ct.genCR_fig_ax( self.figind )
         fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
         self.figind += 1
 
-        ct.plot( ax, self.conf, [np.sum(_) for _ in self.modes] )
+        ax.semilogy( self.conf, [np.sum(_) for _ in self.modes], color=colors.getColor().next() ) ### always use the first color
+
+        ax.set_xlim(xmin=0.0, xmax=1.0)
 
         ax.set_xlabel('confidence')
         ax.set_ylabel('confidence region [deg$^2$]')
 
-        figname = "%s_crSize%s.%s"%(self.label, self.tag, self.figtype)
-        if opts.verbose:
+        figname = "%s_CRSize%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
             print "  "+figname
-        self.CR = fig.saveAndUpload( figname )
+        self.CR['size'] = fig.saveAndUpload( figname )
 
         plt.close( fig.fig )
+
+        # max{dTheta}
+        fig, ax = ct.genCR_fig_ax( self.figind )
+        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        ax.plot( self.conf, self.maxDtheta, color=colors.getColor().next() ) ### always use the first color
+
+        ax.set_xlim(xmin=0.0, xmax=1.0)
+
+        ax.set_xlabel('confidence')
+        ax.set_ylabel('$\max\limits_{\mathrm{CR}} \Delta\\theta$ [deg]')
+
+        figname = "%s_CRMaxdTheta%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.CR['dTheta'] = fig.saveAndUpload( figname )
+
+        plt.close( fig.fig )
+
+        # num modes
+        fig, ax = ct.genCR_fig_ax( self.figind )
+        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+        
+        ax.plot( self.conf, [len(_) for _ in self.modes], color=colors.getColor().next() ) ### always use the first color
+
+        ax.set_xlim(xmin=0.0, xmax=1.0)
+
+        ax.set_xlabel('confidence')
+        ax.set_ylabel('No. disjoint regions')
+
+        figname = "%s_CRNumModes%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.CR['modes'] = fig.saveAndUpload( figname )
+
+        plt.close( fig.fig )
+
 
     def make_antenna_patterns(self, verbose=False):
         '''
@@ -608,7 +660,7 @@ class snglFITS(object):
         generate html document as a string
         """
         ### set up the html doc
-        doc = HTML()
+        doc = HTML(newlines=True)
         doc.raw_text('<!DOCTYPE html>')
         htmldoc = doc.html(lang='en')
 
@@ -618,7 +670,7 @@ class snglFITS(object):
 
         ### set up header for bootstrap
         head.meta(charset='utf-8')
-        head.meta(contents='IE=edge')._attr.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
+        head.meta(contents='IE=edge')._attrs.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
         head.meta(name="viewport", content="width=device-width, initial-scale=1")
 
         ### set up header for this specific template
@@ -627,9 +679,12 @@ class snglFITS(object):
 
         ### other header information
         head.meta(name="description", content="a summary of %s"%self.fitsname)
-        head.meta(name="author" content=getpass.getuser()) ### whoever ran this is the author
+        head.meta(name="author", content=getpass.getuser()) ### whoever ran this is the author
         
-        head.title(self.fitsname)
+        if self.graceid:
+            head.title("%s:%s"%(self.graceid, self.fitsname))
+        else:
+            head.title(self.fitsname)
 
         #----------------
         ### build body
@@ -647,7 +702,7 @@ class snglFITS(object):
         sections = body.div(klass='container')
 
         ### top level summary
-        if hasattr(self, 'nside') and hasattr(self, 'jsPost') and hasattr(self, 'jsCPost'): ### we must have called self.readFITS(), make_json, make_cumulative_json
+        if hasattr(self, 'nside'): ### we must have called self.readFITS(), make_json, make_cumulative_json
             div = sections.div(id='summary', klass='container')
 
             row = div.div(klass='row') ### row for fitsname, nside, entropy, and information
@@ -670,7 +725,7 @@ class snglFITS(object):
                 row.div(klass='col-md-2').img(src=self.distanceFITS['C'])                
                 row.div(klass='col-md-2').img(src=self.distanceFITS['E'])              
 
-            humanReadable = div.p('Human readable summary goes here!')
+            humanReadable = div.p('Human readable summary goes here! Should be based on the rarity of MID compared to injection sets (may be pipeline dependent...)')
 
         ### add mollweide plots
         if hasattr(self, 'mollweide'): ### we must have called make_mollweide
@@ -681,9 +736,10 @@ class snglFITS(object):
             for coord in "C E".split():
                 row = div.div(klass='row')
 
-                row.div(klass='col-md-3').img(src=self.mollweide[coord])
-                row.div(klass='col-md-3').img(src=self.mollweide[coord+' ann'])
-                row.div(klass='col-md-3').img(src=self.mollweide[coord+' ant'])
+		col = row.div(klass='col-md-1')
+                col.img(src=self.mollweide[coord])
+                col.img(src=self.mollweide[coord+' ann'])
+                col.img(src=self.mollweide[coord+' ant'])
 
         ### add confidence region plots
         if hasattr(self, 'CR'): ### must have called make_confidence_regions
@@ -692,12 +748,15 @@ class snglFITS(object):
 
             row = div.div(klass='row')
 
-            ### put in the figure
-            row.div(klass='col-md-2').img(src=self.CR) 
+            ### put in the figures
+            col = row.div(klass='col-md-2')
+            col.img(src=self.CR['size']) 
+            col.img(src=self.CR['dTheta']) 
+            col.img(src=self.CR['modes']) 
 
             ### put in the statistics
 
-            print "WARNING: this should be interactive (ie: pull down) and should reference the json file, but we hack it for now"
+            print "WARNING: several of these should be interactive (ie: pull down) and should reference the json file, but we hack it for now"
 
             col = row.div(klass='col-md-2') 
             row = col.div(klass='row')
@@ -729,7 +788,7 @@ class snglFITS(object):
                 row.div(klass='col-md-3').p('%.3f'%self.ant[ifo]['ave'])
 
         ### add line-of-sight sanity checks and dT marginals
-        if hasattr(self, 'dT') and hasattr(self, los): ### must have called make_los and make_dT
+        if hasattr(self, 'dT') and hasattr(self, 'los'): ### must have called make_los and make_dT
             div = sections.div(id='line of sight', klass='container')
             div.p('time delay marginals and line-of-sight frame')
 
@@ -739,7 +798,7 @@ class snglFITS(object):
                 row = div.div(klass='row')
 
                 ### first col declares ifos and gives statistics
-                col = row.div('col-md-3').div(klass='row').div(klass='col-md-1')
+                col = row.div(klass='col-md-3').div(klass='row').div(klass='col-md-1')
                 col.p('%s - %s'%(ifo1, ifo2))
                 col.p('H(dT) = %.3f'%self.dT[ifos]['H'])
                 col.p('I(dT) = %.3f'%self.dT[ifos]['I'])
@@ -747,15 +806,13 @@ class snglFITS(object):
                 col.p('Hjnt = %.3f'%self.los[ifos]['Hj'])
 
                 ### second col contains time-delay marginals
-                with col.div(klass='row') as r:
-                    col = 
-                col = row.div('col-md-3')
+                col = row.div(klass='col-md-3')
                 with col.div(klass='row') as r:
                     r.div(klass='col-md-2').img(src=self.dT[ifos]['fig'])
                     r.div(klass='col-md-2').img(src=self.dT[ifos]['ann fig'])
 
                 ### third col contains sanity check plot in line-of-sight frame
-                row.div('col-md-3').img(src=self.los[ifos])
+                row.div(klass='col-md-3').img(src=self.los[ifos]['fig'])
 
         ### add postviz
         if hasattr(self, 'postviz'): ### must have called make_postviz
@@ -775,7 +832,7 @@ class snglFITS(object):
         '''
         htmlname = os.path.join( self.output_dir, "%s%s.html"%(self.label, self.tag) )
         if verbose:
-            print "  "+htmlname
+            print "writing html document : "+htmlname
         file_obj = open(htmlname, "w")
         file_obj.write( str(self) )
         file_obj.close()

@@ -123,7 +123,7 @@ for ifos in opts.time_delay:
 
         ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
-        ct.plot( ax, sampDt, kde, label=label, color='b', xlim_dB=opts.xlim_dB )
+        ct.plot_dT( ax, sampDt, kde, label=label, color='b', xlim_dB=opts.xlim_dB )
 
         ### annotate the plot
         ct.annotate( ax, 
