@@ -39,7 +39,7 @@ parser.add_option('-i', '--ifo', default=[], type='string', action='append')
 
 parser.add_option('', '--color-map', default='OrRd', type='string', help='color map for heatmaps')
 parser.add_option("-T", "--transparent", default=False, action="store_true")
-parser.add_option("", "--no-yticks", default=False, action="store_true")
+parser.add_option("", "--no-margticks", default=False, action="store_true")
 
 parser.add_option("", "--time-delay-color", default='k', type='string', help='the line color for time-delay lines')
 parser.add_option("", "--time-delay-alpha", default=0.5, type='float', help='the alpha saturation for time-delay lines')
@@ -136,9 +136,9 @@ snglfits = fits2html.snglFITS( fits,
                                ### which ifos are important
                                ifos = opts.ifo,
                                ### general color options
-                               color_map   = opts.color_map,
-                               transparent = opts.transparent,
-                               no_yticks   = opts.no_yticks,
+                               color_map    = opts.color_map,
+                               transparent  = opts.transparent,
+                               no_margticks = opts.no_margticks,
                                ### options about mollweide projections
                                mollweide_levels     = opts.mollweide_levels,
                                mollweide_alpha      = opts.mollweide_alpha,

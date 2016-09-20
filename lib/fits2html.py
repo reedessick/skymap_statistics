@@ -105,7 +105,7 @@ class snglFITS(object):
                   ### general options about colors, shading, and labeling
                   color_map   = "OrRd",
                   transparent = False,
-                  no_yticks   = False,
+                  no_margticks   = False,
                   ### options about mollweide projections
                   mollweide_levels     = [0.1, 0.5, 0.9],
                   mollweide_alpha      = 1.0, 
@@ -165,7 +165,7 @@ class snglFITS(object):
         ### general color schemes
         self.color_map   = color_map
         self.transparent = transparent
-        self.no_yticks   = no_yticks
+        self.no_margticks   = no_margticks
 
         ### options for mollweide projections
         self.mollweide_levels     = mollweide_levels
@@ -362,6 +362,35 @@ class snglFITS(object):
             plt.close( fig.fig )
             del fig
 
+            ### build contour plot
+            fig, ax = mw.gen_fig_ax( self.figind, projection=projection )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            self.figind += 1
+
+            mw.contour( post, 
+                        ax, 
+                        colors     = colors.getColor().next(), ### always use the first color!
+                        levels     = self.mollweide_levels,
+                        alpha      = self.mollweide_alpha,
+                        linewidths = self.mollweide_linewidths,
+                      )
+            mw.annotate( ax,
+                         continents       = coord=='E',
+                         continents_color = self.continents_color,
+                         continents_alpha = self.continents_alpha,
+                       )
+
+            if self.transparent:
+                fig.fig.patch.set_alpha(0.)
+                ax.patch.set_alpha(0.)
+                ax.set_alpha(0.)
+
+            ### save just the heatmap
+            figname = "%s_contour%s%s.%s"%(self.label, coord, self.tag, self.figtype)
+            if verbose:
+                print "  "+figname
+            self.mollweide[coord+" cnt"] = fig.saveAndUpload( figname )
+
     def make_dT(self, verbose=False):
         '''
         make time-delay marginal plots and statistics
@@ -406,7 +435,7 @@ class snglFITS(object):
 
             ct.annotate( ax, twiny = True )
 
-            if self.no_yticks:
+            if self.no_margticks:
                 ax.set_yticklabels([])
 
             if self.transparent:
@@ -498,7 +527,7 @@ class snglFITS(object):
                           )
 
             ### silence marginal ticks
-            if self.no_yticks:
+            if self.no_margticks:
                 plt.setp(rproj.get_xticklabels(), visible=False)
                 plt.setp(tproj.get_yticklabels(), visible=False)
 
@@ -738,6 +767,7 @@ class snglFITS(object):
 
 		col = row.div(klass='col-md-1')
                 col.img(src=self.mollweide[coord])
+                col.img(src=self.mollweide[coord+' cnt'])
                 col.img(src=self.mollweide[coord+' ann'])
                 col.img(src=self.mollweide[coord+' ant'])
 
