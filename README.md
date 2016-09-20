@@ -37,7 +37,9 @@ All executables have descriptive help strings, but we briefly describe them here
 
 # libraries and dependencies
 
-This module requires LALSuite (computes the Greenwich Mean Sidereel Time), Healpy, and Numpy. All other necessary code should be included within this repo, and most modules should be easy to use if users wish to create advanced analyses or plots not provided by the standard tools. 
+This module requires LALSuite (computes the Greenwich Mean Sidereel Time, delegates to lalinference.plot for mollweide projections), Healpy, Numpy, and html.py (when constructing html documents). Note, the dependence on html.py is confined to snglFITShtml.py and it's supporting library fits2html.py; the other executables and libraries used here do not require it and therefore they can be used even if html.py is not present. However, all the other dependencies are always required. 
+
+All other necessary code should be included within this repo, and most modules should be easy to use if users wish to create advanced analyses or plots not provided by the standard tools. 
 
 --------------------------------------------------
 

@@ -1,11 +1,11 @@
 #!/usr/bin/python
-usage       = "fits2html.py [--options] fits"
+usage       = "snglFITShtml.py [--options] fits"
 description = "generates plots and statistics summarizing a FITS file, and writes html documents to display the results"
 author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
 
-import html
+import fits2html as html
 
 from optparse import OptionParser
 

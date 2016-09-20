@@ -3,6 +3,9 @@ author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
 
+from html import HTML
+import getpass
+
 import os
 import json
 
@@ -12,7 +15,6 @@ import triangulate
 from plotting import mollweide as mw
 from plotting import cartesian as ct
 from plotting import colors
-
 plt = mw.plt
 
 import detector_cache
@@ -82,6 +84,8 @@ class Json(object):
 class snglFITS(object):
     '''
     a class that houses data and renders html, json for info about a single FITS file (ie: no comparisons)
+
+    this class also encapsulates how the html pages are structured. This should be mirrored in multFITS as much as possible.
     '''
 
     def __init__( self, 
@@ -411,7 +415,7 @@ class snglFITS(object):
             plt.close(fig.fig)
             del fig
 
-            self.dT['dT '+ifos] = d
+            self.dT[ifos] = d
 
         ### upload json file
         jsonname = "%s_dT%s.js"%(self.label, self.tag)
@@ -552,7 +556,7 @@ class snglFITS(object):
         figname = "%s_crSize%s.%s"%(self.label, self.tag, self.figtype)
         if opts.verbose:
             print "  "+figname
-        fig.saveAndUpload( figname )
+        self.CR = fig.saveAndUpload( figname )
 
         plt.close( fig.fig )
 
@@ -581,74 +585,240 @@ class snglFITS(object):
                            graceDbURL = self.graceDbURL,
                          ).saveAndUpload( jsonname )
 
-
     def make_postviz(self, verbose=False ):
+        """
+        generate a postviz page using posterior samples
+        NOT IMPLEMENTED
+        """
         raise NotImplementedError('need to map posterior_samples.dat into postviz interactive html page')
+        ### must write pointer into self.postviz
 
     def make_distanceFITS(self, verbose=False ):
+        """
+        generate a mapping to the distance associated with each direction in the sky and save it to a FITS file.
+        should match the nside (and ordering) used in the original FITS file
+        NOT IMPLEMENTED
+        """
         raise NotImplementedError('need to map posteriors into "distances" and provide a FITS file with this mapping')
+        ### must write pointer into self.distanceFITS = {'fits':url for fitsfile, 'C':url for mollweide proj in C, 'E':url for mollweide proj in E}
+        ### this is what is expected witin self.__str__ when accessing this info
 
-    def toSTR(self):
-        raise NotImplementedError('re-write this so that it references URLs saved in the attributes of this object!\n<img> should be straightforward but importing the json data files may not be...')
+    def __str__(self):
+        """
+        generate html document as a string
+        """
+        ### set up the html doc
+        doc = HTML()
+        doc.raw_text('<!DOCTYPE html>')
+        htmldoc = doc.html(lang='en')
 
-        htmlSTR = """<head>
-</head>
-<body>
-<p>%s<br>nside=%d<br>H=%.3f deg2<br>I=%.3f deg2</p>
-"""%(fitsname, self['nside'], self['H'], self['I'])
+        #----------------
+        ### build header
+        head = htmldoc.head()
 
-        ### mollweide projections
-        htmlSTR += "\n<hr>"
-        for coord in "C E".split():
-             htmlSTR += """
-<img src=\"%s\"><img src=\"%s\"><img src=\"%s\"><br>"""%(self['mw %s'%coord][0], self['mw %s ann'%coord][0], self['mw %s ant'%coord][0])
+        ### set up header for bootstrap
+        head.meta(charset='utf-8')
+        head.meta(contents='IE=edge')._attr.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
+        head.meta(name="viewport", content="width=device-width, initial-scale=1")
 
-        ### zenith frames
-        htmlSTR += "\n<hr>"
-        for ifo in self.ifos:
-            htmlSTR += """
-<img src=\"%s\">mi=%.3f, Hj=%.3f<br>"""%(self['zen %s'%ifo][0], self['zen %s mi'%ifo], self['zen %s Hj'])
+        ### set up header for this specific template
+        head.link(href="css/bootstrap.min.css", rel="stylesheet") ### need to reference full URL?
+        head.link(href="starter-template.css", rel="stylesheet") ### need to reference full URL?
 
-        ### line-of-sight frames
-        htmlSTR += "\n<hr>"
-        for ind, ifo1 in enumerate(self.ifos):
-            for ifo2 in self.ifos[ind+1:]:
-                htmlSTR += """
-<img src=\"%s\">mi=%.3f, Hj=%.3f<br>"""%(self['los %s%s'%(ifo1, ifo2)][0], self['los %s%s mi'%(ifo1,ifo2)], self['los %s%s Hj'%(ifo1,ifo2)])
+        ### other header information
+        head.meta(name="description", content="a summary of %s"%self.fitsname)
+        head.meta(name="author" content=getpass.getuser()) ### whoever ran this is the author
+        
+        head.title(self.fitsname)
 
-        ### confidence regions
-        htmlSTR += "\n<hr>"
-        htmlSTR += "\n<img src=\"%s\">"%(self['CR fig'][0])
-        for conf, size in self['CR size']:
-            htmlSTR += "\n<p>conf=%.3f  size=%.3f deg2</p>"%(conf, size)
+        #----------------
+        ### build body
+        body = htmldoc.body()
 
-        ### antenna patterns
-        htmlSTR += "\n<hr>"
-        for ifo in self.ifos:
-            htmlSTR += "<p>%s Fp^2+Fx^2 at MAP=%.3f, average=%.3f</p>"%(ifo, self['%s ant map'%ifo], self['%s ant ave'%ifo])
+        ### add navbar
+        nav = body.nav(klass='navbar navar-inverse navebar-fixed-top') ### top level tag
+        div = nav.div(klass='container')
 
-        htmlSTR += "\n</body>"
+        div1 = div.div(klass='navbar-header') ### first div, has button to take me to the top level
+        link = div1.a(self.fitsname, klass='navbar-brand', href='#')
 
-        return htmlSTR
+        #---
+        ### add sections
+        sections = body.div(klass='container')
+
+        ### top level summary
+        if hasattr(self, 'nside') and hasattr(self, 'jsPost') and hasattr(self, 'jsCPost'): ### we must have called self.readFITS(), make_json, make_cumulative_json
+            div = sections.div(id='summary', klass='container')
+
+            row = div.div(klass='row') ### row for fitsname, nside, entropy, and information
+
+            row.div(klass='col-md-4').a(self.fitsname, href=os.path.join(self.output_url, self.fitsname))
+            row.div(klass='col-md-4').p('nside = %d'%self.nside)
+            row.div(klass='col-md-4').p('H = %.3f deg2'%self.entropy)
+            row.div(klass='col-md-4').p('I = %.3f deg2'%self.information)
+      
+            row = div.div(klass='row') ### row for probability lookup
+ 
+            row.div(id='prob lookup', klass='col-md-3').p('RA,Dec form goes here!') ### this needs to become a field users can fill in
+            row.div(id='probPerDeg2', klass='col-md-3').p('probability/deg2') ### this should reference self.jsPost
+            row.div(id='cumProb', klass='col-md-3').p('cumulative probability') ### this should reference self.jsCPost
+        
+            if hasattr(self, 'distanceFITS'): ### must have called make_distanceFITS
+                row = div.div(klass='row')
+
+                row.div(klass='col-md-2').a('FITS file representing expected relative distances across the sky', href=self.distanceFITS['fits'])
+                row.div(klass='col-md-2').img(src=self.distanceFITS['C'])                
+                row.div(klass='col-md-2').img(src=self.distanceFITS['E'])              
+
+            humanReadable = div.p('Human readable summary goes here!')
+
+        ### add mollweide plots
+        if hasattr(self, 'mollweide'): ### we must have called make_mollweide
+            div = sections.div(id='mollweide', klass='container')
+            div.p('Mollweide projections')
+
+            ### iterate over coordinates
+            for coord in "C E".split():
+                row = div.div(klass='row')
+
+                row.div(klass='col-md-3').img(src=self.mollweide[coord])
+                row.div(klass='col-md-3').img(src=self.mollweide[coord+' ann'])
+                row.div(klass='col-md-3').img(src=self.mollweide[coord+' ant'])
+
+        ### add confidence region plots
+        if hasattr(self, 'CR'): ### must have called make_confidence_regions
+            div = sections.div(id='confidence regions', klass='container')
+            div.p('Confidence regions')
+
+            row = div.div(klass='row')
+
+            ### put in the figure
+            row.div(klass='col-md-2').img(src=self.CR) 
+
+            ### put in the statistics
+
+            print "WARNING: this should be interactive (ie: pull down) and should reference the json file, but we hack it for now"
+
+            col = row.div(klass='col-md-2') 
+            row = col.div(klass='row')
+            row.div(klass='col-md-4').p('confidence')
+            row.div(klass='col-md-4').p('size [deg2]')
+            row.div(klass='col-md-4').p('max{dTheta} [deg]')
+            row.div(klass='col-md-4').p('No. disjoint regions')
+
+            for conf, dTheta, modes in zip(self.conf, self.maxDtheta, self.modes):
+                row.div(klass='col-md-4').p('%.3f'%conf)
+                row.div(klass='col-md-4').p('%.3f'%np.sum(modes))
+                row.div(klass='col-md-4').p('%.3f'%dTheta)
+                row.div(klass='col-md-4').p('%d'%len(modes))
+
+        ### add antenna patterns stuff
+        if hasattr(self, 'ant'): ### must have called make_antenna_patterns
+            div = sections.div(id='antenna patterns', klass='container')
+            div.p('Antenna Patterns')
+
+            row = div.div(klass='row')
+            row.div(klass='col-md-3').p('IFO')
+            row.div(klass='col-md-3').p('F+^2 + Fx^2 @ MAP')
+            row.div(klass='col-md-3').p('<F+^2 + Fx^2>')
+
+            for ifo in self.ifos:
+                row = div.div(klass='row')
+                row.div(klass='col-md-3').p(ifo)
+                row.div(klass='col-md-3').p('%.3f'%self.ant[ifo]['map'])
+                row.div(klass='col-md-3').p('%.3f'%self.ant[ifo]['ave'])
+
+        ### add line-of-sight sanity checks and dT marginals
+        if hasattr(self, 'dT') and hasattr(self, los): ### must have called make_los and make_dT
+            div = sections.div(id='line of sight', klass='container')
+            div.p('time delay marginals and line-of-sight frame')
+
+            for ifo1, ifo2 in self.ifo_pairs:
+                ifos = "%s%s"%(ifo1, ifo2)
+
+                row = div.div(klass='row')
+
+                ### first col declares ifos and gives statistics
+                col = row.div('col-md-3').div(klass='row').div(klass='col-md-1')
+                col.p('%s - %s'%(ifo1, ifo2))
+                col.p('H(dT) = %.3f'%self.dT[ifos]['H'])
+                col.p('I(dT) = %.3f'%self.dT[ifos]['I'])
+                col.p('MI = %.3f'%self.los[ifos]['MI'])
+                col.p('Hjnt = %.3f'%self.los[ifos]['Hj'])
+
+                ### second col contains time-delay marginals
+                with col.div(klass='row') as r:
+                    col = 
+                col = row.div('col-md-3')
+                with col.div(klass='row') as r:
+                    r.div(klass='col-md-2').img(src=self.dT[ifos]['fig'])
+                    r.div(klass='col-md-2').img(src=self.dT[ifos]['ann fig'])
+
+                ### third col contains sanity check plot in line-of-sight frame
+                row.div('col-md-3').img(src=self.los[ifos])
+
+        ### add postviz
+        if hasattr(self, 'postviz'): ### must have called make_postviz
+            div = sections.div(id='postviz', klass='container')
+            div.p('interactive posterior visualization')
+
+            raise NotImplementedError('currently do not support postviz!')
+
+        #----------------
+        ### print document and return
+        return str(doc)
+
 
     def write(self, verbose=False):
+        '''
+        writes the html document into a predictable filename
+        '''
         htmlname = os.path.join( self.output_dir, "%s%s.html"%(self.label, self.tag) )
         if verbose:
             print "  "+htmlname
         file_obj = open(htmlname, "w")
-        file_obj.write( self.toSTR() )
+        file_obj.write( str(self) )
         file_obj.close()
+        return htmlname
 
 #-------------------------------------------------
 
 class multFITS(object):
     '''
     a class that houses data and renders html, json for comparison info about multiple FITS files
+
+    this class also encapsulates how the html pages are structured. This should mirrored in snglFITS as much as possible: we should have "stack-posteriors" equivalents of all the plots presented in snglFITS. We may also want the user to be able to select which FITS are included in the comparison, and therefore will have to have many, many plots ready to go.
     '''
 
-    def __init__(self, *args):
-        self.fitsnames = []
-        super(multFITS, self).__init__(*args)
+    def __init__( self, 
+                  fitsnames = [],
+                  output_dir='.', 
+                  output_url='.', 
+                  graceid=None, 
+                  graceDbURL='https://gracedb.ligo.org/api/'
+                ):
+        self.fitsnames = fitsnames
 
-    def write(self, filename):
-        raise NotImplementedError('should write an html document into filename=%s'%filename)
+        self.output_dir = output_dir
+        self.output_url = output_url
+
+        self.graceid    = graceid
+        self.graceDbURL = graceDbURL
+
+        ### local references for plotting
+        self.figind = 0
+
+    def __str__(self):
+        raise NotImplementedError('you have a *lot* to implement before this is finished...')
+
+    def write(self, verbose=False):
+        '''
+        writes the html document into a predictable filename
+        '''
+        htmlname = os.path.join( self.output_dir, "%s%s.html"%(self.label, self.tag) )
+        if verbose:
+            print "  "+htmlname
+        file_obj = open(htmlname, "w")
+        file_obj.write( str(self) )
+        file_obj.close()
+        return htmlname
