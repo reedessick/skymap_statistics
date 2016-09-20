@@ -612,7 +612,7 @@ class snglFITS(object):
         ax.set_xlim(xmin=0.0, xmax=1.0)
 
         ax.set_xlabel('confidence')
-        ax.set_ylabel('$\max\limits_{\mathrm{CR}} \Delta\\theta$ [deg]')
+        ax.set_ylabel('$\max\limits_{\mathrm{CR}}\left\{ \Delta\\theta \\right\}$ [deg]')
 
         figname = "%s_CRMaxdTheta%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
@@ -629,7 +629,7 @@ class snglFITS(object):
         ax.plot( self.conf, [len(_) for _ in self.modes], color=colors.getColor().next() ) ### always use the first color
 
         ax.set_xlim(xmin=0.0, xmax=1.0)
-
+        ax.set_ylim(ymin=0.0)
         ax.set_xlabel('confidence')
         ax.set_ylabel('No. disjoint regions')
 
