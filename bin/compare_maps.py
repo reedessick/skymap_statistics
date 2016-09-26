@@ -104,23 +104,21 @@ for ind, label1 in enumerate(labels):
         print "%s vs %s"%(label1, label2)
 
         ### resample if needed
-        nside = min(nside1, nside2)
+        nside = max(nside1, nside2)
         pixarea = hp.nside2pixarea(nside, degrees=opts.degrees)
 
-        if nside2 > nside:
+        if nside2 < nside:
             if opts.verbose:
                 print "    resampling %s : %d -> %d"%(label2, nside2, nside)
             post2 = stats.resample(Post2[:], nside)
         else:
             post2 = Post2[:]
-        if nside1 > nside:
+        if nside1 < nside:
             if opts.verbose:
                 print "    resampling %s : %d -> %d"%(label1, nside1, nside)
             post1 = stats.resample(Post1[:], nside)
         else:
-            post1 = Post1
-
-        pixarea = hp.nside2pixarea( nside, degrees=opts.degrees )
+            post1 = Post1[:]
 
         if opts.verbose:
             print "    nside : %d"%(nside)
