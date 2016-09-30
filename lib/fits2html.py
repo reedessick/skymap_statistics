@@ -241,8 +241,8 @@ class snglFITS(object):
         self.theta, self.phi = hp.pix2ang( self.nside, np.arange(self.npix) )
 
         ### compute basic information statistics about map
-        self.entropy     = self.base**(stats.entropy( post, base=self.base ))*self.pixarea
-        self.information = self.base**(stats.information( post, base=self.base ))*self.pixarea
+        self.entropy     = stats.entropy( post, base=self.base )
+        self.information = stats.information( post, base=self.base )
 
         ### make json representations
         jsonname = "%s_postC%s.js"%(self.label, self.tag)
@@ -333,7 +333,6 @@ class snglFITS(object):
             self.mollweide[coord+" ann"] = fig.saveAndUpload( figname )
 
             ### add antenna patterns as contours
-            genColor = colors.getColor()
             for ind, ifo in enumerate(self.ifos):
 
                 Fp, Fx = detector_cache.detectors[ifo].antenna_patterns( self.theta, self.phi, 0.0 )
@@ -342,7 +341,7 @@ class snglFITS(object):
                 if coord == 'C':
                     ant = triangulate.rotateMapE2C( ant, self.gps )
 
-                color = genColor.next()
+                color = colors.getIFOColor( ifo )
                 mw.contour( ant,
                             ax,
                             colors     = color,
@@ -703,8 +702,11 @@ class snglFITS(object):
         head.meta(name="viewport", content="width=device-width, initial-scale=1")
 
         ### set up header for this specific template
-        head.link(href="css/bootstrap.min.css", rel="stylesheet") ### need to reference full URL?
-        head.link(href="starter-template.css", rel="stylesheet") ### need to reference full URL?
+        head.link( href        = "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css", 
+                   rel         = "stylesheet",
+                   integrity   = "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u", 
+                   crossorigin = "anonymous",
+                 )
 
         ### other header information
         head.meta(name="description", content="a summary of %s"%self.fitsname)
@@ -724,7 +726,7 @@ class snglFITS(object):
         div = nav.div(klass='container')
 
         div1 = div.div(klass='navbar-header') ### first div, has button to take me to the top level
-        link = div1.a(self.fitsname, klass='navbar-brand', href='#')
+        link = div1.a(self.fitsname.strip('.gz').strip('.fits'), klass='navbar-brand', href='#')
 
         #---
         ### add sections
@@ -732,20 +734,23 @@ class snglFITS(object):
 
         ### top level summary
         if hasattr(self, 'nside'): ### we must have called self.readFITS(), make_json, make_cumulative_json
+            sections.hr
             div = sections.div(id='summary', klass='container')
+            div.h1('Summary', id='summary')
+            div1.a('Summary', klass='navbar-brand', href='#summary') ### add to top-level navigation bar
 
             row = div.div(klass='row') ### row for fitsname, nside, entropy, and information
 
-            row.div(klass='col-md-4').a(self.fitsname, href=os.path.join(self.output_url, self.fitsname))
-            row.div(klass='col-md-4').p('nside = %d'%self.nside)
-            row.div(klass='col-md-4').p('H = %.3f deg2'%self.entropy)
-            row.div(klass='col-md-4').p('I = %.3f deg2'%self.information)
+            row.div(klass='col-md-3').a(self.fitsname, href=os.path.join(self.output_url, self.fitsname))
+            row.div(klass='col-md-2').p('nside = %d'%self.nside)
+            row.div(klass='col-md-3').p().raw_text('H = %.3f (%.3f deg<sup>2</sup>)'%(self.entropy, self.base**(self.entropy)*self.pixarea))
+            row.div(klass='col-md-2').p('I = %.3f'%self.information)
       
             row = div.div(klass='row') ### row for probability lookup
  
-            row.div(id='prob lookup', klass='col-md-3').p('RA,Dec form goes here!') ### this needs to become a field users can fill in
-            row.div(id='probPerDeg2', klass='col-md-3').p('probability/deg2') ### this should reference self.jsPost
-            row.div(id='cumProb', klass='col-md-3').p('cumulative probability') ### this should reference self.jsCPost
+            row.div(id='prob lookup', klass='col-md-3').p().b('RA,Dec form goes here!') ### this needs to become a field users can fill in
+            row.div(id='probPerDeg2', klass='col-md-2').p('probability/deg2') ### this should reference self.jsPost
+            row.div(id='cumProb', klass='col-md-2').p('cumulative probability') ### this should reference self.jsCPost
         
             if hasattr(self, 'distanceFITS'): ### must have called make_distanceFITS
                 row = div.div(klass='row')
@@ -754,107 +759,130 @@ class snglFITS(object):
                 row.div(klass='col-md-2').img(src=self.distanceFITS['C'])                
                 row.div(klass='col-md-2').img(src=self.distanceFITS['E'])              
 
-            humanReadable = div.p('Human readable summary goes here! Should be based on the rarity of MID compared to injection sets (may be pipeline dependent...)')
+            ### add human readable summary
+            humanReadable = div.p()
+#            humanReadable.b('Human readable summary goes here!') 
+
+            if hasattr(self, 'los'): ### statements about the relative rarety of the observed mutual information distance
+                humanReadable.br
+                mid = np.array([self.los["%s%s"%ifos]['MI']/self.los["%s%s"%ifos]['Hj'] for ifos in self.ifo_pairs])
+                if np.any(mid > 0.1):
+                    humanReadable += 'Mutual Information Distance (MID) is <b>large</b> (> 0.1) for at least one IFO pair!'
+                else:
+                    humanReadable += 'Mutual Information Distance (MID) is <b>small</b> (< 0.1) for all IFO pairs.'
 
         ### add mollweide plots
         if hasattr(self, 'mollweide'): ### we must have called make_mollweide
+            sections.hr
             div = sections.div(id='mollweide', klass='container')
-            div.p('Mollweide projections')
+            div.h1('Mollweide Projections', id='mollweide')
+            div1.a('Mollweide Projections', klass='navbar-brand', href='#mollweide') ### add to top-level navigation bar
 
             ### iterate over coordinates
-            for coord in "C E".split():
-                row = div.div(klass='row')
+            width = '575' ### FIXME: hard coded figure width isn't great...
+            for coord, label in [("C","Equatorial"), ("E", "Geographic")]:
+                div.h2(label+' coordinates', id="mollweide"+label)
 
-		col = row.div(klass='col-md-1')
-                col.img(src=self.mollweide[coord])
-                col.img(src=self.mollweide[coord+' cnt'])
-                col.img(src=self.mollweide[coord+' ann'])
-                col.img(src=self.mollweide[coord+' ant'])
+                row = div.div(klass='row')
+                row.div(klass='col-md-6').img(src=self.mollweide[coord], width=width)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' cnt'], width=width)
+
+                row = div.div(klass='row')
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ann'], width=width)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ant'], width=width)
 
         ### add confidence region plots
         if hasattr(self, 'CR'): ### must have called make_confidence_regions
+            sections.hr
             div = sections.div(id='confidence regions', klass='container')
-            div.p('Confidence regions')
+            div.h1('Confidence Regions', id='confidence')
+            div1.a('Confidence Regions', klass='navbar-brand', href='#confidence') ### add to top-level navigation bar
 
             row = div.div(klass='row')
 
             ### put in the figures
-            col = row.div(klass='col-md-2')
-            col.img(src=self.CR['size']) 
-            col.img(src=self.CR['dTheta']) 
-            col.img(src=self.CR['modes']) 
+            width = '550' ### FIXME: hard coding width isn't great...
+            col = row.div(klass='col-md-6')
+            col.img(src=self.CR['size'], width=width) 
+            col.img(src=self.CR['dTheta'], width=width) 
+            col.img(src=self.CR['modes'], width=width) 
 
             ### put in the statistics
 
             print "WARNING: several of these should be interactive (ie: pull down) and should reference the json file, but we hack it for now"
 
-            col = row.div(klass='col-md-2') 
+            col = row.div(klass='col-md-6') 
             row = col.div(klass='row')
-            row.div(klass='col-md-4').p('confidence')
-            row.div(klass='col-md-4').p('size [deg2]')
-            row.div(klass='col-md-4').p('max{dTheta} [deg]')
-            row.div(klass='col-md-4').p('No. disjoint regions')
+            row.div(klass='col-md-2').p('confidence', align='center')
+            row.div(klass='col-md-2').p(align='center').raw_text('size [deg<sup>2</sup>]')
+            row.div(klass='col-md-3').p('max{dTheta} [deg]', align='center')
+            row.div(klass='col-md-4').p('No. disjoint regions', align='center')
 
             for conf, dTheta, modes in zip(self.conf, self.maxDtheta, self.modes):
-                row.div(klass='col-md-4').p('%.3f'%conf)
-                row.div(klass='col-md-4').p('%.3f'%np.sum(modes))
-                row.div(klass='col-md-4').p('%.3f'%dTheta)
-                row.div(klass='col-md-4').p('%d'%len(modes))
+                row = col.div(klass='row')
+                row.div(klass='col-md-2').p('%.1f%s'%(100*conf, "%"), align='right')
+                row.div(klass='col-md-2').p('%.3f'%np.sum(modes), align='right')
+                row.div(klass='col-md-3').p('%.3f'%dTheta, align='right')
+                row.div(klass='col-md-3').p('%d'%len(modes), align='right')
 
         ### add antenna patterns stuff
         if hasattr(self, 'ant'): ### must have called make_antenna_patterns
+            sections.hr
             div = sections.div(id='antenna patterns', klass='container')
-            div.p('Antenna Patterns')
+            div.h1('Antenna Patterns', id='antenna')
+            div1.a('Antenna Patterns', klass='navbar-brand', href='#antenna') ### add to top-level navigation bar
 
             row = div.div(klass='row')
-            row.div(klass='col-md-3').p('IFO')
-            row.div(klass='col-md-3').p('F+^2 + Fx^2 @ MAP')
-            row.div(klass='col-md-3').p('<F+^2 + Fx^2>')
+            row.div(klass='col-md-1').p('IFO', align='center')
+            row.div(klass='col-md-2').p(align='center').raw_text('(F<sub>+</sub><sup>2</sup> + F<sub>x</sub><sup>2</sup>)<sup>1/2</sup> @ MAP')
+            row.div(klass='col-md-2').p(align='center').raw_text('mean{F<sub>+</sub><sup>2</sup> + F<sub>x</sub><sup>2</sup>}<sup>1/2</sup>')
 
             for ifo in self.ifos:
                 row = div.div(klass='row')
-                row.div(klass='col-md-3').p(ifo)
-                row.div(klass='col-md-3').p('%.3f'%self.ant[ifo]['map'])
-                row.div(klass='col-md-3').p('%.3f'%self.ant[ifo]['ave'])
+                row.div(klass='col-md-1').p(ifo, align='center')
+                row.div(klass='col-md-2').p('%.3f'%(self.ant[ifo]['map']**0.5), align='center')
+                row.div(klass='col-md-2').p('%.3f'%(self.ant[ifo]['ave']**0.5), align='center')
 
         ### add line-of-sight sanity checks and dT marginals
         if hasattr(self, 'dT') and hasattr(self, 'los'): ### must have called make_los and make_dT
+            sections.hr
             div = sections.div(id='line of sight', klass='container')
-            div.p('time delay marginals and line-of-sight frame')
+            div.h1('Time Delay Marginals and Line-of-Sight Frame', id='timeDelay')
+            div1.a('Time Delay', klass='navbar-brand', href='#timeDelay') ### add to top-level navigation bar
 
             for ifo1, ifo2 in self.ifo_pairs:
-                ifos = "%s%s"%(ifo1, ifo2)
-
+                div.h2('%s - %s'%(ifo1, ifo2))
                 row = div.div(klass='row')
 
+                ifos = "%s%s"%(ifo1, ifo2)
                 ### first col declares ifos and gives statistics
-                col = row.div(klass='col-md-3').div(klass='row').div(klass='col-md-1')
-                col.p('%s - %s'%(ifo1, ifo2))
-                col.p('H(dT) = %.3f'%self.dT[ifos]['H'])
-                col.p('I(dT) = %.3f'%self.dT[ifos]['I'])
-                col.p('MI = %.3f'%self.los[ifos]['MI'])
-                col.p('Hjnt = %.3f'%self.los[ifos]['Hj'])
+                col = row.div(klass='col-md-2')#.div(klass='row').div(klass='col-md-3')
+                col.p('H(dT) = %.3f'%self.dT[ifos]['H'], align='center')
+                col.p('I(dT) = %.3f'%self.dT[ifos]['I'], align='center')
+                col.p('MI = %.3f'%self.los[ifos]['MI'], align='center')
+                col.p(align='center').raw_text('H<sub>jnt</sub> = %.3f'%self.los[ifos]['Hj'])
+                col.p('MID = %.5f'%(self.los[ifos]['MI']/self.los[ifos]['Hj']), align='center')
 
                 ### second col contains time-delay marginals
-                col = row.div(klass='col-md-3')
-                with col.div(klass='row') as r:
-                    r.div(klass='col-md-2').img(src=self.dT[ifos]['fig'])
-                    r.div(klass='col-md-2').img(src=self.dT[ifos]['ann fig'])
-
-                ### third col contains sanity check plot in line-of-sight frame
-                row.div(klass='col-md-3').img(src=self.los[ifos]['fig'])
+                col = row.div(klass='col-md-8')
+                width = '700' ### FIXME: hard coding width isn't great...
+#               col.img(src=self.dT[ifos]['fig'], width=width)
+                col.img(src=self.dT[ifos]['ann fig'], width=width)
+                width = '900' ### FIXME: hard coding width isn't great...
+                col.img(src=self.los[ifos]['fig'], width=width)
 
         ### add postviz
         if hasattr(self, 'postviz'): ### must have called make_postviz
+            sections.hr
             div = sections.div(id='postviz', klass='container')
-            div.p('interactive posterior visualization')
+            div.h1('Interactive Posterior Visualization', id='postviz')
+            div1.a('Postviz', klass='navbar-brand', href='#postviz') ### add to top-level navigation bar
 
             raise NotImplementedError('currently do not support postviz!')
 
         #----------------
         ### print document and return
         return str(doc)
-
 
     def write(self, verbose=False):
         '''
