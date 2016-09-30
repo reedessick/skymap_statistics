@@ -1,6 +1,6 @@
 #!/usr/bin/python
-usage       = "snglFITShtml.py [--options] fits"
-description = "generates plots and statistics summarizing a FITS file, and writes html documents to display the results"
+usage       = "multFITShtml.py [--options] fits fits fits ..."
+description = "generates plots and statistics summarizing and comparing several FITS files, and writes html documents to display the results. Note: assumes snglFITShtml.py was *already* called for all FITS files provided, and therefore predicts the URL for their snglFITS pages within links."
 author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
@@ -26,10 +26,6 @@ parser.add_option('-g', '--graceid', default=None, type='string')
 parser.add_option('-G', '--graceDbURL', default='https://gracedb.ligo.org/api/', type='string')
 
 # options about input FITS file
-
-parser.add_option('', '--posterior-samples', default=None, type='string', help='path to posterior_samples.dat. If supplied, will be used to build an interactive \"postviz\" page. CURRENTLY NOT YET IMPLEMENTED!')
-parser.add_option('', '--posterior-samples-var', default=[], action='append', type='string', help='the column headers that should be included in the postviz corner plots.')
-parser.add_option('', '--posterior-samples-decrement', default=4, type='int', help='the factor by which we divide nside (from the FITS file) to define the nside used with the postviz representation')
 
 # options about network
 
@@ -89,7 +85,7 @@ parser.add_option("", "--dpi", default=500, type="int")
 
 #---
 
-opts, args = parser.parse_args()
+opts, fitsfiles = parser.parse_args()
 
 if opts.tag:
     opts.tag = "_"+opts.tag
@@ -100,9 +96,8 @@ if not opts.mollweide_levels:
 if not opts.conf:
     opts.conf = np.linspace(0, 1.0, 51)
 
-if len(args)!=1:
-    raise ValueError('please supply exactly 1 argument\n%s'%usage)
-fits = args[0]
+if not fitsfiles:
+    raise ValueError('please supply at least 1 argument\n%s'%usage)
 
 #-------------------------------------------------
 
@@ -111,21 +106,20 @@ opts.ifo = sorted(opts.ifo)
 #-------------------------------------------------
 
 ### create plots and summary info for map
-#_ = os.path.basename(fits).split('.')[0]
-#outdir = os.path.join( opts.output_dir, _ )
-#outurl = os.path.join( opts.output_url, _ )
+#outdir = os.path.join( opts.output_dir, 'multFITS' )
+#outurl = os.path.join( opts.output_url, 'multFITS' )
 outdir = opts.output_dir
 outurl = opts.output_url
-#if not os.path.exists(outdir):
-#    os.makedirs(outdir)
+if not os.path.exists(outdir):
+    os.makedirs(outdir)
 
 if opts.verbose:
-    print "%s\n  outdir -> %s\n  outurl -> %s"%(fits, outdir, outurl)
+    print "%s\n  outdir -> %s\n  outurl -> %s"%("\n".join(fitsfiles), outdir, outurl)
 
 #-------------------------------------------------
 
 ### build the object that will write the html document
-snglfits = fits2html.snglFITS( fits,
+multfits = fits2html.multFITS( fitsfiles,
                                ### general output routing
                                output_dir = outdir,
                                output_url = outurl,
@@ -170,21 +164,23 @@ snglfits = fits2html.snglFITS( fits,
 #-----------
 
 ### generate all figures, data, etc
-snglfits.readFITS( verbose=opts.verbose ) ### read in FITS files
+multfits.readFITS( verbose=opts.verbose ) ### read in FITS files
 
-snglfits.make_mollweide( verbose=opts.verbose ) ### make mollweide plots
+multfits.make_mollweide( verbose=opts.verbose ) ### make mollweide plots
 
-snglfits.make_dT( verbose=opts.verbose ) ### make time-delay historgrams, et al
+multfits.make_dT( verbose=opts.verbose ) ### make time-delay historgrams, et al
 
-snglfits.make_los( verbose=opts.verbose ) ### make line-of-sight projections
+multfits.make_los( verbose=opts.verbose ) ### make line-of-sight projections
 
-snglfits.make_confidence_regions( verbose=opts.verbose ) ### make confidence region stuff
+multfits.make_confidence_regions( verbose=opts.verbose ) ### make confidence region stuff
 
-snglfits.make_antenna_patterns( verbose=opts.verbose ) ### compute antenna pattern statistics
+#multfits.make_comparison( verbose=opts.verbose ) ### copmute comparison statistics
+
+#multfits.make_subProb( verbose=opts.verbose ) ### make subProb trajectory figures
 
 #-----------
 
 ### generate final html document
-snglfits.write( verbose=opts.verbose )
+multfits.write( verbose=opts.verbose )
 
-raise NotImplementedError('Need to upload html document to GraceDb')
+raise NotImplementedError("Need to upload html document to GraceDb. Tagging is a bit complicated because we'll need to check whether a link already exists and if we're going to overwrite that...")

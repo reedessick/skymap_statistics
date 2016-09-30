@@ -109,7 +109,7 @@ for ifos in opts.time_delay:
 
         stack_ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
-    for cind, label in enumerate(labels):
+    for ind, label in enumerate(labels):
         if opts.verbose:
             print "    "+label
 
@@ -160,7 +160,7 @@ for ifos in opts.time_delay:
         if opts.stack_posteriors:
             color = genColor.next()
             ct.plot( stack_ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
-            stack_fig.text(0.10+0.02, 0.93-0.05*cind, label, color=color, ha='left', va='top')
+            stack_fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
     if opts.stack_posteriors:
         ### annotate the plot
