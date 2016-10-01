@@ -1456,6 +1456,8 @@ class multFITS(object):
             label = self.labels[fitsname]
             div1.a(label, klass='navbar-brand', href=os.path.join(self.output_url, "%s%s.html"%(label, self.tag)))
 
+        body.hr
+
         div1 = body.nav(klass='navbar navar-inverse navebar-fixed-top').div(klass='container').div(klass='navbar-header') ### second div, has links to sections
 
         #---
