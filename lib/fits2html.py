@@ -1280,6 +1280,7 @@ class multFITS(object):
                                 contour = True,
                                 alpha   = self.mollweide_alpha, ### may want to allow a separate option, but this should do for now... 
                               )
+                fig.fig.text(0.95, 0.95-0.05*ind, self.texlabels[fitsname], color=color, ha='right', va='top')
 
             ### silence marginal ticks
             if self.no_margticks:

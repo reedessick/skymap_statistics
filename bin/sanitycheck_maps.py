@@ -152,7 +152,7 @@ for opt in opts.los:
 
         if opts.stack_posteriors:
             ct.histogram2d( rtheta, rphi, stack_ax, stack_rproj, stack_tproj, Nbins=Nbins, weights=m, log=opts.log, contour=True, color=color, cmap=opts.color_map, levels=opts.levels, alpha=opts.stack_posteriors_alpha )
-            stack_fig.text(0.80, 0.9-cind*0.05, label.replace('_','\_'), color=color, ha='left', va='top')
+            stack_fig.text(0.95, 0.95-cind*0.05, label.replace('_','\_'), color=color, ha='right', va='top')
 
     if opts.stack_posteriors:
         plt.setp(stack_rproj.get_yticklabels(), visible=False)
@@ -219,7 +219,7 @@ for ifo in opts.zenith:
 
         if opts.stack_posteriors:
             ct.histogram2d( rtheta, rphi, stack_ax, stack_rproj, stack_tproj, Nbins=Nbins, weights=m, log=opts.log, contour=True, color=color, cmap=opts.color_map, levels=opts.levels, alpha=opts.stack_posteriors_alpha )
-            stack_fig.text(0.80, 0.9-cind*0.05, label.replace("_","\_"), color=color, ha='left', va='top')
+            stack_fig.text(0.95, 0.95-cind*0.05, label.replace("_","\_"), color=color, ha='right', va='top')
 
     ### decorate
     if opts.stack_posteriors:
