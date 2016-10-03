@@ -423,7 +423,8 @@ class snglFITS(object):
             ### compute statistics of the marginal
             d['H'] = stats.entropy( kde, base=self.base )
             d['I'] = stats.information( kde, base=self.base )
-            obj[ifos] = {'H':d['H'], 'I':d['I']}
+            d['thetaMAP'] = np.arccos( sampDt[kde.argmax()]/maxDt )
+            obj[ifos] = {'H':d['H'], 'I':d['I'], 'thetaMAP':d['thetaMAP']}
 
             ### plot
             ct.plot_dT( ax, sampDt, kde, xlim_dB=self.dT_xlim_dB, color=colors.getColor().next() ) ### always use the first color!
@@ -756,13 +757,23 @@ class snglFITS(object):
             row.div(klass='col-md-2').p('nside = %d'%self.nside)
             row.div(klass='col-md-3').p().raw_text('H = %.3f (%.3f deg<sup>2</sup>)'%(self.entropy, self.base**(self.entropy)*self.pixarea))
             row.div(klass='col-md-2').p('I = %.3f'%self.information)
-      
-            row = div.div(klass='row') ### row for probability lookup
+     
+            ### give maximum a posteriori positions
+            dec, ra = np.array(hp.pix2ang(self.nside, self.postC.argmax()))*180/np.pi
+            dec = 90 - dec
+            div.div(klass='row').div(klass='col-md-5').p().raw_text('maximum a posteriori (&alpha;, &delta;) = (%.2f&deg;, %.2f&deg;)'%(ra, dec))
+
+            lat, lon = np.array(hp.pix2ang(self.nside, self.postE.argmax()))*180/np.pi
+            lat = 90 - lat
+            div.div(klass='row').div(klass='col-md-5').p().raw_text('maximum a posteriori (lon, lat) = (%.2f&deg;, %.2f&deg;)'%(lon, lat))
  
-            row.div(id='prob lookup', klass='col-md-3').p().b('RA,Dec form goes here!') ### this needs to become a field users can fill in
-            row.div(id='probPerDeg2', klass='col-md-2').p('probability/deg2') ### this should reference self.jsPost
+            ### row for probability lookup
+            row = div.div(klass='row')
+ 
+            row.div(id='prob lookup', klass='col-md-3').p().b().raw_text('&alpha;, &delta; form goes here!') ### this needs to become a field users can fill in
+            row.div(id='probPerDeg2', klass='col-md-2').p().raw_text('probability/deg<sup>2</sup>') ### this should reference self.jsPost
             row.div(id='cumProb', klass='col-md-2').p('cumulative probability') ### this should reference self.jsCPost
-        
+      
             if hasattr(self, 'distanceFITS'): ### must have called make_distanceFITS
                 row = div.div(klass='row')
 
@@ -825,8 +836,8 @@ class snglFITS(object):
             col = row.div(klass='col-md-6') 
             row = col.div(klass='row')
             row.div(klass='col-md-2').p('confidence', align='center')
-            row.div(klass='col-md-2').p(align='center').raw_text('size [deg<sup>2</sup>]')
-            row.div(klass='col-md-3').p('max{dTheta} [deg]', align='center')
+            row.div(klass='col-md-2').p(align='right').raw_text('size [deg<sup>2</sup>]')
+            row.div(klass='col-md-3').p(align='right').raw_text('max{&Delta;&thetasym;} [&deg;]')
             row.div(klass='col-md-4').p('No. disjoint regions', align='center')
 
             for conf, dTheta, modes in zip(self.conf, self.maxDtheta, self.modes):
@@ -870,6 +881,7 @@ class snglFITS(object):
                 col = row.div(klass='col-md-2')#.div(klass='row').div(klass='col-md-3')
                 col.p('H(dT) = %.3f'%self.dT[ifos]['H'], align='center')
                 col.p('I(dT) = %.3f'%self.dT[ifos]['I'], align='center')
+                col.p(align='center').raw_text('&thetasym;<sub>MAP</sub> = %.2f&deg;'%(self.dT[ifos]['thetaMAP']*180/np.pi))
                 col.p('MI = %.3f'%self.los[ifos]['MI'], align='center')
                 col.p(align='center').raw_text('H<sub>jnt</sub> = %.3f'%self.los[ifos]['Hj'])
                 col.p('MID = %.5f'%(self.los[ifos]['MI']/self.los[ifos]['Hj']), align='center')
@@ -947,7 +959,11 @@ class multFITS(object):
                 ):
 
         ### general things about FITS file
-        self.fitsnames = fitsnames
+        self.fitsnames = sorted(fitsnames)
+        self.fits_pairs = []
+        for ind, fits1 in enumerate(self.fitsnames):
+            for fits2 in self.fitsnames[ind+1:]:
+                self.fits_pairs.append( (fits1, fits2) )
         self.labels = dict((fitsname, os.path.basename(fitsname).split('.')[0]) for fitsname in fitsnames)
         self.texlabels = dict((key, val.replace('_','\_')) for key, val in self.labels.items())
 
@@ -1154,6 +1170,7 @@ class multFITS(object):
         if verbose:
             print "building time-delay marginals"
         self.dT = dict()
+        obj = {}
 
         for ifo1, ifo2 in self.ifo_pairs:
             ifos = "".join([ifo1, ifo2])
@@ -1161,6 +1178,7 @@ class multFITS(object):
                 print "  %s - %s"%(ifo1, ifo2)
 
             d = dict()
+            dd = dict()
 
             sampDt = ct.gen_sampDt( ifos, Nsamp=self.dT_Nsamp )
             maxDt = sampDt[-1]
@@ -1172,6 +1190,7 @@ class multFITS(object):
             ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
 
             getColor = colors.getColor() ### restart for each posterior
+            margs = {}
             for ind, fitsname in enumerate(self.fitsnames):
                 if verbose:
                     print "      "+self.labels[fitsname]
@@ -1183,12 +1202,19 @@ class multFITS(object):
                 else:
                     kde = ct.post2marg( self.fitsdata[fitsname]['E'], ifos, sampDt, coord='E' )
 
-                print '\nWARNING: need to compute similarity of marginal distributions!\n'
+                margs[fitsname] = kde
+                dd[fitsname] = {'thetaMAP' : np.arccos( sampDt[kde.argmax()]/maxDt )}
 
                 ### plot
                 color = getColor.next()
                 ct.plot_dT( ax, sampDt, kde, xlim_dB=self.dT_xlim_dB, color=color )
                 fig.fig.text(0.10+0.02, 0.93-0.05*ind, self.texlabels[fitsname], color=color, ha='left', va='top')
+
+            ### compute similarity measures
+            for fits1, fits2 in self.fits_pairs:
+                dd["%s|%s"%(fits1, fits2)] = {'fidelity'  : stats.fidelity( margs[fits1], margs[fits2] ) }
+            d.update( dd )
+            obj[ifos] = dd
 
             ### decorate
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
@@ -1237,6 +1263,18 @@ class multFITS(object):
             del fig
 
             self.dT[ifos] = d
+
+        ### upload json file
+        jsonname = "%s_dT%s.js"%(self.label, self.tag)
+        if verbose:
+            print "    "+jsonname
+        self.dTREF = Json( obj, 
+                           self.output_dir,
+                           self.output_url,
+                           graceid    = self.graceid,
+                           graceDbURL = self.graceDbURL,
+                         ).saveAndUpload( jsonname )
+
 
     def make_los(self, verbose=False):
         '''
@@ -1509,26 +1547,6 @@ class multFITS(object):
             col.img(src=self.CR['dTheta'], width=width)
             col.img(src=self.CR['modes'], width=width)
 
-            '''
-            ### put in the statistics
-
-            print "\nWARNING: several of these should be interactive (ie: pull down) and should reference the json file, but we hack it for now\n"
-
-            col = row.div(klass='col-md-6')
-            row = col.div(klass='row')
-            row.div(klass='col-md-2').p('confidence', align='center')
-            row.div(klass='col-md-2').p(align='center').raw_text('size [deg<sup>2</sup>]')
-            row.div(klass='col-md-3').p('max{dTheta} [deg]', align='center')
-            row.div(klass='col-md-4').p('No. disjoint regions', align='center')
-
-            for conf, dTheta, modes in zip(self.conf, self.maxDtheta, self.modes):
-                row = col.div(klass='row')
-                row.div(klass='col-md-2').p('%.1f%s'%(100*conf, "%"), align='right')
-                row.div(klass='col-md-2').p('%.3f'%np.sum(modes), align='right')
-                row.div(klass='col-md-3').p('%.3f'%dTheta, align='right')
-                row.div(klass='col-md-3').p('%d'%len(modes), align='right')
-            '''
-
         ### add line-of-sight sanity checks and dT marginals
         if hasattr(self, 'dT') and hasattr(self, 'los'): ### must have called make_los and make_dT
             sections.hr
@@ -1541,6 +1559,13 @@ class multFITS(object):
                 row = div.div(klass='row')
 
                 ifos = "%s%s"%(ifo1, ifo2)
+
+                print "\nWARNING: need to extract comparison statistics (Fidelity, dThetaMAP) from self.dT\n"
+                for fits1, fits2 in self.fits_pairs:
+                    row.div(klass='col-md-2').p('&Delta&thetasym') ### FIXME
+
+                ### report fidelity
+                ### report dThetaMAP
 
                 '''
                 ### first col declares ifos and gives statistics
