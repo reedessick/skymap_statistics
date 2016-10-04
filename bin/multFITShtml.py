@@ -68,11 +68,8 @@ parser.add_option("", "--dT-xlim-dB", default=-20, type='float')
 # options for computing statistics
 
 parser.add_option("", "--base", default=2.0, type='float', help='base of logarithm used to compute entropy and information')
-parser.add_option("", "--conf", default=[], action='append', type='float', help='the confidence levels used to evaluate size of map')
-
-# options about json representation
-
-parser.add_option('', '--json-nside', default=128, type='int', help='resample the posterior to this nside when writing json representations') 
+parser.add_option("", "--conf", default=[], action='append', type='float', help='the confidence levels used to evaluate size and geometric overlap of maps')
+parser.add_option("", "--area", default=[], action='append', type='float', help='the areas used to evaluate geometric overlap of maps. Must be specified in deg2')
 
 # general options
 
@@ -95,6 +92,9 @@ if not opts.mollweide_levels:
 
 if not opts.conf:
     opts.conf = np.linspace(0, 1.0, 51)
+
+if not opts.area:
+    opts.area = np.linspace(0, 1e4, 51)
 
 if not fitsfiles:
     raise ValueError('please supply at least 1 argument\n%s'%usage)
@@ -157,8 +157,7 @@ multfits = fits2html.multFITS( fitsfiles,
                                ### options for computing statistics
                                base = opts.base,
                                conf = opts.conf,
-                               ### options about json representation of posterior
-                               json_nside = opts.json_nside,
+                               area = opts.area,
                              )
 
 #-----------
@@ -174,9 +173,7 @@ multfits.make_los( verbose=opts.verbose ) ### make line-of-sight projections
 
 multfits.make_confidence_regions( verbose=opts.verbose ) ### make confidence region stuff
 
-#multfits.make_comparison( verbose=opts.verbose ) ### copmute comparison statistics
-
-#multfits.make_subProb( verbose=opts.verbose ) ### make subProb trajectory figures
+multfits.make_comparison( verbose=opts.verbose ) ### copmute comparison statistics
 
 #-----------
 

@@ -929,8 +929,6 @@ class multFITS(object):
                   dpi        = 500,
                   graceid    = None, ### if supplied, upload files and reference them in the html document
                   graceDbURL = 'https://gracedb.ligo.org/api/',
-                  ### options for json reference files
-                  json_nside = 128,
                   ### general options about annotation and which plots to build
                   ifos = [],
                   ### general options about colors, shading, and labeling
@@ -958,7 +956,8 @@ class multFITS(object):
                   dT_xlim_dB   = -20,
                   ### options for computing statistics
                   base = 2.0,
-                  conf = np.linspace(0,1,51),
+                  conf = np.linspace(0, 1.0, 51),
+                  area = np.linspace(0, 1e4, 51),
                 ):
 
         ### general things about FITS file
@@ -1042,9 +1041,7 @@ class multFITS(object):
         ### options for statistics
         self.base = base
         self.conf = conf
-
-        ### options for json reference files
-        self.json_nside = json_nside
+        self.area = area
 
         ### local references for plotting
         self.figind = 0
@@ -1349,6 +1346,7 @@ class multFITS(object):
         '''
         compute confidence regions, statistics about them, and a plot
         we compute confidence region sizes, max(dTheta), and the number and size of modes
+        NOTE: we compute geometric overlaps of confidence regions in make_comparison because that standardized the location in which we upsample maps for comparisons
         '''
         if verbose:
             print "analyzing confidence regions"
@@ -1444,14 +1442,290 @@ class multFITS(object):
         plt.close( numfig.fig )
 
     def make_comparison(self, verbose=False):
-        raise NotImplementedError
-        ### should compute things like fidelity, ssi, else
-        ### geometric overlap of confidence regions is handled within make_confidence_regions
-        ### comparison of time-delay marginals is handled within make_dT
+        '''
+        generates comparison statistics using the full maps. 
+        NOTE: we re-compute confidence regions here (possibly expensive!) because we need to upsample maps if their nsides differ.
+              the only comparison statistics that are not copmuted here involve the time-delay marginals, which are computed in make_dT
+        '''
+        if verbose:
+            print "computing comparison statistics"
+        self.comp = dict()
 
-    def make_subProb(self, verbose=False):
-        raise NotImplementedError
-        ### should make a "subProb trajectory" plot
+        # conf region intersection
+        fig, cri_ax = ct.genCR_fig_ax( self.figind )
+        cri_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # conf region union
+        fig, cru_ax = ct.genCR_fig_ax( self.figind )
+        cru_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # conf region ratio
+        fig, crr_ax = ct.genCR_fig_ax( self.figind )
+        crr_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # conf region contained
+        fig, crc_ax = ct.genCR_fig_ax( self.figind )
+        crc_tx = crc_ax.twinx()
+        crc_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # area intersection
+        fig, ari_ax = ct.genCR_fig_ax( self.figind )
+        ari_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # area union
+        fig, aru_ax = ct.genCR_fig_ax( self.figind )
+        aru_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # area ratio
+        fig, arr_ax = ct.genCR_fig_ax( self.figind )
+        arr_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        # area contained
+        fig, arc_ax = ct.genCR_fig_ax( self.figind )
+        arc_tx = arc_ax.twinx()
+        arc_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        self.figind += 1
+
+        ### set up labeling for contained plots
+        crc_fig.fig.text(0.10+0.02, 0.93, 'A - B', color='k', ha='center', va='top')
+        arc_fig.fig.text(0.10+0.02, 0.93, 'A - B', color='k', ha='center', va='top')
+
+        ### iterate through pairs
+        getColor = colors.getColor()
+        for ind, (fits1, fits2) in enumerate(self.fits_pairs):
+
+            ### upsample as needed
+            nside = max( self.fitsdata[fits1]['nside'], self.fitsdata[fits2]['nside'] )
+            pixarea = hp.nside2pixarea( nside, degrees=True ) ### figure out indecies for area overlaps
+
+            post1 = stats.resample( self.fitsdata[fits1]['C'][:], nside )
+            post2 = stats.resample( self.fitsdata[fits2]['C'][:], nside )
+
+            post1argsort = post1.argsort()[::-1] ### reverse so big stuff comes first
+            post2argsort = post2.argsort()[::-1]
+
+            t1, p1 = hp.pix2ang( nside, post1.argmax() )
+            t2, p2 = hp.pix2ang( nside, post2.argmax() )
+
+            ### things involving confidence regions
+            conf_I = []
+            conf_U = []
+            conf_A2B = []
+            conf_B2A = []
+            for cr1, cr2 in zip(stats.credible_region( post1, self.conf), stats.credible_region( post2, self.conf)):
+                if len(cr1) and len(cr2):
+                    i, u = stats.geometric_overlap( cr1, cr2, nside, degrees=True )
+                else:
+                    i = u = 0
+                conf_I.append( i )
+                conf_U.append( u )
+
+                conf_A2B.append( np.sum(post2[cr1]) )
+                conf_B2A.append( np.sum(post1[cr2]) )
+
+            ### things involving regions of fixed size
+            area_I = []
+            area_U = []
+            area_A2B = []
+            area_B2A = []
+            for j in [int(np.ceil(1.0*area/pixarea)) for area in self.area]:
+                i, u = stats.geometric_overlap( post1argsort[:j+1][:], post2argsort[:j+1][:], nside, degrees=True )
+                area_I.append( i )
+                area_U.append( u )
+
+                area_A2B.append( np.sum(post2[post1argsort[:j+1]]) )
+                area_B2A.append( np.sum(post1[post2argsort[:j+1]]) )
+
+            self.comp["%s|%s"%(fits1,fits2)] = {'fidelity'  : stats.fidelity( post1, post2 ), ### fidelity
+                                                'dTheta'    : np.arccos( stats.cos_dtheta( t1, p2, t2, p2) ), ### angular separation of mAP
+                                                'conf'      : {'intersection' : conf_I, ### intersection and overlap of confidence regions
+                                                               'union'        : conf_U,
+                                                               'frAtoB'       : conf_A2B, ### confidence from post2 within CR defined by post1
+                                                               'frBtoA'       : conf_B2A,
+                                                              },
+                                                'area'      : {'intersection' : area_I, ### intersection and overlap of first X deg2
+                                                               'union'        : area_U,
+                                                               'frAtoB'       : area_A2B, ### confidence from post2 within area defined by post1
+                                                               'frBtoA'       : area_B2A,
+                                                              },
+                                               }
+
+            ### plot on figures
+            color = getColor.next()
+            label = "%s - %s"%(self.texlabels[fits1], self.texlabels[fits2])
+
+            # cr intersection, union, and ratio
+            cri_ax.plot( self.conf, conf_I, color=color, label=label )
+            cri_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+
+            cru_ax.plot( self.conf, conf_U, color=color, label=label )
+            cru_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+
+            crr_ax.plot( self.conf, np.array(conf_I)/np.array(conf_U), color=color, label=label )
+            crr_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+
+            # area intersection, union, and ratio
+            ari_ax.plot( self.area, area_I, color=color, label=label )
+            ari_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+
+            aru_ax.plot( self.area, area_U, color=color, label=label )
+            aru_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+
+            arr_ax.plot( self.area, np.array(area_I)/np.array(area_U), color=color, label=label )
+            arr_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+
+            # contained probabilities
+            crc_ax.plot( self.conf, conf_A2B, color=color, linestyle='-', label=label )
+            crc_tx.plot( self.conf, conf_B2A, color=color, linestyle='--', label=label )
+            crc_fig.fig.text(0.10+0.02, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
+
+            arc_ax.plot( self.area, area_A2B, color=color, linestyle='-', label=label )
+            arc_tx.plot( self.area, area_B2A, color=color, linestyle='--', label=label )
+            arc_fig.fig.text(0.10+0.02, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
+
+        ### save json
+        jsonname = "%s_compStats%s.js"%(self.label, self.tag)
+        if verbose:
+            print "  "+jsonname
+        self.jsComp = Json( self.comp,
+                          self.output_dir,
+                          self.output_url,
+                          graceid    = self.graceid,
+                          graceDbURL = self.graceDbURL,
+                        ).saveAndUpload( jsonname )
+
+        ### save figures
+
+        # cr intersection
+        cri_ax.set_xlim(xmin=0.0, xmax=1.0)
+        cri_ax.set_ylim(ymin=0.0)
+        cri_ax.set_xlabel('confidence')
+        cri_ax.set_ylabel('intersection [deg$^2$]')
+
+        figname = "%s_CRIntersection%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['cri'] = cri_fig.saveAndUpload( figname )
+
+        plt.close( cri_fig.fig )
+
+        # cr union
+        cru_ax.set_xlim(xmin=0.0, xmax=1.0)
+        cru_ax.set_ylim(ymin=0.0)
+        cru_ax.set_xlabel('confidence')
+        cru_ax.set_ylabel('union')
+
+        figname = "%s_CRUnion%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['cru'] = cru_fig.saveAndUpload( figname )
+
+        plt.close( cru_fig.fig )
+
+        # cr ratio
+        crr_ax.set_xlim(xmin=0.0, xmax=1.0)
+        crr_ax.set_ylim(ymin=0.0)
+        crr_ax.set_xlabel('confidence')
+        crr_ax.set_ylabel('intersection / union')
+
+        figname = "%s_CRRatio%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['crr'] = crr_fig.saveAndUpload( figname )
+
+        plt.close( crr_fig.fig )
+
+        # cr contained
+        crc_ax.set_xlim(xmin=0.0, xmax=1.0)
+        crc_ax.set_ylim(ymin=0.0, ymax=1.0)
+        crc_ax.set_xlabel('$\int\limits_{\mathrm{CR}_A} d\Omega\, p_A(\Omega|\mathrm{data})$')
+        crc_ax.set_ylabel('$\int\limits_{\mathrm{CR}_A} d\Omega\, p_B(\Omega|\mathrm{data})$')
+
+        crc_tx.set_xlim(crc_ax.get_xlim())
+        crc_tx.set_ylim(crc_ax.get_ylim())
+        crc_tx.set_xlabel('$\int\limits_{\mathrm{CR}_B} d\Omega\, p_B(\Omega|\mathrm{data})$', visible=True)
+        crc_tx.set_ylabel('$\int\limits_{\mathrm{CR}_B} d\Omega\, p_A(\Omega|\mathrm{data})$', visible=True)
+
+        crc_tx.xaxis.tick_top()
+        crc_tx.xaxis.set_label_position('top')
+        crc_tx.yaxis.tick_right()
+        crc_tx.yaxis.set_label_position('right')
+
+        figname = "%s_CRContained%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['crc'] = crc_fig.saveAndUpload( figname )
+
+        plt.close( crc_fig.fig )
+
+        # area intersection
+        ari_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        ari_ax.set_ylim(ymin=0.0)
+        ari_ax.set_xlabel('area [deg$^2$]')
+        ari_ax.set_ylabel('intersection [deg$^2$]')
+
+        figname = "%s_AreaIntersection%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['ari'] = ari_fig.saveAndUpload( figname )
+
+        plt.close( ari_fig.fig )
+
+        # area union
+        aru_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        aru_ax.set_ylim(ymin=0.0)
+        aru_ax.set_xlabel('area [deg$^2$]')
+        aru_ax.set_ylabel('union [deg$^2$]')
+
+        figname = "%s_AreaUnion%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['aru'] = aru_fig.saveAndUpload( figname )
+
+        plt.close( aru_fig.fig )
+
+        # area ratio
+        arr_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        arr_ax.set_ylim(ymin=0.0)
+        arr_ax.set_xlabel('area [deg$^2$]')
+        arr_ax.set_ylabel('ratio [deg$^2$]')
+
+        figname = "%s_AreaRatio%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['arr'] = arr_fig.saveAndUpload( figname )
+
+        plt.close( arr_fig.fig )
+
+        # area contained
+        arc_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        arc_ax.set_ylim(ymin=0.0, ymax=1.0)
+        arc_ax.set_xlabel('$\int\limits_{\mathrm{CR}_A} d\Omega$')
+        arc_ax.set_ylabel('$\int\limits_{\mathrm{CR}_A} d\Omega\, p_B(\Omega|\mathrm{data})$')
+
+        arc_tx.set_xlim(arc_ax.get_xlim())
+        arc_tx.set_ylim(arc_ax.get_ylim())
+        arc_tx.set_xlabel('$\int\limits_{\mathrm{CR}_B} d\Omega$', visible=True)
+        arc_tx.set_ylabel('$\int\limits_{\mathrm{CR}_B} d\Omega\, p_A(\Omega|\mathrm{data})$', visible=True)
+
+        arc_tx.xaxis.tick_top()
+        arc_tx.xaxis.set_label_position('top')
+        arc_tx.yaxis.tick_right()
+        arc_tx.yaxis.set_label_position('right')
+
+        figname = "%s_AreaContained%s.%s"%(self.label, self.tag, self.figtype)
+        if verbose:
+            print "  "+figname
+        self.comp['arc'] = arc_fig.saveAndUpload( figname )
+
+        plt.close( arc_fig.fig )
 
     def write(self, verbose=False):
         '''
