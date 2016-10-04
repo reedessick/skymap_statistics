@@ -1,0 +1,76 @@
+#!/usr/bin/python
+usage       = "midVeto.py [--options] config.ini"
+description = "listens for uploads of mutual information distance and generates labels appropriately"
+author      = "reed.essick@ligo.org"
+
+#-------------------------------------------------
+
+import sys
+import json
+
+from ligo.gracedb.rest import GraceDb
+
+from ConfigParser import SafeConfigParser
+
+from optparse import OptionParser
+
+#-------------------------------------------------
+
+parser = OptionParser(usage=usage, description=description)
+
+parser.add_option('-v', '--verbose', default=False, action='store_true')
+
+opts, args = parser.parse_args()
+
+if len(args)!=1:
+    raise ValueError('please supply exactly 1 input argument\n%s'%usage)
+configname = args[0]
+
+#-------------------------------------------------
+
+if opts.verbose:
+    print "reading config file : %s"%configname
+config = SafeConfigParser()
+config.read( configname )
+
+graceDbURL = config.get('general', 'gracedb_url' )
+if opts.verbose:
+    print "connecting to graceDbURL=%s"%graceDbURL
+gracedb = GraceDb( graceDbURL )
+
+#-------------------------------------------------
+
+alert = sys.stdin.read()
+if opts.verbose:
+    print alert
+alert = json.loads( alert )
+graceid = alert['graceid']
+if opts.verbose:
+    print "found graceid=%s"%graceid
+
+### figure out if this is the 
+if (alert['alert_type']=='update') and alert['file'] and alert['file'].endswith('js') and ("_los" in alert['file']): ### this could be fragile...
+
+    ### download file
+    los = json.loads( gracedb.files( graceid, alert['file'] ).read() )
+
+    ### iterate through IFO pairs
+    for ifo_pair, data in los.items():
+        mi = data['MI'] # mutual information
+        hj = data['Hj'] # joint entropy
+        mid = mi / hj   # mutual information distance
+
+        if config.has_section(ifo_pair): ### assume ifo_pair is alphabetically ordered...
+            thr = config.getfloat(ifo_pair, 'thr')
+            if mid > thr:
+                labels = config.get(ifo_pair, 'labels').split()
+                gracedb.writeLog( graceid, message='Mutual Information Distance for %s in %s line-of-sight frame is above %.3f! Applying labels: %s'%(alert['file'].split('_los')[0], ifo_pair, thr, ", ".join(labels)))
+                for label in labels:
+                    gracedb.writeLabel( graceid, label )
+
+            else:
+                gracedb.writeLog( graceid, message="Mutual Information Distnace for %s in %s line-of-sight frame is below %.3f."%(alert['file'].split('_los')[0], ifo_pair, thr, ", ".join(labels)))
+
+else:
+    if opts.verbose:
+        print "ignoring..."    
