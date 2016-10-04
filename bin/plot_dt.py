@@ -159,7 +159,7 @@ for ifos in opts.time_delay:
 
         if opts.stack_posteriors:
             color = genColor.next()
-            ct.plot( stack_ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
+            ct.plot_dT( stack_ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
             stack_fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
     if opts.stack_posteriors:
