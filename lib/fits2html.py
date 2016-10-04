@@ -1695,7 +1695,7 @@ class multFITS(object):
         arr_ax.set_xlim(xmin=self.area[0], xmax=self.area[-1])
         arr_ax.set_ylim(ymin=0.0)
         arr_ax.set_xlabel('area [deg$^2$]')
-        arr_ax.set_ylabel('ratio [deg$^2$]')
+        arr_ax.set_ylabel('intersection / union')
 
         figname = "%s_AreaRatio%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
