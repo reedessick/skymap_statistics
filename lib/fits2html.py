@@ -132,7 +132,10 @@ class snglFITS(object):
 
         ### general things about FITS file
         self.fitsname = fitsname
-        self.label    = os.path.basename(fitsname).strip('.gz').strip('.fits')
+        self.label    = os.path.basename(fitsname)
+        if self.label.endswith('.gz'):
+            self.label = self.label[:-3] ### get rid of .gz
+        self.label = self.label[:-5] ### get rid of .fits
 
         ### which IFOs are important
         for ifo in ifos:
@@ -837,7 +840,7 @@ class snglFITS(object):
             row = col.div(klass='row')
             row.div(klass='col-md-2').p('confidence', align='center')
             row.div(klass='col-md-2').p(align='right').raw_text('size [deg<sup>2</sup>]')
-            row.div(klass='col-md-3').p(align='right').raw_text('max{&Delta;&thetasym;} [&deg;]')
+            row.div(klass='col-md-3').p(align='right').raw_text('max{&Delta;&theta;} [&deg;]')
             row.div(klass='col-md-4').p('No. disjoint regions', align='center')
 
             for conf, dTheta, modes in zip(self.conf, self.maxDtheta, self.modes):
@@ -881,7 +884,7 @@ class snglFITS(object):
                 col = row.div(klass='col-md-2')#.div(klass='row').div(klass='col-md-3')
                 col.p('H(dT) = %.3f'%self.dT[ifos]['H'], align='center')
                 col.p('I(dT) = %.3f'%self.dT[ifos]['I'], align='center')
-                col.p(align='center').raw_text('&thetasym;<sub>MAP</sub> = %.2f&deg;'%(self.dT[ifos]['thetaMAP']*180/np.pi))
+                col.p(align='center').raw_text('&theta;<sub>MAP</sub> = %.2f&deg;'%(self.dT[ifos]['thetaMAP']*180/np.pi))
                 col.p('MI = %.3f'%self.los[ifos]['MI'], align='center')
                 col.p(align='center').raw_text('H<sub>jnt</sub> = %.3f'%self.los[ifos]['Hj'])
                 col.p('MID = %.5f'%(self.los[ifos]['MI']/self.los[ifos]['Hj']), align='center')
@@ -964,7 +967,16 @@ class multFITS(object):
         for ind, fits1 in enumerate(self.fitsnames):
             for fits2 in self.fitsnames[ind+1:]:
                 self.fits_pairs.append( (fits1, fits2) )
-        self.labels = dict((fitsname, os.path.basename(fitsname).split('.')[0]) for fitsname in fitsnames)
+
+#        self.labels = dict((fitsname, os.path.basename(fitsname).split('.')[0]) for fitsname in fitsnames)
+        self.labels = {}
+        for fitsname in fitsnames:
+            label = os.path.basename(fitsname)
+            if label.endswith('.gz'): ### get rid of .gz
+                label = label[:-3]
+            label = label[:-5] ### get rid of .fits
+            self.labels[fitsname] = label
+
         self.texlabels = dict((key, val.replace('_','\_')) for key, val in self.labels.items())
 
         ### which IFOs are important
@@ -1554,29 +1566,18 @@ class multFITS(object):
             div.h1('Time Delay Marginals and Line-of-Sight Frame', id='timeDelay')
             div1.a('Time Delay', klass='navbar-brand', href='#timeDelay') ### add to top-level navigation bar
 
-            for ifo1, ifo2 in self.ifo_pairs:
+            for ifo1, ifo2 in self.ifo_pairs: ### add blurb for each IFO pair considered
                 div.h2('%s - %s'%(ifo1, ifo2))
-                row = div.div(klass='row')
-
                 ifos = "%s%s"%(ifo1, ifo2)
 
-                print "\nWARNING: need to extract comparison statistics (Fidelity, dThetaMAP) from self.dT\n"
-                for fits1, fits2 in self.fits_pairs:
-                    row.div(klass='col-md-2').p('&Delta&thetasym') ### FIXME
+                row = div.div(klass='row')
+                for fits1, fits2 in self.fits_pairs: ### formatting could be improved...
+                    col = row.div(klass='col-md-5')
+                    col.h3('%s - %s'%(self.labels[fits1], self.labels[fits2]))
+                    col.p().raw_text('&Delta;&theta;<sub>MAP</sub> = %.2f&deg;'%((self.dT[ifos][fits1]['thetaMAP']-self.dT[ifos][fits2]['thetaMAP'])*180/np.pi))
+                    col.p().raw_text('F(&Delta;t<sub>%s%s</sub>) = %.3f'%(ifo1,ifo2,self.dT[ifos]["%s|%s"%(fits1,fits2)]['fidelity']))
 
-                ### report fidelity
-                ### report dThetaMAP
-
-                '''
-                ### first col declares ifos and gives statistics
-                col = row.div(klass='col-md-2')#.div(klass='row').div(klass='col-md-3')
-                col.p('H(dT) = %.3f'%self.dT[ifos]['H'], align='center')
-                col.p('I(dT) = %.3f'%self.dT[ifos]['I'], align='center')
-                col.p('MI = %.3f'%self.los[ifos]['MI'], align='center')
-                col.p(align='center').raw_text('H<sub>jnt</sub> = %.3f'%self.los[ifos]['Hj'])
-                col.p('MID = %.5f'%(self.los[ifos]['MI']/self.los[ifos]['Hj']), align='center')
-                '''
-
+                row = div.div(klass='row')
                 ### second col contains time-delay marginals
                 col = row.div(klass='col-md-8')
                 width = '700' ### FIXME: hard coding width isn't great...
