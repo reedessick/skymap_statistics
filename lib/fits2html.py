@@ -957,7 +957,7 @@ class multFITS(object):
                   ### options for computing statistics
                   base = 2.0,
                   conf = np.linspace(0, 1.0, 51),
-                  area = np.linspace(0, 1e4, 51),
+                  area = np.logspace(-1, 4, 51),
                 ):
 
         ### general things about FITS file
@@ -1562,23 +1562,23 @@ class multFITS(object):
             label = "%s - %s"%(self.texlabels[fits1], self.texlabels[fits2])
 
             # cr intersection, union, and ratio
-            cri_ax.plot( self.conf, conf_I, color=color, label=label )
+            cri_ax.semilogy( self.conf, conf_I, color=color, label=label )
             cri_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
-            cru_ax.plot( self.conf, conf_U, color=color, label=label )
+            cru_ax.semilogy( self.conf, conf_U, color=color, label=label )
             cru_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
             crr_ax.plot( self.conf, np.array(conf_I)/np.array(conf_U), color=color, label=label )
             crr_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
             # area intersection, union, and ratio
-            ari_ax.plot( self.area, area_I, color=color, label=label )
+            ari_ax.loglog( self.area, area_I, color=color, label=label )
             ari_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
-            aru_ax.plot( self.area, area_U, color=color, label=label )
+            aru_ax.loglog( self.area, area_U, color=color, label=label )
             aru_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
-            arr_ax.plot( self.area, np.array(area_I)/np.array(area_U), color=color, label=label )
+            arr_ax.semilogx( self.area, np.array(area_I)/np.array(area_U), color=color, label=label )
             arr_fig.fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
             # contained probabilities
@@ -1586,8 +1586,8 @@ class multFITS(object):
             crc_tx.plot( self.conf, conf_B2A, color=color, linestyle='--', label=label )
             crc_fig.fig.text(0.10+0.02, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
 
-            arc_ax.plot( self.area, area_A2B, color=color, linestyle='-', label=label )
-            arc_tx.plot( self.area, area_B2A, color=color, linestyle='--', label=label )
+            arc_ax.semilogx( self.area, area_A2B, color=color, linestyle='-', label=label )
+            arc_tx.semilogx( self.area, area_B2A, color=color, linestyle='--', label=label )
             arc_fig.fig.text(0.10+0.02, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
 
         ### save json
