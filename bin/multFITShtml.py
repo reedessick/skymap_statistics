@@ -94,7 +94,7 @@ if not opts.conf:
     opts.conf = np.linspace(0, 1.0, 51)
 
 if not opts.area:
-    opts.area = np.logspace(-1, 4, 51)
+    opts.area = np.logspace(1, 4, 51)
 
 if not fitsfiles:
     raise ValueError('please supply at least 1 argument\n%s'%usage)

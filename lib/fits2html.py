@@ -957,7 +957,7 @@ class multFITS(object):
                   ### options for computing statistics
                   base = 2.0,
                   conf = np.linspace(0, 1.0, 51),
-                  area = np.logspace(-1, 4, 51),
+                  area = np.logspace(1, 4, 51),
                 ):
 
         ### general things about FITS file
@@ -1666,7 +1666,7 @@ class multFITS(object):
         plt.close( crc_fig.fig )
 
         # area intersection
-        ari_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        ari_ax.set_xlim(xmin=self.area[0], xmax=self.area[-1])
         ari_ax.set_ylim(ymin=0.0)
         ari_ax.set_xlabel('area [deg$^2$]')
         ari_ax.set_ylabel('intersection [deg$^2$]')
@@ -1679,7 +1679,7 @@ class multFITS(object):
         plt.close( ari_fig.fig )
 
         # area union
-        aru_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        aru_ax.set_xlim(xmin=self.area[0], xmax=self.area[-1])
         aru_ax.set_ylim(ymin=0.0)
         aru_ax.set_xlabel('area [deg$^2$]')
         aru_ax.set_ylabel('union [deg$^2$]')
@@ -1692,7 +1692,7 @@ class multFITS(object):
         plt.close( aru_fig.fig )
 
         # area ratio
-        arr_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        arr_ax.set_xlim(xmin=self.area[0], xmax=self.area[-1])
         arr_ax.set_ylim(ymin=0.0)
         arr_ax.set_xlabel('area [deg$^2$]')
         arr_ax.set_ylabel('ratio [deg$^2$]')
@@ -1705,7 +1705,7 @@ class multFITS(object):
         plt.close( arr_fig.fig )
 
         # area contained
-        arc_ax.set_xlim(xmin=0.0, xmax=self.area[-1])
+        arc_ax.set_xlim(xmin=self.area[0], xmax=self.area[-1])
         arc_ax.set_ylim(ymin=0.0, ymax=1.0)
         arc_ax.set_xlabel('$\int\limits_{\mathrm{CR}_A} d\Omega$')
         arc_ax.set_ylabel('$\int\limits_{\mathrm{CR}_A} d\Omega\, p_B(\Omega|\mathrm{data})$')
