@@ -436,7 +436,7 @@ class snglFITS(object):
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
             ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-            ct.annotate( ax, twiny = True )
+            ct.annotate( ax, twiny=True )
 
             if self.no_margticks:
                 ax.set_yticklabels([])
@@ -456,7 +456,6 @@ class snglFITS(object):
             ct.annotate( ax,
                          [ hp.pix2ang( self.nside, np.argmax(self.postE) ) ],
                          ifos,
-                         maxDt,
                          coord   = 'E',
                          gps     = self.gps,
                          color   = self.time_delay_color,
@@ -1253,7 +1252,6 @@ class multFITS(object):
                 ct.annotate( ax,
                              [ hp.pix2ang( self.fitsdata[fitsname]['nside'], np.argmax(self.fitsdata[fitsname]['E']) ) ],
                              ifos,
-                             maxDt,
                              coord   = 'E',
                              gps     = self.fitsdata[fitsname]['gps'],
                              color   = getColor.next(),
@@ -1494,8 +1492,8 @@ class multFITS(object):
         self.figind += 1
 
         ### set up labeling for contained plots
-        crc_fig.fig.text(0.10+0.02, 0.93, 'A - B', color='k', ha='center', va='top')
-        arc_fig.fig.text(0.10+0.02, 0.93, 'A - B', color='k', ha='center', va='top')
+        crc_fig.fig.text(0.50, 0.93, 'A - B', color='k', ha='center', va='top')
+        arc_fig.fig.text(0.50, 0.93, 'A - B', color='k', ha='center', va='top')
 
         ### iterate through pairs
         getColor = colors.getColor()
@@ -1544,7 +1542,7 @@ class multFITS(object):
                 area_B2A.append( np.sum(post1[post2argsort[:j+1]]) )
 
             self.comp["%s|%s"%(fits1,fits2)] = {'fidelity'  : stats.fidelity( post1, post2 ), ### fidelity
-                                                'dTheta'    : np.arccos( stats.cos_dtheta( t1, p2, t2, p2) ), ### angular separation of mAP
+                                                'dTheta'    : np.arccos( stats.cos_dtheta( t1, p1, t2, p2) ), ### angular separation of mAP
                                                 'conf'      : {'intersection' : conf_I, ### intersection and overlap of confidence regions
                                                                'union'        : conf_U,
                                                                'frAtoB'       : conf_A2B, ### confidence from post2 within CR defined by post1
@@ -1584,11 +1582,11 @@ class multFITS(object):
             # contained probabilities
             crc_ax.plot( self.conf, conf_A2B, color=color, linestyle='-', label=label )
             crc_tx.plot( self.conf, conf_B2A, color=color, linestyle='--', label=label )
-            crc_fig.fig.text(0.10+0.02, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
+            crc_fig.fig.text(0.50, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
 
             arc_ax.semilogx( self.area, area_A2B, color=color, linestyle='-', label=label )
             arc_tx.semilogx( self.area, area_B2A, color=color, linestyle='--', label=label )
-            arc_fig.fig.text(0.10+0.02, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
+            arc_fig.fig.text(0.50, 0.93-0.05*(ind+1), label, color=color, ha='center', va='top')
 
         ### save json
         jsonname = "%s_compStats%s.js"%(self.label, self.tag)
@@ -1620,7 +1618,7 @@ class multFITS(object):
         cru_ax.set_xlim(xmin=0.0, xmax=1.0)
         cru_ax.set_ylim(ymin=0.0)
         cru_ax.set_xlabel('confidence')
-        cru_ax.set_ylabel('union')
+        cru_ax.set_ylabel('union [deg$^2$]')
 
         figname = "%s_CRUnion%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
@@ -1844,12 +1842,12 @@ class multFITS(object):
                 div.h2('%s - %s'%(ifo1, ifo2))
                 ifos = "%s%s"%(ifo1, ifo2)
 
-                row = div.div(klass='row')
-                for fits1, fits2 in self.fits_pairs: ### formatting could be improved...
-                    col = row.div(klass='col-md-5')
-                    col.h3('%s - %s'%(self.labels[fits1], self.labels[fits2]))
-                    col.p().raw_text('&Delta;&theta;<sub>MAP</sub> = %.2f&deg;'%((self.dT[ifos][fits1]['thetaMAP']-self.dT[ifos][fits2]['thetaMAP'])*180/np.pi))
-                    col.p().raw_text('F(&Delta;t<sub>%s%s</sub>) = %.3f'%(ifo1,ifo2,self.dT[ifos]["%s|%s"%(fits1,fits2)]['fidelity']))
+#                row = div.div(klass='row')
+#                for fits1, fits2 in self.fits_pairs: ### formatting could be improved...
+#                    col = row.div(klass='col-md-5')
+#                    col.h3('%s - %s'%(self.labels[fits1], self.labels[fits2]))
+#                    col.p().raw_text('&Delta;&theta;<sub>MAP</sub> = %.2f&deg;'%((self.dT[ifos][fits1]['thetaMAP']-self.dT[ifos][fits2]['thetaMAP'])*180/np.pi))
+#                    col.p().raw_text('F(&Delta;t<sub>%s%s</sub>) = %.3f'%(ifo1,ifo2,self.dT[ifos]["%s|%s"%(fits1,fits2)]['fidelity']))
 
                 row = div.div(klass='row')
                 ### second col contains time-delay marginals
@@ -1859,6 +1857,54 @@ class multFITS(object):
                 col.img(src=self.dT[ifos]['ann fig'], width=width)
                 width = '900' ### FIXME: hard coding width isn't great...
                 col.img(src=self.los[ifos], width=width)
+
+        ### add comparison statistics
+        if hasattr(self, 'comp'): ### must have called make_comparison
+            sections.hr
+            div = sections.div(id='comparison statistics', klass='container')
+            div.h1('Comparison Statistics', id='comparison')
+            div1.a('Comparison Statistics', klass='navbar-brand', href='#comparison')
+
+            row = div.div(klass='row')
+            for fits1, fits2 in self.fits_pairs:
+                col = row.div(klass='col-md-6')
+                col.h3('%s - %s'%(self.labels[fits1], self.labels[fits2]))
+
+                d = self.comp["%s|%s"%(fits1,fits2)]
+                col.p().raw_text('F(&Omega;) = %.3f'%(d['fidelity']))
+                col.p().raw_text('&Delta;&theta;<sub>MAP</sub> = %.2f&deg;'%(d['dTheta']*180/np.pi))
+
+                if hasattr(self, 'dT'):
+                    r = col.div(klass='row')
+                    for ifo1, ifo2 in self.ifo_pairs:
+                        c = r.div(klass='col-md-4')
+                        c.h4('%s - %s'%(ifo1, ifo2))
+                        ifos = "%s%s"%(ifo1, ifo2)
+
+                        c.p().raw_text('&Delta;&theta;<sub>MAP</sub> = %.2f&deg;'%((self.dT[ifos][fits1]['thetaMAP']-self.dT[ifos][fits2]['thetaMAP'])*180/np.pi))
+                        c.p().raw_text('F(&Delta;t<sub>%s%s</sub>) = %.3f'%(ifo1,ifo2,self.dT[ifos]["%s|%s"%(fits1,fits2)]['fidelity']))
+
+            ### comparison statistics based on confidence regions
+            row = div.div(klass='row')
+            row.h2('comparisons based on confidence regions')
+
+            col = row.div(klass='col-md-8')
+            width = '550' ### FIXME: hard coding width isn't great...
+            col.img(src=self.comp['cri'], width=width)
+            col.img(src=self.comp['cru'], width=width)
+            col.img(src=self.comp['crr'], width=width)
+            col.img(src=self.comp['crc'], width=width)
+           
+            ### comparison statistics based on areas of fixed size
+            row = div.div(klass='row')
+            row.h2('comparisons based on areas of fixed size')
+
+            col = row.div(klass='col-md-8')
+            width = '550' ### FIXME: hard coding width isn't great...
+            col.img(src=self.comp['ari'], width=width)
+            col.img(src=self.comp['aru'], width=width)
+            col.img(src=self.comp['arr'], width=width)
+            col.img(src=self.comp['arc'], width=width)
 
         #----------------
         ### print document and return

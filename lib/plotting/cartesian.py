@@ -102,7 +102,7 @@ def set_xlim( ax, xmin=None, xmax=None ):
     if xmax!=None:
         ax.set_xlim( xmax=xmax )
 
-def annotate( ax, SRCs=[], IFOs='HL', maxDt=0.010, color='k', alpha=1.0, coord='C', gps=None, degrees=False, twiny=True ):
+def annotate( ax, SRCs=[], IFOs='HL', color='k', alpha=1.0, coord='C', gps=None, degrees=False, twiny=True ):
     '''
     annotate plot
     '''
@@ -117,6 +117,9 @@ def annotate( ax, SRCs=[], IFOs='HL', maxDt=0.010, color='k', alpha=1.0, coord='
         ax.set_ylim(ylim)
 
     if twiny:
+        t, p = triangulate.line_of_sight( IFOs[0], IFOs[1], coord='E' )
+        maxDt = np.abs( triangulate.time_delay( t, p, IFOs[0], IFOs[1], coord='E' ) )
+       
         aX = ax.twiny()
         aX.set_xticklabels(["$%.1f^\circ$"%(np.arccos(tick*1e-3/maxDt)*180/np.pi) for tick in ax.get_xticks()])
         aX.set_xlim(ax.get_xlim())
