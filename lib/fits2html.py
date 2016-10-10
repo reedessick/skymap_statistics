@@ -436,7 +436,7 @@ class snglFITS(object):
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
             ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-            ct.annotate( ax, twiny=True )
+            ct.annotate( ax, IFOs=ifos, twiny=True )
 
             if self.no_margticks:
                 ax.set_yticklabels([])
@@ -1228,7 +1228,7 @@ class multFITS(object):
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
             ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-            ct.annotate( ax, twiny=True )
+            ct.annotate( ax, IFOs=ifos, twiny=True )
 
             if self.no_margticks:
                 ax.set_yticklabels([])
