@@ -29,12 +29,16 @@ from ligo.gracedb.rest import GraceDb
 
 #-------------------------------------------------
 
+standard_tagname = ['skymapAutosummary']
+
+#-------------------------------------------------
+
 class Figure(object):
     '''
     a thin wrapper around figure objects that knows how to upload and save them
     '''
 
-    def __init__(self, fig, output_dir, output_url, graceid=None, graceDbURL='https://gracedb.ligo.org/api/'):
+    def __init__(self, fig, output_dir, output_url, graceid=None, graceDbURL='https://gracedb.ligo.org/api/', upload=False):
         self.fig = fig
 
         self.output_dir = output_dir
@@ -43,12 +47,14 @@ class Figure(object):
         self.graceid    = graceid
         self.graceDbURL = graceDbURL
 
-    def saveAndUpload(self, figname, message='', tagname=['skymapAutosummary']):
+        self.upload = upload
+
+    def saveAndUpload(self, figname, message='', tagname=[]):
         filename = os.path.join(self.output_dir, figname)
         self.fig.savefig( filename )
-        if self.graceid!=None:
+        if self.upload and (self.graceid!=None):
             gdb = GraceDb(self.graceDbURL)
-            httpResponse = gdb.writeLog( self.graceid, message=message, filename=filename, tagname=tagname )
+            httpResponse = gdb.writeLog( self.graceid, message=message, filename=filename, tagname=standard_tagname+tagname )
             ### may want to check httpResponse for errors...
 
         return os.path.join(self.output_url, figname) 
@@ -58,7 +64,7 @@ class Json(object):
     a thin wrapper around a json object that knows how to upload and save them
     '''
 
-    def __init__(self, obj, output_dir, output_url, graceid=None, graceDbURL='https://gracedb.ligo.org/api/'):
+    def __init__(self, obj, output_dir, output_url, graceid=None, graceDbURL='https://gracedb.ligo.org/api/', upload=False):
         self.obj = obj
 
         self.output_dir = output_dir
@@ -67,14 +73,16 @@ class Json(object):
         self.graceid    = graceid
         self.graceDbURL = graceDbURL
 
-    def saveAndUpload(self, filename, message='', tagname=['skymapAutosummary']):
+        self.upload = upload
+
+    def saveAndUpload(self, filename, message='', tagname=[]):
         fileName = os.path.join(self.output_dir, filename)
         file_obj = open( fileName, "w" )
         json.dump( self.obj, file_obj )
         file_obj.close()
-        if self.graceid!=None:
+        if self.upload and (self.graceid!=None):
             gdb = GraceDb(self.graceDbURL)
-            httpResponse = gdb.writeLog( self.graceid, message=message, filename=fileName, tagname=tagname )
+            httpResponse = gdb.writeLog( self.graceid, message=message, filename=fileName, tagname=standard_tagname+tagname )
             ### may want to check httpResponse for errors...
 
         return os.path.join(self.output_url, filename)
@@ -98,6 +106,7 @@ class snglFITS(object):
                   dpi        = 500,
                   graceid    = None, ### if supplied, upload files and reference them in the html document
                   graceDbURL = 'https://gracedb.ligo.org/api/',
+                  upload     = False,
                   ### options for json reference files
                   json_nside = 128,
                   ### general options about annotation and which plots to build
@@ -164,6 +173,7 @@ class snglFITS(object):
 
         self.graceid    = graceid
         self.graceDbURL = graceDbURL
+        self.upload     = upload
 
         ### general color schemes
         self.color_map    = color_map
@@ -257,6 +267,7 @@ class snglFITS(object):
                              self.output_url,
                              graceid    = self.graceid,
                              graceDbURL = self.graceDbURL,
+                             upload     = self.upload,
                            ).saveAndUpload( jsonname )
 
         jsonname = "%s_cpostC%s.js"%(self.label, self.tag)
@@ -270,6 +281,7 @@ class snglFITS(object):
                               self.output_url,
                               graceid    = self.graceid,
                               graceDbURL = self.graceDbURL,
+                              upload     = self.upload,
                             ).saveAndUpload( jsonname )
 
     def make_mollweide(self, verbose=False):
@@ -284,7 +296,7 @@ class snglFITS(object):
 
             ### generate figure
             fig, ax = mw.gen_fig_ax( self.figind, projection=projection )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             mw.heatmap( post, ax, color_map=self.color_map )
@@ -366,7 +378,7 @@ class snglFITS(object):
 
             ### build contour plot
             fig, ax = mw.gen_fig_ax( self.figind, projection=projection )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             mw.contour( post, 
@@ -413,7 +425,7 @@ class snglFITS(object):
             maxDt = sampDt[-1]
 
             fig, ax = ct.genDT_fig_ax( self.figind )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
@@ -484,6 +496,7 @@ class snglFITS(object):
                            self.output_url,
                            graceid    = self.graceid,
                            graceDbURL = self.graceDbURL,
+                           upload     = self.upload,
                          ).saveAndUpload( jsonname )
 
     def make_los(self, verbose=False):
@@ -503,7 +516,7 @@ class snglFITS(object):
             t, p = triangulate.line_of_sight( ifo1, ifo2, coord='E' )
 
             fig, ax, rproj, tproj = ct.genHist_fig_ax( self.figind )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             ### rotate
@@ -551,6 +564,7 @@ class snglFITS(object):
                             self.output_url,
                             graceid    = self.graceid,
                             graceDbURL = self.graceDbURL,
+                            upload     = self.upload,
                           ).saveAndUpload( jsonname )
 
     def make_confidence_regions(self, verbose=False):
@@ -580,6 +594,7 @@ class snglFITS(object):
                           self.output_url, 
                           graceid    = self.graceid,
                           graceDbURL = self.graceDbURL,
+                          upload     = self.upload,
                         ).saveAndUpload( jsonname )
  
         ### make confidence region figures!
@@ -587,7 +602,7 @@ class snglFITS(object):
 
         # size
         fig, ax = ct.genCR_fig_ax( self.figind )
-        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         ax.semilogy( self.conf, [np.sum(_) for _ in self.modes], color=colors.getColor().next() ) ### always use the first color
@@ -606,7 +621,7 @@ class snglFITS(object):
 
         # max{dTheta}
         fig, ax = ct.genCR_fig_ax( self.figind )
-        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         ax.plot( self.conf, self.maxDtheta, color=colors.getColor().next() ) ### always use the first color
@@ -625,7 +640,7 @@ class snglFITS(object):
 
         # num modes
         fig, ax = ct.genCR_fig_ax( self.figind )
-        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
         
         ax.plot( self.conf, [len(_) for _ in self.modes], color=colors.getColor().next() ) ### always use the first color
@@ -666,6 +681,7 @@ class snglFITS(object):
                            self.output_url,
                            graceid    = self.graceid,
                            graceDbURL = self.graceDbURL,
+                           upload     = self.upload,
                          ).saveAndUpload( jsonname )
 
     def make_postviz(self, verbose=False ):
@@ -702,6 +718,8 @@ class snglFITS(object):
         """
         generate html document as a string
         """
+        fitsbasename = os.path.basename(self.fitsname)
+
         ### set up the html doc
         doc = HTML(newlines=True)
         doc.raw_text('<!DOCTYPE html>')
@@ -724,13 +742,13 @@ class snglFITS(object):
                  )
 
         ### other header information
-        head.meta(name="description", content="a summary of %s"%self.fitsname)
+        head.meta(name="description", content="a summary of %s"%fitsbasename)
         head.meta(name="author", content=getpass.getuser()) ### whoever ran this is the author
         
         if self.graceid:
-            head.title("%s:%s"%(self.graceid, self.fitsname))
+            head.title("%s:%s"%(self.graceid, fitsbasename))
         else:
-            head.title(self.fitsname)
+            head.title(fitsbasename)
 
         #----------------
         ### build body
@@ -755,7 +773,7 @@ class snglFITS(object):
 
             row = div.div(klass='row') ### row for fitsname, nside, entropy, and information
 
-            row.div(klass='col-md-3').a(self.fitsname, href=os.path.join(self.output_url, self.fitsname))
+            row.div(klass='col-md-3').a(fitsbasename, href=os.path.join(self.output_url, fitsbasename))
             row.div(klass='col-md-2').p('nside = %d'%self.nside)
             row.div(klass='col-md-3').p().raw_text('H = %.3f (%.3f deg<sup>2</sup>)'%(self.entropy, self.base**(self.entropy)*self.pixarea))
             row.div(klass='col-md-2').p('I = %.3f'%self.information)
@@ -928,6 +946,7 @@ class multFITS(object):
                   dpi        = 500,
                   graceid    = None, ### if supplied, upload files and reference them in the html document
                   graceDbURL = 'https://gracedb.ligo.org/api/',
+                  upload     = False,
                   ### general options about annotation and which plots to build
                   ifos = [],
                   ### general options about colors, shading, and labeling
@@ -1006,6 +1025,7 @@ class multFITS(object):
 
         self.graceid    = graceid
         self.graceDbURL = graceDbURL
+        self.upload     = upload
 
         ### general color schemes
         self.color_map    = color_map
@@ -1100,7 +1120,7 @@ class multFITS(object):
 
             ### generate figure
             fig, ax = mw.gen_fig_ax( self.figind, projection=projection )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             getColor = colors.getColor()
@@ -1192,7 +1212,7 @@ class multFITS(object):
             maxDt = sampDt[-1]
 
             fig, ax = ct.genDT_fig_ax( self.figind )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             ax.set_xlim(xmin=maxDt*1e3, xmax=-maxDt*1e3) ### we work in ms here...
@@ -1280,6 +1300,7 @@ class multFITS(object):
                            self.output_url,
                            graceid    = self.graceid,
                            graceDbURL = self.graceDbURL,
+                           upload     = self.upload,
                          ).saveAndUpload( jsonname )
 
 
@@ -1299,7 +1320,7 @@ class multFITS(object):
             t, p = triangulate.line_of_sight( ifo1, ifo2, coord='E' )
 
             fig, ax, rproj, tproj = ct.genHist_fig_ax( self.figind )
-            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+            fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
             self.figind += 1
 
             ### rotate
@@ -1354,17 +1375,17 @@ class multFITS(object):
 
         # size
         fig, sizax = ct.genCR_fig_ax( self.figind )
-        sizfig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        sizfig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # max{dTheta}
         fig, mdtax = ct.genCR_fig_ax( self.figind )
-        mdtfig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        mdtfig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # num modes
         fig, numax = ct.genCR_fig_ax( self.figind )
-        numfig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        numfig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         ### compute confidence regions and add to figure
@@ -1451,44 +1472,44 @@ class multFITS(object):
 
         # conf region intersection
         fig, cri_ax = ct.genCR_fig_ax( self.figind )
-        cri_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        cri_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # conf region union
         fig, cru_ax = ct.genCR_fig_ax( self.figind )
-        cru_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        cru_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # conf region ratio
         fig, crr_ax = ct.genCR_fig_ax( self.figind )
-        crr_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        crr_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # conf region contained
         fig, crc_ax = ct.genCR_fig_ax( self.figind )
         crc_tx = crc_ax.twinx()
-        crc_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        crc_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # area intersection
         fig, ari_ax = ct.genCR_fig_ax( self.figind )
-        ari_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        ari_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # area union
         fig, aru_ax = ct.genCR_fig_ax( self.figind )
-        aru_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        aru_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # area ratio
         fig, arr_ax = ct.genCR_fig_ax( self.figind )
-        arr_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        arr_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         # area contained
         fig, arc_ax = ct.genCR_fig_ax( self.figind )
         arc_tx = arc_ax.twinx()
-        arc_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL )
+        arc_fig = Figure( fig, self.output_dir, self.output_url, graceid=self.graceid, graceDbURL=self.graceDbURL, upload=self.upload )
         self.figind += 1
 
         ### set up labeling for contained plots
@@ -1597,6 +1618,7 @@ class multFITS(object):
                           self.output_url,
                           graceid    = self.graceid,
                           graceDbURL = self.graceDbURL,
+                          upload     = self.upload,
                         ).saveAndUpload( jsonname )
 
         ### save figures
@@ -1796,7 +1818,9 @@ class multFITS(object):
             for fitsname in self.fitsnames:
                 row = div.div(klass='row') ### row for fitsname, nside, entropy, and information
 
-                row.div(klass='col-md-3').a(fitsname, href=os.path.join(self.output_url, fitsname))
+                fitsbasename = os.path.basename(fitsname)
+
+                row.div(klass='col-md-3').a(fitsbasename, href=os.path.join(self.output_url, fitsbasename))
                 row.div(klass='col-md-2').p('nside = %d'%self.fitsdata[fitsname]['nside'])
 
         ### add mollweide plots

@@ -7,10 +7,13 @@ author      = "reed.essick@ligo.org"
 
 import os
 import sys
+import glob
 
 import json
 
 import subprocess as sp
+
+import fits2html
 
 from ligo.gracedb.rest import GraceDb
 
@@ -23,6 +26,7 @@ from optparse import OptionParser
 parser = OptionParser(usage=usage, description=description)
 
 parser.add_option('-v', '--verbose', default=False, action='store_true')
+parser.add_option('-V', '--Verbose', default=False, action='store_true')
 
 parser.add_option('-g', '--graceid-and-filename', nargs=2, default=None, type='string',
     help='use for testing purposes (does not listen for alert thru stdin). eg: "G12345 bayestar.fits.gz' )
@@ -35,13 +39,15 @@ if len(args)!=1:
     raise ValueError('please supply exactly one input argument\n%s'%usage)
 configname = args[0]
 
+opts.verbose = opts.verbose or opts.Verbose
+
 #-------------------------------------------------
 
 ### read in GraceID and Filename
 
-if opts.graceid==None: ### listen for alert through stdin
+if opts.graceid_and_filename==None: ### listen for alert through stdin
     alert = sys.stdin.read()
-    if opts.verbose:
+    if opts.Verbose:
         print( 'recieved alert : %s'%alert )
     alert = json.loads( alert )
 
@@ -52,7 +58,8 @@ if opts.graceid==None: ### listen for alert through stdin
         filename = alert['file'] ### pull out the filename
 
     else:
-        print( 'ignoring...' )
+        if opts.Verbose:
+            print( 'ignoring...' )
         sys.exit(0)
 
 else: ### graceid was supplied
@@ -82,7 +89,7 @@ outdir = os.path.join( config.get('general', 'output dir'), graceid )
 outurl = os.path.join( config.get('general', 'output url'), graceid )
 
 tag = config.get('general', 'tag')
-json_nside = config.getint('general', 'json nside')
+json_nside = config.get('general', 'json nside')
 
 ### make sure we have a working directory
 if not os.path.exists(outdir):
@@ -101,13 +108,13 @@ color_map    = config.get('plotting', 'color map')
 #------------------------
 
 time_delay_color = config.get('time delay', 'color')
-time_delay_alaph = config.get('time delay', 'alpha')
+time_delay_alpha = config.get('time delay', 'alpha')
 
 #------------------------
 
 mollweide_levels     = config.get('mollweide', 'levels').split()
 mollweide_alpha      = config.get('mollweide', 'alpha')
-mollweide_linewidths = config.get('mollweide' 'linewidths')
+mollweide_linewidths = config.get('mollweide', 'linewidths')
 
 #------------------------
 
@@ -127,7 +134,7 @@ zenith_color = config.get('zenith', 'color')
 marker           = config.get('marker', 'marker')
 marker_color     = config.get('marker', 'color')
 marker_alpha     = config.get('marker', 'alpha')
-marker_size      = conifg.get('marker', 'size')
+marker_size      = config.get('marker', 'size')
 marker_edgewidth = config.get('marker', 'edgewidth')
 
 #------------------------
@@ -143,6 +150,13 @@ confs = config.get('stats', 'conf').split()
 areas = config.get('stats', 'area').split()
 
 #-------------------------------------------------
+# BEGIN THE ANALYSIS
+#-------------------------------------------------
+
+if not opts.skip_gracedb_upload:
+    gracedb.writeLog( graceid, message='started skymap summary for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+
+#------------------------
 
 ### download FITS file
 localname = os.path.join( outdir, filename )
@@ -165,12 +179,10 @@ ifos = [ifo[0] for ifo in ifos] ### eg: H1 -> H
 
 ### set up snglFITShtml command
 snglFITScmd = [ 'snglFITShtml.py', localname,
-                '--graceid',              graceid,
                 '--graceDbURL',           graceDbURL,
                 '--output-dir',           outdir,
                 '--output-url',           outurl,
 		'--json-nside',           json_nside,
-                '--tag',                  tag,
                 '--figtype',              figtype,
                 '--dpi',                  dpi,
                 '--color-map',            color_map,
@@ -192,6 +204,14 @@ snglFITScmd = [ 'snglFITShtml.py', localname,
                 '--dT-xlim-dB',           dT_xlim_dB,
                 '--base',                 base,
               ]
+
+if tag:
+    snglFITScmd += ['--tag', tag]
+
+if opts.skip_gracedb_upload:
+    snglFITScmd.append( '--skip-gracedb-upload' )
+else:
+    snglFITScmd += ['--graceid', graceid ]
 
 if opts.verbose:
     snglFITScmd.append( '--verbose' )
@@ -209,7 +229,7 @@ for level in mollweide_levels:
     snglFITScmd += ['--mollweide-levels', level]
 
 for conf in confs:
-    snglFITScmd += ['--conf', cnf]
+    snglFITScmd += ['--conf', conf]
 
 ### launch snglFITShtml
 if opts.verbose:
@@ -218,17 +238,21 @@ if opts.verbose:
 proc = sp.Popen(snglFITScmd, stderr=sp.PIPE)
 _, err = proc.communicate()
 if proc.returncode:
-    raise NotImplementedError('post a warning to GraceDb using error message from process? Or just print that here?')
+    print err
+    if opts.skip_gracedb_upload:
+        raise NotImplementedError('snglFITS returncode=%d\n%s'%(proc.returncode, " ".join(snglFITScmd)))
+    else:
+        print( 'WARNING: snglFITS returncode=%d'%proc.returncode )
+        gracedb.writeLog( graceid, 'WARNING: snglFITS failed for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+
 
 #------------------------
 
 ### set up multFITShtml
 multFITScmd = [ 'multFITShtml.py', 
-                '--graceid',              graceid,
                 '--graceDbURL',           graceDbURL,
                 '--output-dir',           outdir,
                 '--output-url',           outurl,
-                '--tag',                  tag,
                 '--figtype',              figtype,
                 '--dpi',                  dpi,
                 '--color-map',            color_map,
@@ -250,6 +274,14 @@ multFITScmd = [ 'multFITShtml.py',
                 '--dT-xlim-dB',           dT_xlim_dB,
                 '--base',                 base,
               ]
+
+if tag:
+    multFITScmd += ['--tag', tag]
+
+if opts.skip_gracedb_upload:
+    multFITScmd.append( '--skip-gracedb-upload' )
+else:
+    multFITScmd += ['--graceid', graceid]
 
 if opts.verbose:
     multFITScmd.append( '--verbose' )
@@ -273,13 +305,28 @@ for area in areas:
     multFITScmd += ['--area', area]
 
 ### search for other FITS files in outdir
-multFITScmd += glob.glob( '%s/*.fits'%outdir ) + glob.glob( '%s/*.fits.gz'%outdir )
+localnames = glob.glob( '%s/*.fits'%outdir ) + glob.glob( '%s/*.fits.gz'%outdir )
+
+if len(localnames)==1: ### only one local FITS file, so this is the first skymap (FIXME: subject to a race condition...) -> tag html as sky_loc
+    multFITScmd += ['--graceDb-html-tagname', 'sky_loc']
+
+multFITScmd += localnames ### include localnames
 
 ### launch multFITShtml
 if opts.verbose:
     print( "    %s"%(" ".join(multFITScmd)) )
 
-proc = sp.Popen(multFITScmd, stderr=sp.PIPE())
+proc = sp.Popen(multFITScmd, stderr=sp.PIPE)
 _, err = proc.communicate()
 if proc.returncode:
-    raise NotImplementedError('post a warning to GraceDb using error message from process? or just print that here?')
+    print err
+    if opts.skip_gracedb_upload:
+        raise NotImplementedError('WARNING: multFITS returncode=%d\n%s'%(proc.returncode, " ".join(multFITScmd)))
+    else:
+        print( 'WARNING: multFITS returncode=%d'%proc.returncode )
+        gracedb.writeLog( graceid, 'WARNING: multFITS failed for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+
+#------------------------
+
+if not opts.skip_gracedb_upload:
+    gracedb.writeLog( graceid, message='finished skymap summary for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )

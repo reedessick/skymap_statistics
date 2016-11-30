@@ -11,6 +11,8 @@ import numpy as np
 
 import fits2html
 
+from ligo.gracedb.rest import GraceDb
+
 from optparse import OptionParser
 
 #-------------------------------------------------
@@ -24,6 +26,10 @@ parser.add_option('-v', '--verbose', default=False, action='store_true')
 # options about graceDb uploads
 parser.add_option('-g', '--graceid', default=None, type='string')
 parser.add_option('-G', '--graceDbURL', default='https://gracedb.ligo.org/api/', type='string')
+
+parser.add_option('-s', '--skip-gracedb-upload', default=False, action='store_true')
+parser.add_option('', '--graceDb-tagname', default=[], action='append', type='string', help='additional tagnames used when uploading to GraceDb')
+parser.add_option('', '--graceDb-html-tagname', default=[], action='append', type='string', help='additional tagnames used when uploading html to GraceDb')
 
 # options about input FITS file
 
@@ -84,6 +90,9 @@ parser.add_option("", "--dpi", default=500, type="int")
 
 opts, fitsfiles = parser.parse_args()
 
+if not fitsfiles:
+    raise ValueError('please supply at least 1 argument\n%s'%usage)
+
 if opts.tag:
     opts.tag = "_"+opts.tag
 
@@ -96,8 +105,7 @@ if not opts.conf:
 if not opts.area:
     opts.area = np.logspace(1, 4, 51)
 
-if not fitsfiles:
-    raise ValueError('please supply at least 1 argument\n%s'%usage)
+opts.skip_gracedb_upload = opts.skip_gracedb_upload or (opts.graceid==None)
 
 #-------------------------------------------------
 
@@ -129,6 +137,7 @@ multfits = fits2html.multFITS( fitsfiles,
                                ### graceDb uploads
                                graceid    = opts.graceid,
                                graceDbURL = opts.graceDbURL,
+                               upload     = not opts.skip_gracedb_upload,
                                ### which ifos are important
                                ifos = opts.ifo,
                                ### general color options
@@ -178,6 +187,13 @@ multfits.make_comparison( verbose=opts.verbose ) ### copmute comparison statisti
 #-----------
 
 ### generate final html document
-multfits.write( verbose=opts.verbose )
+htmlname = multfits.write( verbose=opts.verbose )
 
-raise NotImplementedError("Need to upload html document to GraceDb. Tagging is a bit complicated because we'll need to check whether a link already exists and if we're going to overwrite that...")
+### upload to GraceDb
+if not opts.skip_gracedb_upload:
+    if opts.verbose:
+        print "uploading %s to GraceDb(%s)"%(htmlname, opts.graceDbURL)
+
+    gdb = GraceDb( opts.graceDbURL )
+    gdbdir = os.path.join(opts.graceDbURL, '..', 'events', opts.graceid, 'files' )
+    gdb.writeLog( opts.graceid, message='comparison of skymaps can be found <a href="%s">here</a>'%os.path.join(gdbdir, os.path.basename(htmlname)), filename=htmlname, tagname=fits2html.standard_tagname+opts.graceDb_tagname+opts.graceDb_html_tagname ) 
