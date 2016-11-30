@@ -1,0 +1,101 @@
+#!/usr/bin/python
+"""
+Script to manage starting, stopping, and monitoring of the 
+LV alert listening process an related tasks on gdb_processor
+"""
+__author__ = "Alex Urban <alexander.urban@ligo.org>, Reed Essick <reed.essick@ligo.org>"
+
+#-------------------------------------------------
+
+import argparse
+import os
+
+from sys import exit
+
+#-------------------------------------------------
+
+# define and parse command-line arguments
+
+parser = argparse.ArgumentParser(description='Manage the event_supervisor lvalert_listenMP workflow.')
+
+parser.add_argument('command', choices=['start', 'status', 'stop'],
+    help='start, stop or status of gdb_processor tasks' )
+
+parser.add_argument('--config', required=True,
+    help='path to config file for eventSupervisor' )
+
+parser.add_argument('--resource', default='eventSupervisor', required=False,
+    help='resource name for lvalert_listenMP. DEFAULT=eventSupervisor' )
+
+parser.add_argument('--username', default='gdb_processor', required=False,
+    help='username for lvalert_listenMP. DEFAULT=gdb_processor' )
+
+parser.add_argument('--bin', default='/bin', required=False,
+    help='the path to the lvalert_listenMP executable.' )
+
+parser.add_argument('--out', default='/home/gracedb.processor/working/log/', required=False,
+    help='the path to output directory for condor log files.' )
+
+args = parser.parse_args()
+
+#-------------------------------------------------
+
+# if run with argument 'start,' write and submit condor .sub file 
+if args.command == 'start':
+
+    contents = """\
+universe              = local
+
+executable            = %(bin)s/lvalert_listen
+getenv                = True
+notification          = never
+environment           = DISPLAY=localhost:10.0
+accounting_group      = ligo.prod.o1.cbc.grb.raven
+accounting_group_user = reed.essick
+
+arguments = --username %(username)s --resource %(resource)s --config-file %(config)s
+
+log                 = %(out)s/log/lvalertlistenMP_skymapAutosummary.$(Cluster).log 
+output              = %(out)s/log/lvalertlistenMP_skymapAutosummary.$(Cluster).out
+error               = %(out)s/log/lvalertlistenMP_skymapAutosummary.$(Cluster).error
+
+queue 1
+"""%{
+     'config'   : args.config,
+     'resource' : args.resource,
+     'username' : args.username,
+     'bin'      : args.bin,
+     'out'      : args.out,
+    }
+
+    sub = 'lvalertlisten_skymap_autosummary.sub'
+    with open(sub, 'w') as f:
+        f.write(contents)
+    condorargs = ['condor_submit', sub]
+    os.execlp('condor_submit', *condorargs)
+
+#------------------------
+
+# if run with argument 'status', print a short summary of the job to screen
+
+elif args.command == 'status':
+    user = os.getenv("USER")
+    condorargs = ['condor_q', user]
+    os.execlp('condor_q', *condorargs)
+
+#------------------------
+
+# if run with argument 'stop', kill the lvalertlisten job
+
+elif args.command == 'stop':
+    exterminate = raw_input('Are you sure?? This will kill all condor jobs for this user... [y/n] ')
+
+    if exterminate == 'y' or exterminate == 'yes': 
+        print 'Righty-ho then. Exterminate!'
+        user = os.getenv("USER")
+        condorargs = ['condor_rm',user]
+        os.execlp('condor_rm', *condorargs)
+
+    else:
+        print 'I thought as much!'
+        exit()
