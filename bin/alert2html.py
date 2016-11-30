@@ -28,8 +28,13 @@ parser = OptionParser(usage=usage, description=description)
 parser.add_option('-v', '--verbose', default=False, action='store_true')
 parser.add_option('-V', '--Verbose', default=False, action='store_true')
 
-parser.add_option('-g', '--graceid-and-filename', nargs=2, default=None, type='string',
-    help='use for testing purposes (does not listen for alert thru stdin). eg: "G12345 bayestar.fits.gz' )
+parser.add_option('-g', '--graceid', default=None, type='string',
+    help='download all fits files for this graceid and process them together. Forces multFITS to be tagged sky_loc \
+(may produce redundant log messages if you are not careful)' )
+
+parser.add_option('', '--graceid-and-filename', nargs=2, default=None, type='string',
+    help='use for testing purposes (does not listen for alert thru stdin). eg: "G12345 bayestar.fits.gz". \
+if --graceid is supplied, this will be ignored.' )
 
 parser.add_option('', '--skip-gracedb-upload', default=False, action='store_true')
 
@@ -45,7 +50,8 @@ opts.verbose = opts.verbose or opts.Verbose
 
 ### read in GraceID and Filename
 
-if opts.graceid_and_filename==None: ### listen for alert through stdin
+if (opts.graceid==None) and (opts.graceid_and_filename==None): ### listen for alert through stdin
+
     alert = sys.stdin.read()
     if opts.Verbose:
         print( 'recieved alert : %s'%alert )
@@ -53,17 +59,17 @@ if opts.graceid_and_filename==None: ### listen for alert through stdin
 
     graceid = alert['uid'] ### pull out the graceid
 
-    ###   must be an update alert                                    must be a FITS file
-    if (alert['alert_type']=='update') and (alert['file'].endswith('.fits') or alert['file'].endswith('.fits.gz')):
-        filename = alert['file'] ### pull out the filename
-
-    else:
+    ###          must be an update alert                                    must be a FITS file
+    if not ((alert['alert_type']=='update') and (alert['file'].endswith('.fits') or alert['file'].endswith('.fits.gz'))):
         if opts.Verbose:
             print( 'ignoring...' )
         sys.exit(0)
 
-else: ### graceid was supplied
-    graceid, filename = opts.graceid_and_filename ### read in both graceid and filename      
+elif opts.graceid: ### graceid was supplied
+    graceid = opts.graceid
+
+else: ### --graceid was not supplied, but --graceid-and-filename was
+    graceid = opts.graceid_and_filename[0] ### read in both graceid and filename      
         
 #-------------------------------------------------
 
@@ -150,24 +156,6 @@ confs = config.get('stats', 'conf').split()
 areas = config.get('stats', 'area').split()
 
 #-------------------------------------------------
-# BEGIN THE ANALYSIS
-#-------------------------------------------------
-
-if not opts.skip_gracedb_upload:
-    gracedb.writeLog( graceid, message='started skymap summary for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
-
-#------------------------
-
-### download FITS file
-localname = os.path.join( outdir, filename )
-if opts.verbose:
-    print( 'downloading from %s : %s -> %s'%(graceDbURL, filename, localname) )
-
-file_obj = open(localname, 'w')
-file_obj.write( gracedb.files( graceid, filename ).read() )
-file_obj.close()
-
-#------------------------
 
 ### figure out which IFOs participated
 ifos = gracedb.event( graceid ).json()['instruments'].split(',')
@@ -177,8 +165,54 @@ ifos = [ifo[0] for ifo in ifos] ### eg: H1 -> H
 
 #-------------------------------------------------
 
-### set up snglFITShtml command
-snglFITScmd = [ 'snglFITShtml.py', localname,
+### figure out which fits files we're analyzing
+if opts.graceid: ### download all of them
+    filenames = sorted( [ filename for filename in gracedb.files( graceid ).json().keys() if filename.endswith('.fits.gz') or filename.endswith('.fits') ] )
+
+elif opts.graceid_and_filename: ### just this one
+    filenames = [ opts.graceid_and_filename[1] ]
+
+else: ### read from stdin
+    filenames = [ alert['file'] ] ### pull out the filename
+
+### search for other FITS files in outdir
+localnames = sorted( glob.glob( '%s/*.fits'%outdir ) + glob.glob( '%s/*.fits.gz'%outdir ) )
+
+if opts.Verbose:
+    print "processing %d new FITS files"%len(filenames)
+    for filename in filenames:
+        print "    "+filename
+
+    print "found %d existing FITS files"%len(localnames)
+    for filename in localnames:
+        print "    "+filename
+
+#-------------------------------------------------
+# BEGIN THE ANALYSIS
+#-------------------------------------------------
+
+### iterate over filenames, spawning a snglFITS job for each
+for filename in filenames:
+
+    if not opts.skip_gracedb_upload:
+        gracedb.writeLog( graceid, message='started skymap summary for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+
+    #--------------------
+
+    ### download FITS file
+    localname = os.path.join( outdir, filename )
+    if opts.verbose:
+        print( 'downloading from %s : %s -> %s'%(graceDbURL, filename, localname) )
+
+    file_obj = open(localname, 'w')
+    file_obj.write( gracedb.files( graceid, filename ).read() )
+    file_obj.close()
+
+    #---------------------------------------------
+
+    ### set up snglFITShtml command
+    snglFITScmd = [ 'snglFITShtml.py', localname,
+                '--graceDb-html-tagname', 'sky_loc', ### always tag this skyloc
                 '--graceDbURL',           graceDbURL,
                 '--output-dir',           outdir,
                 '--output-url',           outurl,
@@ -205,50 +239,69 @@ snglFITScmd = [ 'snglFITShtml.py', localname,
                 '--base',                 base,
               ]
 
-if tag:
-    snglFITScmd += ['--tag', tag]
+    if tag:
+        snglFITScmd += ['--tag', tag]
 
-if opts.skip_gracedb_upload:
-    snglFITScmd.append( '--skip-gracedb-upload' )
-else:
-    snglFITScmd += ['--graceid', graceid ]
-
-if opts.verbose:
-    snglFITScmd.append( '--verbose' )
-
-if transparent:
-    snglFITScmd.append( '--transparent' )
-
-if no_margticks:
-    snglFITScmd.append( '--no-margticks' )
-
-for ifo in ifos:
-    snglFITScmd += ['-i', ifo]
-
-for level in mollweide_levels:
-    snglFITScmd += ['--mollweide-levels', level]
-
-for conf in confs:
-    snglFITScmd += ['--conf', conf]
-
-### launch snglFITShtml
-if opts.verbose:
-    print( "    %s"%(" ".join(snglFITScmd)) )
-
-proc = sp.Popen(snglFITScmd, stderr=sp.PIPE)
-_, err = proc.communicate()
-if proc.returncode:
-    print err
     if opts.skip_gracedb_upload:
-        raise NotImplementedError('snglFITS returncode=%d\n%s'%(proc.returncode, " ".join(snglFITScmd)))
+        snglFITScmd.append( '--skip-gracedb-upload' )
     else:
-        print( 'WARNING: snglFITS returncode=%d'%proc.returncode )
-        gracedb.writeLog( graceid, 'WARNING: snglFITS failed for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+        snglFITScmd += ['--graceid', graceid ]
+
+    if opts.verbose:
+        snglFITScmd.append( '--verbose' )
+
+    if transparent:
+        snglFITScmd.append( '--transparent' )
+
+    if no_margticks:
+        snglFITScmd.append( '--no-margticks' )
+
+    for ifo in ifos:
+        snglFITScmd += ['-i', ifo]
+
+    for level in mollweide_levels:
+        snglFITScmd += ['--mollweide-levels', level]
+
+    for conf in confs:
+        snglFITScmd += ['--conf', conf]
+
+    ### launch snglFITShtml
+    if opts.verbose:
+        print( "    %s"%(" ".join(snglFITScmd)) )
+
+    proc = sp.Popen(snglFITScmd, stderr=sp.PIPE)
+    _, err = proc.communicate()
+    if proc.returncode:
+        print err
+        if opts.skip_gracedb_upload:
+            raise RuntimeError('snglFITS returncode=%d\n%s'%(proc.returncode, " ".join(snglFITScmd)))
+
+        else:
+            print( 'WARNING: snglFITS returncode=%d'%proc.returncode )
+            gracedb.writeLog( graceid, 'WARNING: snglFITS failed for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+
+    elif not opts.skip_gracedb_upload:
+        gracedb.writeLog( graceid, message='finished skymap summary for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
 
 
 #------------------------
 
 ### set up multFITShtml
+
+if not opts.skip_gracedb_upload:
+    all_localnames = sorted(set(localnames + [os.path.join( outdir, filename ) for filename in filenames]))
+
+    filename = all_localnames[0]
+    localname = os.path.basename( filename )
+    hrefs = '<a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', localname), localname)
+
+    for filename in all_localnames[1:]:
+        localname = os.path.basename( filename )
+        hrefs += ', <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', localname), localname)
+
+    message = 'started skymap comparison for %s'%hrefs
+    gracedb.writeLog( graceid, message=message, tagname=fits2html.standard_tagname )
+
 multFITScmd = [ 'multFITShtml.py', 
                 '--graceDbURL',           graceDbURL,
                 '--output-dir',           outdir,
@@ -274,6 +327,8 @@ multFITScmd = [ 'multFITShtml.py',
                 '--dT-xlim-dB',           dT_xlim_dB,
                 '--base',                 base,
               ]
+
+multFITScmd += all_localnames
 
 if tag:
     multFITScmd += ['--tag', tag]
@@ -304,13 +359,9 @@ for conf in confs:
 for area in areas:
     multFITScmd += ['--area', area]
 
-### search for other FITS files in outdir
-localnames = glob.glob( '%s/*.fits'%outdir ) + glob.glob( '%s/*.fits.gz'%outdir )
-
-if len(localnames)==1: ### only one local FITS file, so this is the first skymap (FIXME: subject to a race condition...) -> tag html as sky_loc
+if len(localnames)==0 or opts.graceid: ### no previous FITS files, so this is the first skymap (FIXME: subject to a race condition, but should be pretty unlikely)
+                                       ### or, we supplied --graceid so we want to force this action
     multFITScmd += ['--graceDb-html-tagname', 'sky_loc']
-
-multFITScmd += localnames ### include localnames
 
 ### launch multFITShtml
 if opts.verbose:
@@ -329,4 +380,5 @@ if proc.returncode:
 #------------------------
 
 if not opts.skip_gracedb_upload:
-    gracedb.writeLog( graceid, message='finished skymap summary for <a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', filename), filename), tagname=fits2html.standard_tagname )
+    message = 'finished skymap comparison for %s'%hrefs
+    gracedb.writeLog( graceid, message=message, tagname=fits2html.standard_tagname )

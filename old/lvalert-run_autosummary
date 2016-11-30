@@ -1,6 +1,0 @@
-#!/bin/bash
-export PATH=/home/gracedb.processor/users/ressick/skymap_statistics/:${PATH}
-export PYTHONPATH=/home/gracedb.processor/users/ressick/skymaps_statistics/:${PYTHONPATH}
-read stdinGoesHere
-echo ${stdinGoesHere} | /home/gracedb.processor/users/ressick/skymap_statistics/autosummary_wrapper.py -v -c /home/gracedb.processor/users/ressick/skymap_statistics/lvem-autosummary.ini -l /home/gracedb.processor/users/ressick/working/autosummary-log/ >> /home/gracedb.processor/users/ressick/working/lvalert-run_autosummary-lvem.out
-echo ${stdinGoesHere} | /home/gracedb.processor/users/ressick/skymap_statistics/autosummary_wrapper.py -v -c /home/gracedb.processor/users/ressick/skymap_statistics/autosummary.ini -l /home/gracedb.processor/users/ressick/working/autosummary-log/ >> /home/gracedb.processor/users/ressick/working/lvalert-run_autosummary.out

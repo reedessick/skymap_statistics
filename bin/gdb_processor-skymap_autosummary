@@ -16,7 +16,7 @@ from sys import exit
 
 # define and parse command-line arguments
 
-parser = argparse.ArgumentParser(description='Manage the event_supervisor lvalert_listenMP workflow.')
+parser = argparse.ArgumentParser(description='Manage the skymap summary lvalert_listen workflow.')
 
 parser.add_argument('command', choices=['start', 'status', 'stop'],
     help='start, stop or status of gdb_processor tasks' )
@@ -24,14 +24,14 @@ parser.add_argument('command', choices=['start', 'status', 'stop'],
 parser.add_argument('--config', required=True,
     help='path to config file for eventSupervisor' )
 
-parser.add_argument('--resource', default='eventSupervisor', required=False,
-    help='resource name for lvalert_listenMP. DEFAULT=eventSupervisor' )
+parser.add_argument('--resource', default='skymapAutosummary', required=False,
+    help='resource name for lvalert_listen. DEFAULT=skymapAutosummary' )
 
 parser.add_argument('--username', default='gdb_processor', required=False,
-    help='username for lvalert_listenMP. DEFAULT=gdb_processor' )
+    help='username for lvalert_listen. DEFAULT=gdb_processor' )
 
 parser.add_argument('--bin', default='/bin', required=False,
-    help='the path to the lvalert_listenMP executable.' )
+    help='the path to the lvalert_listen executable.' )
 
 parser.add_argument('--out', default='/home/gracedb.processor/working/log/', required=False,
     help='the path to output directory for condor log files.' )
@@ -55,9 +55,9 @@ accounting_group_user = reed.essick
 
 arguments = --username %(username)s --resource %(resource)s --config-file %(config)s
 
-log                 = %(out)s/log/lvalertlistenMP_skymapAutosummary.$(Cluster).log 
-output              = %(out)s/log/lvalertlistenMP_skymapAutosummary.$(Cluster).out
-error               = %(out)s/log/lvalertlistenMP_skymapAutosummary.$(Cluster).error
+log                 = %(out)s/log/lvalertlisten_skymapAutosummary.$(Cluster).log 
+output              = %(out)s/log/lvalertlisten_skymapAutosummary.$(Cluster).out
+error               = %(out)s/log/lvalertlisten_skymapAutosummary.$(Cluster).error
 
 queue 1
 """%{
