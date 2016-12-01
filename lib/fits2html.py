@@ -706,7 +706,7 @@ class snglFITS(object):
         '''
         writes the html document into a predictable filename
         '''
-        htmlname = os.path.join( self.output_dir, "%s%s.html"%(self.label, self.tag) )
+        htmlname = os.path.join( self.output_dir, "%s-skymapSummary%s.html"%(self.label, self.tag) )
         if verbose:
             print "writing html document : "+htmlname
         file_obj = open(htmlname, "w")
@@ -1751,7 +1751,7 @@ class multFITS(object):
         '''
         writes the html document into a predictable filename
         '''
-        htmlname = os.path.join( self.output_dir, "%s%s.html"%(self.label, self.tag) )
+        htmlname = os.path.join( self.output_dir, "%s-skymapComparison%s.html"%(self.label, self.tag) )
         if verbose:
             print "  "+htmlname
         file_obj = open(htmlname, "w")
@@ -1798,7 +1798,7 @@ class multFITS(object):
         div1 = body.nav(klass='navbar navar-inverse navebar-fixed-top').div(klass='container').div(klass='navbar-header') ### first div, has links to snglFITS pages
         for fitsname in self.fitsnames:
             label = self.labels[fitsname]
-            div1.a(label, klass='navbar-brand', href=os.path.join(self.output_url, "%s%s.html"%(label, self.tag)))
+            div1.a(label, klass='navbar-brand', href=os.path.join(self.output_url, "%s-skymapSummary%s.html"%(label, self.tag)))
 
         body.hr
 
