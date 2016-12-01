@@ -288,9 +288,9 @@ for filename in filenames:
 
 ### set up multFITShtml
 
-if not opts.skip_gracedb_upload:
-    all_localnames = sorted(set(localnames + [os.path.join( outdir, filename ) for filename in filenames]))
+all_localnames = sorted(set(localnames + [os.path.join( outdir, filename ) for filename in filenames]))
 
+if not opts.skip_gracedb_upload:
     filename = all_localnames[0]
     localname = os.path.basename( filename )
     hrefs = '<a href="%s">%s</a>'%(os.path.join(graceDbURL, '..', 'events', graceid, 'files', localname), localname)
