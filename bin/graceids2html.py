@@ -1,0 +1,289 @@
+#!/usr/bin/python
+usage       = "gracids2html.py [--options] config.ini"
+description = "creates a set of summary documents based on *all* FITS files attached to the GraceIDs specified. Does *not* upload the resulting documents automatically."
+author      = "reed.essick@ligo.org"
+
+#-------------------------------------------------
+
+import os
+import sys
+import glob
+
+import json
+
+import subprocess as sp
+
+import fits2html
+
+from ligo.gracedb.rest import GraceDb
+
+from ConfigParser import SafeConfigParser
+
+from optparse import OptionParser
+
+#-------------------------------------------------
+
+parser = OptionParser(usage=usage, description=description)
+
+parser.add_option('-v', '--verbose', default=False, action='store_true')
+parser.add_option('-V', '--Verbose', default=False, action='store_true')
+
+parser.add_option('-g', '--graceid', default=[], type='string', action='append',
+    help='include all FITS files from this GraceID. Can be repeated.' )
+
+parser.add_option('-t', '--nickname', default=None, type='string',
+    help='used to generate a specific output directory. \
+If not supplied, default will be based of --graceid' )
+
+opts, args = parser.parse_args()
+
+if len(args)!=1:
+    raise ValueError('please supply exactly one input argument\n%s'%usage)
+configname = args[0]
+
+opts.verbose = opts.verbose or opts.Verbose
+
+if opts.nickname==None:
+    opts.nickname = "-".join(opts.graceid)
+
+#-------------------------------------------------
+
+### read in Config file
+
+if opts.verbose:
+    print( 'reading config from : %s'%configname )
+config = SafeConfigParser()
+config.read(configname)
+
+#------------------------
+
+### extract some common parameters
+graceDbURL = config.get('general', 'gracedb url')
+
+### init connection to GraceDb
+gracedb = GraceDb( graceDbURL )
+
+#------------------------
+
+### output placement and labeling
+outdir = os.path.join( config.get('general', 'output dir'), opts.nickname )
+outurl = os.path.join( config.get('general', 'output url'), opts.nickname )
+
+tag = config.get('general', 'tag')
+json_nside = config.get('general', 'json nside')
+
+### make sure we have a working directory
+if not os.path.exists(outdir):
+    os.makedirs(outdir)
+
+#------------------------
+
+### output formatting
+figtype = config.get('plotting', 'figtype')
+dpi     = config.get('plotting', 'dpi')
+
+transparent  = config.getboolean('plotting', 'transparent')
+no_margticks = config.getboolean('plotting', 'no margticks')
+color_map    = config.get('plotting', 'color map')
+
+#------------------------
+
+time_delay_color = config.get('time delay', 'color')
+time_delay_alpha = config.get('time delay', 'alpha')
+
+#------------------------
+
+mollweide_levels     = config.get('mollweide', 'levels').split()
+mollweide_alpha      = config.get('mollweide', 'alpha')
+mollweide_linewidths = config.get('mollweide', 'linewidths')
+
+#------------------------
+
+continents_color = config.get('continents', 'color')
+continents_alpha = config.get('continents', 'alpha')
+
+#------------------------
+
+line_of_sight_color = config.get('line of sight', 'color')
+
+#------------------------
+
+zenith_color = config.get('zenith', 'color')
+
+#------------------------
+
+marker           = config.get('marker', 'marker')
+marker_color     = config.get('marker', 'color')
+marker_alpha     = config.get('marker', 'alpha')
+marker_size      = config.get('marker', 'size')
+marker_edgewidth = config.get('marker', 'edgewidth')
+
+#------------------------
+
+dT_Nsamp   = config.get('dT marginals', 'Nsamp')
+dT_nside   = config.get('dT marginals', 'nside')
+dT_xlim_dB = config.get('dT marginals', 'xlim dB')
+
+#------------------------
+
+base  = config.get('stats', 'base')
+confs = config.get('stats', 'conf').split()
+areas = config.get('stats', 'area').split()
+
+#-------------------------------------------------
+# BEGIN THE ANALYSIS
+#-------------------------------------------------
+
+### download the FITS files and run snglFITS
+
+localnames = []
+for graceid in opts.graceid:
+    if opts.verbose:
+        print('downloading FITS files associated with %s'%graceid)
+
+    ### figure out which IFOs participated
+    ifos = gracedb.event( graceid ).json()['instruments'].split(',')
+
+    ### format like I like them in this repo...
+    ifos = [ifo[0] for ifo in ifos] ### eg: H1 -> H
+
+    for filename in [filename for filename in gracedb.files(graceid).json().keys() if filename.endswith('.fits') or filename.endswith('.fits.gz')]:
+        localname = os.path.join(outdir, "%s-%s"%(graceid, filename))
+        if opts.verbose:
+            print('downloading %s:%s -> %s'%(graceid, filename, localname) )        
+
+        file_obj = open(localname, 'w')
+        file_obj.write( gracedb.files( graceid, filename ).read() )
+        file_obj.close()
+
+        localnames.append( localname )
+
+        #---------------------------------------------
+
+        ### set up snglFITShtml command
+        snglFITScmd = [ 'snglFITShtml.py', localname,
+                '--skip-gracedb-upload',              ### REQUIRE THIS! users can upload by hand if they want
+                '--graceDbURL',           graceDbURL,
+                '--output-dir',           outdir,
+                '--output-url',           outurl,
+		'--json-nside',           json_nside,
+                '--figtype',              figtype,
+                '--dpi',                  dpi,
+                '--color-map',            color_map,
+                '--time-delay-color',     time_delay_color,
+                '--time-delay-alpha',     time_delay_alpha,
+                '--mollweide-alpha',      mollweide_alpha,
+                '--mollweide-linewidths', mollweide_linewidths,
+                '--continents-color',     continents_color,
+                '--continents-alpha',     continents_alpha,
+                '--line-of-sight-color',  line_of_sight_color,
+                '--zenith-color',         zenith_color,
+                '--marker',               marker,
+                '--marker-color',         marker_color,
+                '--marker-alpha',         marker_alpha,
+                '--marker-size',          marker_size,
+                '--marker-edgewidth',     marker_edgewidth,
+                '--dT-Nsamp',             dT_Nsamp,
+                '--dT-nside',             dT_nside,
+                '--dT-xlim-dB',           dT_xlim_dB,
+                '--base',                 base,
+              ]
+
+        if tag:
+            snglFITScmd += ['--tag', tag]
+
+        if opts.verbose:
+            snglFITScmd.append( '--verbose' )
+
+        if transparent:
+            snglFITScmd.append( '--transparent' )
+
+        if no_margticks:
+            snglFITScmd.append( '--no-margticks' )
+
+        for ifo in ifos:
+            snglFITScmd += ['-i', ifo]
+
+        for level in mollweide_levels:
+            snglFITScmd += ['--mollweide-levels', level]
+
+        for conf in confs:
+            snglFITScmd += ['--conf', conf]
+
+        ### launch snglFITShtml
+        if opts.verbose:
+            print( "    %s"%(" ".join(snglFITScmd)) )
+
+        proc = sp.Popen(snglFITScmd, stderr=sp.PIPE)
+        _, err = proc.communicate()
+        if proc.returncode:
+            print err
+            raise NotImplementedError('snglFITS returncode=%d\n%s'%(proc.returncode, " ".join(snglFITScmd)))
+
+#------------------------
+
+localnames.sort() ### put them in a nice order
+
+### set up multFITShtml
+multFITScmd = [ 'multFITShtml.py',
+                '--skip-gracedb-upload',              ### REQUIRE THIS! users can upload by hand if they want
+                '--graceDbURL',           graceDbURL,
+                '--output-dir',           outdir,
+                '--output-url',           outurl,
+                '--figtype',              figtype,
+                '--dpi',                  dpi,
+                '--color-map',            color_map,
+                '--time-delay-color',     time_delay_color,
+                '--time-delay-alpha',     time_delay_alpha,
+                '--mollweide-alpha',      mollweide_alpha,
+                '--mollweide-linewidths', mollweide_linewidths,
+                '--continents-color',     continents_color,
+                '--continents-alpha',     continents_alpha,
+                '--line-of-sight-color',  line_of_sight_color,
+                '--zenith-color',         zenith_color,
+                '--marker',               marker,
+                '--marker-color',         marker_color,
+                '--marker-alpha',         marker_alpha,
+                '--marker-size',          marker_size,
+                '--marker-edgewidth',     marker_edgewidth,
+                '--dT-Nsamp',             dT_Nsamp,
+                '--dT-nside',             dT_nside,
+                '--dT-xlim-dB',           dT_xlim_dB,
+                '--base',                 base,
+              ]
+
+if tag:
+    multFITScmd += ['--tag', tag]
+
+if opts.verbose:
+    multFITScmd.append( '--verbose' )
+
+if transparent:
+    multFITScmd.append( '--transparent' )
+
+if no_margticks:
+    multFITScmd.append( '--no-margticks' )
+
+for ifo in ifos:
+    multFITScmd += ['-i', ifo]
+
+for level in mollweide_levels:
+    multFITScmd += ['--mollweide-levels', level]
+
+for conf in confs:
+    multFITScmd += ['--conf', conf]
+
+for area in areas:
+    multFITScmd += ['--area', area]
+
+### we don't need to glob because we know we've downloaded all these already
+multFITScmd += localnames
+
+### launch multFITShtml
+if opts.verbose:
+    print( "    %s"%(" ".join(multFITScmd)) )
+
+proc = sp.Popen(multFITScmd, stderr=sp.PIPE)
+_, err = proc.communicate()
+if proc.returncode:
+    print err
