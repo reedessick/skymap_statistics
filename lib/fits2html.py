@@ -756,6 +756,7 @@ class snglFITS(object):
 
         ### add navbar
         div1 = body.nav(klass='navbar navar-inverse navebar-fixed-top').div(klass='container').div(klass='navbar-header') ### first div, has links to sections
+        div1.a('comparison', klass='navbar-brand', href=os.path.join(self.output_url, "%s-skymapComparison%s.html"%(self.graceid if self.graceid!=None else 'multFITS', self.tag)))
         div1.a(self.label, klass='navbar-brand')
 
         div1 = body.nav(klass='navbar navar-inverse navebar-fixed-top').div(klass='container').div(klass='navbar-header') ### second div, contains links to sections
