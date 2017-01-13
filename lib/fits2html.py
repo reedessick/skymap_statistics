@@ -731,7 +731,7 @@ class snglFITS(object):
 
         ### set up header for bootstrap
         head.meta(charset='utf-8')
-        head.meta(contents='IE=edge')._attrs.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
+        head.meta(content='IE=edge')._attrs.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
         head.meta(name="viewport", content="width=device-width, initial-scale=1")
 
         ### set up header for this specific template
@@ -768,8 +768,8 @@ class snglFITS(object):
         ### top level summary
         if hasattr(self, 'nside'): ### we must have called self.readFITS(), make_json, make_cumulative_json
             sections.hr
-            div = sections.div(id='summary', klass='container')
-            div.h1('Summary', id='summary')
+            div = sections.div(id='summary-div', klass='container')
+            div.h1('Summary', id='summary-h1')
             div1.a('Summary', klass='navbar-brand', href='#summary') ### add to top-level navigation bar
 
             row = div.div(klass='row') ### row for fitsname, nside, entropy, and information
@@ -791,7 +791,7 @@ class snglFITS(object):
             ### row for probability lookup
             row = div.div(klass='row')
  
-            row.div(id='prob lookup', klass='col-md-3').p().b().raw_text('&alpha;, &delta; form goes here!') ### this needs to become a field users can fill in
+            row.div(id='probLookup', klass='col-md-3').p().b().raw_text('&alpha;, &delta; form goes here!') ### this needs to become a field users can fill in
             row.div(id='probPerDeg2', klass='col-md-2').p().raw_text('probability/deg<sup>2</sup>') ### this should reference self.jsPost
             row.div(id='cumProb', klass='col-md-2').p('cumulative probability') ### this should reference self.jsCPost
       
@@ -799,8 +799,8 @@ class snglFITS(object):
                 row = div.div(klass='row')
 
                 row.div(klass='col-md-2').a('FITS file representing expected relative distances across the sky', href=self.distanceFITS['fits'])
-                row.div(klass='col-md-2').img(src=self.distanceFITS['C'])                
-                row.div(klass='col-md-2').img(src=self.distanceFITS['E'])              
+                row.div(klass='col-md-2').img(src=self.distanceFITS['C'], alt="relative distances in Equatorial coordinates")               
+                row.div(klass='col-md-2').img(src=self.distanceFITS['E'], alt="relative distances in Geographic coordinates")
 
             ### add human readable summary
             humanReadable = div.p()
@@ -817,8 +817,8 @@ class snglFITS(object):
         ### add mollweide plots
         if hasattr(self, 'mollweide'): ### we must have called make_mollweide
             sections.hr
-            div = sections.div(id='mollweide', klass='container')
-            div.h1('Mollweide Projections', id='mollweide')
+            div = sections.div(id='mollweide-div', klass='container')
+            div.h1('Mollweide Projections', id='mollweide-h1')
             div1.a('Mollweide Projections', klass='navbar-brand', href='#mollweide') ### add to top-level navigation bar
 
             ### iterate over coordinates
@@ -827,17 +827,17 @@ class snglFITS(object):
                 div.h2(label+' coordinates', id="mollweide"+label)
 
                 row = div.div(klass='row')
-                row.div(klass='col-md-6').img(src=self.mollweide[coord], width=width)
-                row.div(klass='col-md-6').img(src=self.mollweide[coord+' cnt'], width=width)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord], width=width, alt="mollweide projection in %s coordinates"%coord)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' cnt'], width=width, alt="mollweide projection with contours in %s coordinates"%coord)
 
                 row = div.div(klass='row')
-                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ann'], width=width)
-                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ant'], width=width)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ann'], width=width, alt="mollweide projection with time-delay in %s coordinates"%coord)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ant'], width=width, alt="mollweide projection with antenna patterns in %s coordinates"%coord)
 
         ### add confidence region plots
         if hasattr(self, 'CR'): ### must have called make_confidence_regions
             sections.hr
-            div = sections.div(id='confidence regions', klass='container')
+            div = sections.div(id='confidenceRegions', klass='container')
             div.h1('Confidence Regions', id='confidence')
             div1.a('Confidence Regions', klass='navbar-brand', href='#confidence') ### add to top-level navigation bar
 
@@ -846,9 +846,9 @@ class snglFITS(object):
             ### put in the figures
             width = '550' ### FIXME: hard coding width isn't great...
             col = row.div(klass='col-md-6')
-            col.img(src=self.CR['size'], width=width) 
-            col.img(src=self.CR['dTheta'], width=width) 
-            col.img(src=self.CR['modes'], width=width) 
+            col.img(src=self.CR['size'], width=width, alt="size of confidence regions") 
+            col.img(src=self.CR['dTheta'], width=width, alt="maximum angular separation within confidence regions") 
+            col.img(src=self.CR['modes'], width=width, alt="number of modes within confidence regions") 
 
             ### put in the statistics
 
@@ -871,7 +871,7 @@ class snglFITS(object):
         ### add antenna patterns stuff
         if hasattr(self, 'ant'): ### must have called make_antenna_patterns
             sections.hr
-            div = sections.div(id='antenna patterns', klass='container')
+            div = sections.div(id='antennaPatterns', klass='container')
             div.h1('Antenna Patterns', id='antenna')
             div1.a('Antenna Patterns', klass='navbar-brand', href='#antenna') ### add to top-level navigation bar
 
@@ -889,7 +889,7 @@ class snglFITS(object):
         ### add line-of-sight sanity checks and dT marginals
         if hasattr(self, 'dT') and hasattr(self, 'los'): ### must have called make_los and make_dT
             sections.hr
-            div = sections.div(id='line of sight', klass='container')
+            div = sections.div(id='lineOfSight', klass='container')
             div.h1('Time Delay Marginals and Line-of-Sight Frame', id='timeDelay')
             div1.a('Time Delay', klass='navbar-brand', href='#timeDelay') ### add to top-level navigation bar
 
@@ -910,16 +910,16 @@ class snglFITS(object):
                 ### second col contains time-delay marginals
                 col = row.div(klass='col-md-8')
                 width = '700' ### FIXME: hard coding width isn't great...
-#               col.img(src=self.dT[ifos]['fig'], width=width)
-                col.img(src=self.dT[ifos]['ann fig'], width=width)
+#               col.img(src=self.dT[ifos]['fig'], width=width, alt="time-delay marginal between %s and %s"%(ifo1, ifo2))
+                col.img(src=self.dT[ifos]['ann fig'], width=width, alt="time-delay marginal between %s and %s with MAP annotated from full skymap"%(ifo1, ifo2))
                 width = '900' ### FIXME: hard coding width isn't great...
-                col.img(src=self.los[ifos]['fig'], width=width)
+                col.img(src=self.los[ifos]['fig'], width=width, alt="projection in line-of-sight frame defined by %s and %s"%(ifo1, ifo2))
 
         ### add postviz
         if hasattr(self, 'postviz'): ### must have called make_postviz
             sections.hr
-            div = sections.div(id='postviz', klass='container')
-            div.h1('Interactive Posterior Visualization', id='postviz')
+            div = sections.div(id='postviz-div', klass='container')
+            div.h1('Interactive Posterior Visualization', id='postviz-h1')
             div1.a('Postviz', klass='navbar-brand', href='#postviz') ### add to top-level navigation bar
 
             raise NotImplementedError('currently do not support postviz!')
@@ -1775,7 +1775,7 @@ class multFITS(object):
 
         ### set up header for bootstrap
         head.meta(charset='utf-8')
-        head.meta(contents='IE=edge')._attrs.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
+        head.meta(content='IE=edge')._attrs.update({'http-equiv':"X-UA-Compatible"}) ### forced into modifying _attr by "-" in attribute name
         head.meta(name="viewport", content="width=device-width, initial-scale=1")
 
         ### set up header for this specific template
@@ -1812,8 +1812,8 @@ class multFITS(object):
         ### top level summary
         if hasattr(self, 'fitsdata'): ### we must have called self.readFITS(), make_json, make_cumulative_json
             sections.hr
-            div = sections.div(id='summary', klass='container')
-            div.h1('Summary', id='summary')
+            div = sections.div(id='summary-div', klass='container')
+            div.h1('Summary', id='summary-h1')
             div1.a('Summary', klass='navbar-brand', href='#summary') ### add to top-level navigation bar
 
             for fitsname in self.fitsnames:
@@ -1827,8 +1827,8 @@ class multFITS(object):
         ### add mollweide plots
         if hasattr(self, 'mollweide'): ### we must have called make_mollweide
             sections.hr
-            div = sections.div(id='mollweide', klass='container')
-            div.h1('Mollweide Projections', id='mollweide')
+            div = sections.div(id='mollweide-div', klass='container')
+            div.h1('Mollweide Projections', id='mollweide-h1')
             div1.a('Mollweide Projections', klass='navbar-brand', href='#mollweide') ### add to top-level navigation bar
 
             ### iterate over coordinates
@@ -1837,13 +1837,13 @@ class multFITS(object):
                 div.h2(label+' coordinates', id="mollweide"+label)
 
                 row = div.div(klass='row')
-                row.div(klass='col-md-6').img(src=self.mollweide[coord], width=width)
-                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ann'], width=width)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord], width=width, alt="mollweide projection in %s coordinates"%coord)
+                row.div(klass='col-md-6').img(src=self.mollweide[coord+' ann'], width=width, alt="mollweide projection with time-delays in %s coordinates"%coord)
 
         ### add confidence region plots
         if hasattr(self, 'CR'): ### must have called make_confidence_regions
             sections.hr
-            div = sections.div(id='confidence regions', klass='container')
+            div = sections.div(id='confidenceRegions', klass='container')
             div.h1('Confidence Regions', id='confidence')
             div1.a('Confidence Regions', klass='navbar-brand', href='#confidence') ### add to top-level navigation bar
 
@@ -1852,14 +1852,14 @@ class multFITS(object):
             ### put in the figures
             width = '550' ### FIXME: hard coding width isn't great...
             col = row.div(klass='col-md-6')
-            col.img(src=self.CR['size'], width=width)
-            col.img(src=self.CR['dTheta'], width=width)
-            col.img(src=self.CR['modes'], width=width)
+            col.img(src=self.CR['size'], width=width, alt="size of confidence regions")
+            col.img(src=self.CR['dTheta'], width=width, alt="maximum angular separation within confidence regions")
+            col.img(src=self.CR['modes'], width=width, alt="number of modes within confidence regions")
 
         ### add line-of-sight sanity checks and dT marginals
         if hasattr(self, 'dT') and hasattr(self, 'los'): ### must have called make_los and make_dT
             sections.hr
-            div = sections.div(id='line of sight', klass='container')
+            div = sections.div(id='lineOfSight', klass='container')
             div.h1('Time Delay Marginals and Line-of-Sight Frame', id='timeDelay')
             div1.a('Time Delay', klass='navbar-brand', href='#timeDelay') ### add to top-level navigation bar
 
@@ -1878,15 +1878,15 @@ class multFITS(object):
                 ### second col contains time-delay marginals
                 col = row.div(klass='col-md-8')
                 width = '700' ### FIXME: hard coding width isn't great...
-#               col.img(src=self.dT[ifos]['fig'], width=width)
-                col.img(src=self.dT[ifos]['ann fig'], width=width)
+#               col.img(src=self.dT[ifos]['fig'], width=width, alt="time-delay marginals between %s and %s"%(ifo1, ifo2))
+                col.img(src=self.dT[ifos]['ann fig'], width=width, alt="time-delay marginals between %s and %s with MAP annoated from full skymap"%(ifo1, ifo2))
                 width = '900' ### FIXME: hard coding width isn't great...
-                col.img(src=self.los[ifos], width=width)
+                col.img(src=self.los[ifos], width=width, alt="projection in line-of-sight frame defined by %s and %s"%(ifo1, ifo2))
 
         ### add comparison statistics
         if hasattr(self, 'comp'): ### must have called make_comparison
             sections.hr
-            div = sections.div(id='comparison statistics', klass='container')
+            div = sections.div(id='comparisonStatistics', klass='container')
             div.h1('Comparison Statistics', id='comparison')
             div1.a('Comparison Statistics', klass='navbar-brand', href='#comparison')
 
@@ -1915,10 +1915,10 @@ class multFITS(object):
 
             col = row.div(klass='col-md-8')
             width = '550' ### FIXME: hard coding width isn't great...
-            col.img(src=self.comp['cri'], width=width)
-            col.img(src=self.comp['cru'], width=width)
-            col.img(src=self.comp['crr'], width=width)
-            col.img(src=self.comp['crc'], width=width)
+            col.img(src=self.comp['cri'], width=width, alt="intersection of confidence regions")
+            col.img(src=self.comp['cru'], width=width, alt="union of confidence regions")
+            col.img(src=self.comp['crr'], width=width, alt="ratio of intersection to union of confidence regions")
+            col.img(src=self.comp['crc'], width=width, alt="contained probability for confidence regions")
            
             ### comparison statistics based on areas of fixed size
             row = div.div(klass='row')
@@ -1926,10 +1926,10 @@ class multFITS(object):
 
             col = row.div(klass='col-md-8')
             width = '550' ### FIXME: hard coding width isn't great...
-            col.img(src=self.comp['ari'], width=width)
-            col.img(src=self.comp['aru'], width=width)
-            col.img(src=self.comp['arr'], width=width)
-            col.img(src=self.comp['arc'], width=width)
+            col.img(src=self.comp['ari'], width=width, alt="intersection of areas")
+            col.img(src=self.comp['aru'], width=width, alt="union of areas")
+            col.img(src=self.comp['arr'], width=width, alt="ratio of intersection to union of areas")
+            col.img(src=self.comp['arc'], width=width, alt="contained probability for areas")
 
         #----------------
         ### print document and return
