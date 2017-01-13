@@ -856,17 +856,17 @@ class snglFITS(object):
 
             col = row.div(klass='col-md-6') 
             row = col.div(klass='row')
-            row.div(klass='col-md-2').p('confidence', align='center')
-            row.div(klass='col-md-2').p(align='right').raw_text('size [deg<sup>2</sup>]')
-            row.div(klass='col-md-3').p(align='right').raw_text('max{&Delta;&theta;} [&deg;]')
-            row.div(klass='col-md-4').p('No. disjoint regions', align='center')
+            row.div(klass='col-md-2').p('confidence', style='text-align:center')
+            row.div(klass='col-md-2').p(style='text-align:right').raw_text('size [deg<sup>2</sup>]')
+            row.div(klass='col-md-3').p(style='text-align:right').raw_text('max{&Delta;&theta;} [&deg;]')
+            row.div(klass='col-md-4').p('No. disjoint regions', style='text-align:center')
 
             for conf, dTheta, modes in zip(self.conf, self.maxDtheta, self.modes):
                 row = col.div(klass='row')
-                row.div(klass='col-md-2').p('%.1f%s'%(100*conf, "%"), align='right')
-                row.div(klass='col-md-2').p('%.3f'%np.sum(modes), align='right')
-                row.div(klass='col-md-3').p('%.3f'%dTheta, align='right')
-                row.div(klass='col-md-3').p('%d'%len(modes), align='right')
+                row.div(klass='col-md-2').p('%.1f%s'%(100*conf, "%"), style='text-align:right')
+                row.div(klass='col-md-2').p('%.3f'%np.sum(modes), style='text-align:right')
+                row.div(klass='col-md-3').p('%.3f'%dTheta, style='text-align:right')
+                row.div(klass='col-md-3').p('%d'%len(modes), style='text-align:right')
 
         ### add antenna patterns stuff
         if hasattr(self, 'ant'): ### must have called make_antenna_patterns
@@ -876,15 +876,15 @@ class snglFITS(object):
             div1.a('Antenna Patterns', klass='navbar-brand', href='#antenna') ### add to top-level navigation bar
 
             row = div.div(klass='row')
-            row.div(klass='col-md-1').p('IFO', align='center')
-            row.div(klass='col-md-2').p(align='center').raw_text('(F<sub>+</sub><sup>2</sup> + F<sub>x</sub><sup>2</sup>)<sup>1/2</sup> @ MAP')
-            row.div(klass='col-md-2').p(align='center').raw_text('mean{F<sub>+</sub><sup>2</sup> + F<sub>x</sub><sup>2</sup>}<sup>1/2</sup>')
+            row.div(klass='col-md-1').p('IFO', style='text-align:center')
+            row.div(klass='col-md-2').p(style='text-align:center').raw_text('(F<sub>+</sub><sup>2</sup> + F<sub>x</sub><sup>2</sup>)<sup>1/2</sup> @ MAP')
+            row.div(klass='col-md-2').p(style='text-align:center').raw_text('mean{F<sub>+</sub><sup>2</sup> + F<sub>x</sub><sup>2</sup>}<sup>1/2</sup>')
 
             for ifo in self.ifos:
                 row = div.div(klass='row')
-                row.div(klass='col-md-1').p(ifo, align='center')
-                row.div(klass='col-md-2').p('%.3f'%(self.ant[ifo]['map']**0.5), align='center')
-                row.div(klass='col-md-2').p('%.3f'%(self.ant[ifo]['ave']**0.5), align='center')
+                row.div(klass='col-md-1').p(ifo, style='text-align:center')
+                row.div(klass='col-md-2').p('%.3f'%(self.ant[ifo]['map']**0.5), style='text-align:center')
+                row.div(klass='col-md-2').p('%.3f'%(self.ant[ifo]['ave']**0.5), style='text-align:center')
 
         ### add line-of-sight sanity checks and dT marginals
         if hasattr(self, 'dT') and hasattr(self, 'los'): ### must have called make_los and make_dT
@@ -900,12 +900,12 @@ class snglFITS(object):
                 ifos = "%s%s"%(ifo1, ifo2)
                 ### first col declares ifos and gives statistics
                 col = row.div(klass='col-md-2')#.div(klass='row').div(klass='col-md-3')
-                col.p('H(dT) = %.3f'%self.dT[ifos]['H'], align='center')
-                col.p('I(dT) = %.3f'%self.dT[ifos]['I'], align='center')
-                col.p(align='center').raw_text('&theta;<sub>MAP</sub> = %.2f&deg;'%(self.dT[ifos]['thetaMAP']*180/np.pi))
-                col.p('MI = %.3f'%self.los[ifos]['MI'], align='center')
-                col.p(align='center').raw_text('H<sub>jnt</sub> = %.3f'%self.los[ifos]['Hj'])
-                col.p('MID = %.5f'%(self.los[ifos]['MI']/self.los[ifos]['Hj']), align='center')
+                col.p('H(dT) = %.3f'%self.dT[ifos]['H'], style='text-align:center')
+                col.p('I(dT) = %.3f'%self.dT[ifos]['I'], style='text-align:center')
+                col.p(style='text-align:center').raw_text('&theta;<sub>MAP</sub> = %.2f&deg;'%(self.dT[ifos]['thetaMAP']*180/np.pi))
+                col.p('MI = %.3f'%self.los[ifos]['MI'], style='text-align:center')
+                col.p(style='text-align:center').raw_text('H<sub>jnt</sub> = %.3f'%self.los[ifos]['Hj'])
+                col.p('MID = %.5f'%(self.los[ifos]['MI']/self.los[ifos]['Hj']), style='text-align:center')
 
                 ### second col contains time-delay marginals
                 col = row.div(klass='col-md-8')
