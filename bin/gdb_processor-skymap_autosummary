@@ -36,7 +36,16 @@ parser.add_argument('--bin', default='/bin', required=False,
 parser.add_argument('--out', default='/home/gracedb.processor/working/log/', required=False,
     help='the path to output directory for condor log files.' )
 
+parser.add_argument('--accounting_group', default='ligo.prod.o2.cbc.grb.raven', required=False,
+    help="the Condor accounting_group for listener job")
+
+parser.add_argument('--accounting_group_user', default=None, required=False,
+    help='the Condor accounting_group_user for listener job. If not supplied, defaults to os.getlogin()')
+
 args = parser.parse_args()
+
+if args.accounting_group_user==None:
+    args.accounting_group_user = os.getlogin()
 
 #-------------------------------------------------
 
@@ -50,8 +59,8 @@ executable            = %(bin)s/lvalert_listen
 getenv                = True
 notification          = never
 environment           = DISPLAY=localhost:10.0
-accounting_group      = ligo.prod.o1.cbc.grb.raven
-accounting_group_user = reed.essick
+accounting_group      = %(group)s
+accounting_group_user = %(username)s
 
 arguments = --username %(username)s --resource %(resource)s --config-file %(config)s
 
@@ -66,6 +75,8 @@ queue 1
      'username' : args.username,
      'bin'      : args.bin,
      'out'      : args.out,
+     'group'    : args.accoutning_group,
+     'username' : args.accounting_group_user,
     }
 
     sub = 'lvalertlisten_skymap_autosummary.sub'
