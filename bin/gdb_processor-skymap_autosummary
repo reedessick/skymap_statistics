@@ -60,7 +60,7 @@ getenv                = True
 notification          = never
 environment           = DISPLAY=localhost:10.0
 accounting_group      = %(group)s
-accounting_group_user = %(username)s
+accounting_group_user = %(group_username)s
 
 arguments = --username %(username)s --resource %(resource)s --config-file %(config)s
 
@@ -76,7 +76,7 @@ queue 1
      'bin'      : args.bin,
      'out'      : args.out,
      'group'    : args.accoutning_group,
-     'username' : args.accounting_group_user,
+     'group_username' : args.accounting_group_user,
     }
 
     sub = 'lvalertlisten_skymap_autosummary.sub'
