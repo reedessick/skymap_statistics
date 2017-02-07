@@ -75,7 +75,7 @@ queue 1
      'username' : args.username,
      'bin'      : args.bin,
      'out'      : args.out,
-     'group'    : args.accoutning_group,
+     'group'    : args.accounting_group,
      'group_username' : args.accounting_group_user,
     }
 
