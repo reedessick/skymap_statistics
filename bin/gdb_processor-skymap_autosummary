@@ -42,6 +42,9 @@ parser.add_argument('--accounting_group', default='ligo.prod.o2.cbc.grb.raven', 
 parser.add_argument('--accounting_group_user', default=None, required=False,
     help='the Condor accounting_group_user for listener job. If not supplied, defaults to os.getlogin()')
 
+parser.add_argument('--dont-wait', default=False, action='store_true', required=False,
+    help="whether the listener should wait")
+
 args = parser.parse_args()
 
 if args.accounting_group_user==None:
@@ -62,7 +65,7 @@ environment           = DISPLAY=localhost:10.0
 accounting_group      = %(group)s
 accounting_group_user = %(group_username)s
 
-arguments = --username %(username)s --resource %(resource)s --config-file %(config)s
+arguments = --username %(username)s --resource %(resource)s --config-file %(config)s %(dont_wait)s
 
 log                 = %(out)s/log/lvalertlisten_skymapAutosummary.$(Cluster).log 
 output              = %(out)s/log/lvalertlisten_skymapAutosummary.$(Cluster).out
@@ -77,6 +80,7 @@ queue 1
      'out'      : args.out,
      'group'    : args.accounting_group,
      'group_username' : args.accounting_group_user,
+     'dont_wait' : '--dont-wait' if args.dont_wait else '',
     }
 
     sub = 'lvalertlisten_skymap_autosummary.sub'
