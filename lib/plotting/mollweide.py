@@ -13,7 +13,7 @@ try:
         from lalinference import plot as lalinf_plot
 except:
         raise StandardError("Could not import lalinference.plot")
-#plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
+plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
 
 import numpy as np
 import healpy as hp
