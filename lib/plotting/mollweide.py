@@ -13,7 +13,7 @@ try:
         from lalinference import plot as lalinf_plot
 except:
         raise StandardError("Could not import lalinference.plot")
-plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
+#plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
 
 import numpy as np
 import healpy as hp
@@ -43,7 +43,7 @@ def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None ):
 
     return fig, ax
 
-def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=False, continents_color='k', continents_alpha=1.0 ):
+def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=False, continents_color='k', continents_alpha=1.0 ):
     '''
     annotates the mollweide projection
     '''
@@ -77,7 +77,7 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
 
     ### plot time-delay loci
     for y, x in time_delay:
-        ax.plot( x, y, color=time_delay_color, alpha=time_delay_alpha )
+        ax.plot( x, y, color=time_delay_color, alpha=time_delay_alpha, linestyle=time_delay_linestyle )
 
     ### plot general markers
     for dec, ra in marker_Dec_RA:

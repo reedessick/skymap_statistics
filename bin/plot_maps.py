@@ -60,6 +60,7 @@ parser.add_option("", "--time-delay-Dec-RA", nargs=2, default=[], action="append
 parser.add_option("", "--time-delay-degrees", default=False, action="store_true", help="interpret --time-delay-Dec-RA as degrees")
 parser.add_option("", "--time-delay-color", default='k', type='string', help='the line color for time-delay lines')
 parser.add_option("", "--time-delay-alpha", default=1.0, type='float', help='the alpha saturation for time-delay lines')
+parser.add_option("", "--time-delay-linestyle", default='solid', type='str', help='the linestyle for time-delay lines')
 
 parser.add_option("", "--marker-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in adians and this option requires two arguments (--marker-Dec-RA ${dec} ${ra}). If suppplied, we label this point with a circles (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi.")
 parser.add_option("", "--marker-degrees", default=False, action="store_true", help="interpret --marker-Dec-RA as degrees")
@@ -145,6 +146,7 @@ if opts.stack_posteriors:
                  time_delay          = time_delay,
                  time_delay_color    = opts.time_delay_color,
                  time_delay_alpha    = opts.time_delay_alpha,
+                 time_delay_linestyle = opts.time_delay_linestyle,
                  marker_Dec_RA       = marker_Dec_RA,
                  marker              = opts.marker,
                  marker_color        = opts.marker_color,
@@ -181,6 +183,7 @@ for label in labels:
                  time_delay          = time_delay,
                  time_delay_color    = opts.time_delay_color,
                  time_delay_alpha    = opts.time_delay_alpha,
+                 time_delay_linestyle = opts.time_delay_linestyle,
                  marker_Dec_RA       = marker_Dec_RA,
                  marker              = opts.marker,
                  marker_color        = opts.marker_color,
