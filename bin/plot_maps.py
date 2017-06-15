@@ -78,6 +78,7 @@ parser.add_option("", "--continents-color", default='k', type='string', help='th
 parser.add_option("", "--continents-alpha", default=0.5, type='float', help='the alpha value for the contintents')
 
 parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
+parser.add_option("", "--no-ticklabels", default=False, action="store_true", help="remove the x and y ticklabels from mollweide plots")
 
 opts, args = parser.parse_args()
 
@@ -203,6 +204,10 @@ for label in labels:
     if opts.outline_labels:
         lalinf_plot.outline_text(ax)
 
+    if opts.no_ticklabels:
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
+
     ### save the individual plot
     for figtype in opts.figtype:
         figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
@@ -234,6 +239,10 @@ if opts.stack_posteriors:
 
     if opts.outline_labels:
         lalinf_plot.outline_text(stack_ax)
+
+    if opts.no_ticklabels:
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
 
     for figtype in opts.figtype:
         figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)
