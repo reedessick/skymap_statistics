@@ -89,9 +89,17 @@ parser.add_option("", "--marker-edgewidth", default=1, type='float', help='the e
 parser.add_option("", "--gps", default=None, type="float", help="must be specified if --line-of-sight or --zenith is used")
 parser.add_option("", "--coord", default="C", type="string", help="coordinate system of the maps. Default is celestial (C), but we also know Earth-Fixed (E)")
 
-parser.add_option("", "--continents", default=False, action="store_true", help="draw the continents on the map. Only used if --coord=E and --projection=mollweide")
+parser.add_option("", "--continents", default=False, action="store_true", help="draw the continents on the map")
 parser.add_option("", "--continents-color", default='k', type='string', help='the color used to draw the continents')
 parser.add_option("", "--continents-alpha", default=0.5, type='float', help='the alpha value for the contintents')
+
+parser.add_option("", "--constellations", default=False, action="store_true", help="draw the constellations on the map")
+parser.add_option("", "--constellations-color", default='k', type='string', help='the color used to draw the constellations')
+parser.add_option("", "--constellations-alpha", default=0.5, type='float', help='the alpha value for the contellations')
+
+parser.add_option("", "--stars", default=False, action="store_true", help="draw the stars on the map")
+parser.add_option("", "--stars-color", default='k', type='string', help='the color used to draw the stars')
+parser.add_option("", "--stars-alpha", default=0.5, type='float', help='the alpha value for the stars')
 
 parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
 parser.add_option("", "--no-ticklabels", default=False, action="store_true", help="remove the x and y ticklabels from mollweide plots")
@@ -117,6 +125,9 @@ labels = sorted(maps.keys())
 if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA) or opts.continents or opts.arms) and (opts.coord!="E") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
 
+if (opts.constellations or opts.stars) and (opts.coord!="C") and (opts.gps==None):
+    opts.gps = float(raw_input("gps = "))
+
 if opts.stack_posteriors and (not opts.stack_posteriors_levels):
     opts.stack_posteriors_levels = [0.1, 0.5, 0.9]
 
@@ -139,9 +150,23 @@ marker_Dec_RA = mw.gen_marker_Dec_RA( opts.marker_Dec_RA, coord=opts.coord, gps=
 ### figure out data for continents
 if opts.continents:
     opts.continents = mw.gen_continents(coord=opts.coord, gps=opts.gps)
+else:
+    opts.continents = []
 
 ### figure out arms
 arms = mw.gen_arms(opts.arms, coord=opts.coord, gps=opts.gps, extend=opts.arms_extend)
+
+### constellations
+if opts.constellations:
+    opts.constellations = mw.gen_constellations(coord=opts.coord, gps=opts.gps)
+else:
+    opts.constellations = []
+
+### stars
+if opts.stars:
+    opts.stars = mw.gen_stars(coord=opts.coord, gps=opts.gps)
+else:
+    opts.stars = []
 
 #=============================================
 ### generate plots
@@ -179,6 +204,12 @@ if opts.stack_posteriors:
                  continents          = opts.continents,
                  continents_color    = opts.continents_color,
                  continents_alpha    = opts.continents_alpha,
+                 constellations       = opts.constellations,
+                 constellations_color = opts.constellations_color,
+                 constellations_alpha = opts.constellations_alpha,
+                 stars               = opts.stars,
+                 stars_color         = opts.stars_color,
+                 stars_alpha         = opts.stars_alpha,
                  arms                = arms,
                  arms_color          = opts.arms_color,
                  arms_linewidth      = opts.arms_linewidth,
@@ -219,6 +250,12 @@ for label in labels:
                  continents          = opts.continents,
                  continents_color    = opts.continents_color,
                  continents_alpha    = opts.continents_alpha,
+                 constellations       = opts.constellations,
+                 constellations_color = opts.constellations_color,
+                 constellations_alpha = opts.constellations_alpha,
+                 stars               = opts.stars,
+                 stars_color         = opts.stars_color,
+                 stars_alpha         = opts.stars_alpha,
                  arms                = arms,
                  arms_color          = opts.arms_color,
                  arms_linewidth      = opts.arms_linewidth,

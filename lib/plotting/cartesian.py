@@ -287,7 +287,7 @@ def set_labels( ax, coord='C' ):
     else:
         raise ValueError, 'coord=%s not understood'%coord
 
-def annotate( ax, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
+def annotate( ax, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
     '''
     annotate cartesian projection
     '''
@@ -334,6 +334,19 @@ def annotate( ax, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_c
         ax.plot( x, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
         ax.plot( x+twopi, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
         ax.plot( x-twopi, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
+
+    ### add constellations
+    for shape in constellations:
+        ax.plot( shape[:,0], shape[:,1], color=constellations_color, linewidth=0.5, alpha=constellations_alpha )
+        ax.plot( shape[:,0]+twopi, shape[:,1], color=constellations_color, linewidth=0.5, alpha=constellations_alpha )
+        ax.plot( shape[:,0]-twopi, shape[:,1], color=constellations_color, linewidth=0.5, alpha=constellations_alpha )
+
+    ### add stars
+    for x, y, mag in stars:
+        markersize=max(1, 5-mag) ### FIXME: hard coded...bad?
+        ax.plot(x, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
+        ax.plot(x+twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
+        ax.plot(x-twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
 
 def annotateDT( ax, SRCs=[], IFOs='HL', color='k', alpha=1.0, coord='C', gps=None, degrees=False, twiny=True ):
     '''

@@ -33,7 +33,7 @@ pi2 = 0.5*np.pi
 
 ### actual plotting and figure manipulation
 
-def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None ):
+def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None, grid=True ):
     '''
     generates figure and axis in the set-up we prefer
     '''
@@ -42,11 +42,11 @@ def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None ):
         ax = fig.add_axes(axpos, projection=projection)
     else:
         ax = fig.add_axes(axpos)
-    ax.grid( True )
+    ax.grid( grid )
 
     return fig, ax
 
-def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
+def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
     '''
     annotates the mollweide projection
     '''
@@ -95,13 +95,26 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
 
     ### add continents
     for verts in continents: ### plot repeatedly to account for periodicity
-        ax.plot( verts[:, 0], verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
-        ax.plot( verts[:, 0]+twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
-        ax.plot( verts[:, 0]-twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:,0], verts[:,1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:,0]+twopi, verts[:,1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:,0]-twopi, verts[:,1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
 
     ### add arms
     for x, y in arms:
         ax.plot( x, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
+
+    ### add constellations
+    for shape in constellations:
+        ax.plot( shape[:,0], shape[:,1], color=constellations_color, linewidth=0.5, alpha=constellations_alpha )
+        ax.plot( shape[:,0]+twopi, shape[:,1], color=constellations_color, linewidth=0.5, alpha=constellations_alpha )
+        ax.plot( shape[:,0]-twopi, shape[:,1], color=constellations_color, linewidth=0.5, alpha=constellations_alpha )
+
+    ### add stars
+    for x, y, mag in stars:
+        markersize=max(1, 5-mag) ### FIXME: hard coded...bad?
+        ax.plot(x, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
+        ax.plot(x+twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
+        ax.plot(x-twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
 
 def heatmap( post, ax, color_map='OrRd' ):
     '''
@@ -264,3 +277,40 @@ def gen_continents( coord='C', gps=None ):
             vert[:,0] = triangulate.rotateRAE2C(vert[:,0], gps, noWRAP=True)
 
     return verts
+
+def gen_constellations( coord='C', gps=None ):
+    '''
+    extract the constellations from disk and prepare them for plotting
+    '''
+    json_filename = os.path.join(os.path.dirname(__file__), 'constellationsANDstars.json')
+    file_obj = open(json_filename, 'r')
+    constjson = json.load(file_obj)
+    file_obj.close()
+
+    shapes = []
+    for value in constjson['constellations'].values():
+        for shape in value:
+            shapes.append( np.array([np.array(_) for _ in shape]) )
+    shapes = np.array(shapes)
+
+    if coord=='E': ### rotate into E coordinates
+        for shape in shapes:
+            shape[:,0] = triangulate.rotateRAC2E(shape[:,0], gps, noWRAP=True)
+
+    return shapes
+
+def gen_stars( coord='C', gps=None ):
+    '''
+    extract the constellations from disk and prepare them for plotting
+    '''
+    json_filename = os.path.join(os.path.dirname(__file__), 'constellationsANDstars.json')
+    file_obj = open(json_filename, 'r')
+    constjson = json.load(file_obj)
+    file_obj.close()
+
+    stars = np.array(constjson['stars'])
+
+    if coord=='E': ### rotate into E coordinates
+        stars[:,0] = triangulate.rotateRAC2E(stars[:,0], gps, noWRAP=True)
+
+    return stars
