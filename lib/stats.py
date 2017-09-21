@@ -380,7 +380,6 @@ def symmetric_KLdivergence(posterior1, posterior2, base=2.0):
 		sum log(p1/p2)*(p1 - p2)
 	"""
 	return KLdivergence(posterior1, posterior2, base=base) + KLdivergence(posterior2, posterior2, base=base)
-#	return np.sum( np.log(posterior1/posterior2)*(posterior1 - posterior2) )/np.log(base)
 
 ###
 def symmetric_KLdivergence_walk( posterior1, posterior2, base=2.0, nside=False, nest=False ):
@@ -457,3 +456,155 @@ def spotcheck(posterior1, posterior2, conf):
 	if isinstance(conf, (int,float)):
 		conf = np.array([conf])
 	return [np.sum(posterior2[pix]) for pix in credible_region(posterior1, conf) ], [np.sum(posterior1[pix]) for pix in credible_region(posterior2, conf) ]
+
+###
+def __fits_to_table(posterior):
+	"""
+	helper function that maps a FITS file into the smallest possible table
+	for use in twoPt functions
+	"""
+	npix = len(posterior)
+	nside = hp.npix2nside(npix)
+
+        ind = np.arange(npix)[posterior>0] ### only take the pixels that will contribute to the correlation function
+        t, p = hp.pix2ang(nside, ind)
+
+	return np.transpose([t, p, posterior[ind]])
+
+###
+def twoPt_fitsfits(posterior1, posterior2, Nsamp=101):
+	"""
+	estimates the 2-pt correlation function between the 2 posteriors. 
+	This function assumes both posteriors are HEALPix all-sky maps
+
+	returns theta, 2ptCorr(theta) as np.arrays with theta in radians
+	"""
+	### extract parameters from the maps to set up iteration
+	npix1 = len(posterior1)
+	nside1 = hp.npix2nside(npix1)
+	npix2 = len(posterior2)
+	nside2 = hp.npix2nside(npix2)
+
+	pixarea1 = hp.nside2pixarea(nside1)
+	pixarea2 = hp.nside2pixarea(nside2)
+
+	kde_bandwidth = (pixarea1+pixarea2) ### variance of KDE Gaussian
+
+        ### delegate!
+        return twoPt_tabletable(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+
+###
+def twoPt_fitsfits_fast(posterior1, posterior2, Nsamp=101):
+        """
+        estimates the 2-pt correlation function between the 2 posteriors. 
+        This function assumes both posteriors are HEALPix all-sky maps
+
+        returns theta, 2ptCorr(theta) as np.arrays with theta in radians
+
+        WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
+	    delegates to twoPt_tabletable_fast
+        """
+        ### extract parameters from the maps to set up iteration
+        npix1 = len(posterior1)
+        nside1 = hp.npix2nside(npix1)
+        npix2 = len(posterior2)
+        nside2 = hp.npix2nside(npix2)
+
+        pixarea1 = hp.nside2pixarea(nside1)
+        pixarea2 = hp.nside2pixarea(nside2)
+
+        kde_bandwidth = (pixarea1+pixarea2)
+
+	### delegate!
+	return twoPt_tabletable_fast(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+
+###
+def twoPt_fitstable(posterior, table, Nsamp=101):
+	"""
+	estimates the 2-pt correlation function between 2 posteriors
+	assumes "posterior" is a HEALPix all-sky map and "table" is a tabular data format
+	table must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
+	"""
+        ### extract parameters from the maps to set up iteration
+        npix = len(posterior)
+        nside = hp.npix2nside(npix)
+
+        kde_bandwidth = hp.nside2pixarea(nside)
+
+        ### delegate!
+        return twoPt_tabletable(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+
+###
+def twoPt_fitstable_fast(posterior, table, Nsamp=101):
+        """
+        estimates the 2-pt correlation function between 2 posteriors
+        assumes "posterior" is a HEALPix all-sky map and "table" is a tabular data format
+        table must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
+
+        WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
+        """
+        ### extract parameters from the maps to set up iteration
+        npix = len(posterior)
+        nside = hp.npix2nside(npix)
+
+        kde_bandwidth = hp.nside2pixarea(nside)
+
+        ### delegate!
+        return twoPt_tabletable_fast(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+
+###
+def twoPt_tabletable(table1, table2, kde_bandwidth=1.0, Nsamp=101):
+	"""
+	estimate the 2-pt correlation function between 2 posteriors
+	assumes both are tabular data formats
+	tables must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
+
+	kde_bandwidth is the vairance used in the Gaussian KDE
+	"""
+        N = (2*np.pi*kde_bandwidth)**-0.5
+        n = 0.5/kde_bandwidth
+
+        ### set up iteration
+        theta = np.linspace(0, np.pi, Nsamp)
+        count = np.zeros_like(theta, dtype=float)
+
+        for t1, p1, post1 in table1:
+                cosT1 = np.cos(t1)
+                sinT1 = np.sin(t1)
+                for t2, p2, post2 in table2:
+                        dTheta = np.arccos(cosT1*np.cos(t2) + sinT1*np.sin(t2)*np.cos(p1-p2))
+                        count += N*np.exp(-n*(dTheta-theta)**2) * post1*post2 ### normalize Gaussian by inner product
+
+        return theta, count
+
+###
+def twoPt_tabletable_fast(table1, table2, kde_bandwidth=1.0, Nsamp=101):
+        """
+        estimate the 2-pt correlation function between 2 posteriors
+        assumes both are tabular data formats
+        tables must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
+
+	kde_bandwidth is the variance used in the Gaussian KDE
+
+        WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
+	"""
+	### set up array indexing
+	t1, p1, posterior1 = table1.transpose()
+	t2, p2, posterior2 = table2.transpose()
+
+	IND1, IND2 = np.meshgrid(np.arange(len(t1)), np.arange(len(t2)))
+	IND1 = IND1.flatten()
+	IND2 = IND2.flatten()
+
+	### compute angular separation between all pairs of points
+        dTheta = np.arccos( cos_dtheta(t1[IND1], p1[IND1], t2[IND2], p2[IND2]) )
+
+	### compute sampling via KDE
+	theta = np.linspace(0, np.pi, Nsamp)
+
+        kernal = (2*np.pi*kde_bandwidth)**-0.5 * np.exp(-0.5*(np.outer(dTheta, np.ones_like(theta)) - np.outer(np.ones_like(dTheta), theta))**2/kde_bandwidth)
+        weights = np.outer(posterior1[IND1]*posterior2[IND2], np.ones_like(theta))
+
+        count = np.sum(kernal * weights, axis=0) ### sum over all pixel pairs
+
+        return theta, count
