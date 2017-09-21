@@ -287,7 +287,7 @@ def set_labels( ax, coord='C' ):
     else:
         raise ValueError, 'coord=%s not understood'%coord
 
-def annotate( ax, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=False, continents_color='k', continents_alpha=1.0):
+def annotate( ax, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
     '''
     annotate cartesian projection
     '''
@@ -324,16 +324,16 @@ def annotate( ax, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_c
                  alpha=marker_alpha )
 
     ### add continents
-    if continents:
-        geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
-        file_obj = open(geojson_filename, 'r')
-        geojson = json.load(file_obj)
-        file_obj.close()
+    for verts in continents: ### plot repeatedly to account for periodicity
+        ax.plot( verts[:, 0], verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:, 0]+twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:, 0]-twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
 
-        for shape in geojson['geometries']:
-            verts = np.deg2rad(shape['coordinates'])
-            ax.plot( verts[:, 0], verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
-            ax.plot( verts[:, 0]+twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha ) ### required to get things to display correctly
+    ### add arms
+    for x, y in arms:
+        ax.plot( x, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
+        ax.plot( x+twopi, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
+        ax.plot( x-twopi, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
 
 def annotateDT( ax, SRCs=[], IFOs='HL', color='k', alpha=1.0, coord='C', gps=None, degrees=False, twiny=True ):
     '''

@@ -41,7 +41,7 @@ def __celest2earth( dec, ra, tgeocent ):
 
 #=================================================
 
-def rotateRAC2C( ra, gps1, gps2 ):
+def rotateRAC2C( ra, gps1, gps2, noWRAP=False ):
     """
     rotates the RA according to the change in gps
 
@@ -50,21 +50,30 @@ def rotateRAC2C( ra, gps1, gps2 ):
     gmst2 = GMST( gps2 )
     gmst1 = GMST( gps1 )
 
-    return (ra - gmst1 + gmst2)%(twopi)
+    if noWRAP:
+        return ra - (gmst1-gmst2)%twopi
+    else:
+        return (ra - gmst1 + gmst2)%(twopi)
 
-def rotateRAC2E( ra, gps ):
+def rotateRAC2E( ra, gps, noWRAP=False ):
     """
     rotates ra -> earth fixed coords
     """
     gmst = GMST( gps )
-    return (ra - gmst)%(twopi)
+    if noWRAP:
+        return ra - gmst%(twopi)
+    else:
+        return (ra - gmst)%(twopi)
 
-def rotateRAE2C( phi, gps ):
+def rotateRAE2C( phi, gps, noWRAP=False ):
     """
     rotates earth fixed coords -> ra
     """
     gmst = GMST( gps )
-    return (phi + gmst)%(twopi)
+    if noWRAP:
+        return phi + gmst%(twopi)
+    else:
+        return (phi + gmst)%(twopi)
 
 def rotateMap( posterior, dphi ):
     """

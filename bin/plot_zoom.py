@@ -65,6 +65,12 @@ parser.add_option("", "--line-of-sight-color", default='k', type='string', help=
 parser.add_option("", "--zenith", default=[], action="append", type="string", help="eg: H")
 parser.add_option("", "--zenith-color", default='k', type='string', help='the text and marker color for zenith annotations')
 
+parser.add_option("", "--arms", default=[], action="append", type='string', help="eg: H")
+parser.add_option("", "--arms-color", default='k', type='string', help='color for arms annotations')
+parser.add_option("", "--arms-linewidth", default=1., type='float', help='linewidth for arms annotations')
+parser.add_option("", "--arms-alpha", default=1., type='float', help='alpha for arms annotations')
+parser.add_option("", "--arms-extend", default=1., type='float', help='multiplicative factor to control arm lengths')
+
 parser.add_option("", "--time-delay", default=[], action="append", type="string", help="eg: HL")
 parser.add_option("", "--time-delay-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in radians and this option requires two arguments (--time-delay-Dec-RA ${dec} ${ra}). If suppplied, we use this point to define time-delays (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi")
 parser.add_option("", "--time-delay-degrees", default=False, action="store_true", help="interpret --time-delay-Dec-RA as degrees")
@@ -108,10 +114,8 @@ for arg in args:
 
 labels = sorted(maps.keys())
 
-if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA)) and (opts.coord!="E") and (opts.gps==None):
+if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA) or opts.continents or opts.arms) and (opts.coord!="E") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
-
-opts.continents =  opts.continents and (opts.coord=="E")
 
 if opts.stack_posteriors and (not opts.stack_posteriors_levels):
     opts.stack_posteriors_levels = [0.1, 0.5, 0.9]
@@ -131,6 +135,13 @@ time_delay = mw.gen_time_delay( opts.time_delay_Dec_RA, opts.time_delay, coord=o
 
 ### figure out points for markers
 marker_Dec_RA = mw.gen_marker_Dec_RA( opts.marker_Dec_RA, coord=opts.coord, gps=opts.gps, degrees=opts.marker_degrees )
+
+### figure out data for continents
+if opts.continents:
+    opts.continents = mw.gen_continents(coord=opts.coord, gps=opts.gps)
+
+### figure out arms
+arms = mw.gen_arms(opts.arms, coord=opts.coord, gps=opts.gps, extend=opts.arms_extend)
 
 #=============================================
 ### generate plots
@@ -168,6 +179,10 @@ if opts.stack_posteriors:
                  continents          = opts.continents,
                  continents_color    = opts.continents_color,
                  continents_alpha    = opts.continents_alpha,
+                 arms                = arms,
+                 arms_color          = opts.arms_color,
+                 arms_linewidth      = opts.arms_linewidth,
+                 arms_alpha          = opts.arms_alpha,
                )
 
 for label in labels:
@@ -204,6 +219,10 @@ for label in labels:
                  continents          = opts.continents,
                  continents_color    = opts.continents_color,
                  continents_alpha    = opts.continents_alpha,
+                 arms                = arms,
+                 arms_color          = opts.arms_color,
+                 arms_linewidth      = opts.arms_linewidth,
+                 arms_alpha          = opts.arms_alpha,
                )
 
     ct.set_lim( ax,

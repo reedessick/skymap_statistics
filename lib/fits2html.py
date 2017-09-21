@@ -301,7 +301,7 @@ class snglFITS(object):
 
             mw.heatmap( post, ax, color_map=self.color_map )
             mw.annotate( ax,
-                         continents       = coord=='E',
+                         continents       = mw.gen_continents(coord='E', gps=self.gps) if coord=='E' else [],
                          continents_color = self.continents_color,
                          continents_alpha = self.continents_alpha,
                        )
@@ -389,7 +389,7 @@ class snglFITS(object):
                         linewidths = self.mollweide_linewidths,
                       )
             mw.annotate( ax,
-                         continents       = coord=='E',
+                         continents       = mw.gen_continents(coord='E', gps=self.gps) if coord=='E' else [],
                          continents_color = self.continents_color,
                          continents_alpha = self.continents_alpha,
                        )
@@ -1138,7 +1138,7 @@ class multFITS(object):
                           )
                 fig.fig.text(0.01, 0.99-0.05*(ind), self.texlabels[fitsname], color=color, ha='left', va='top')
             mw.annotate( ax,
-                         continents       = coord=='E',
+                         continents       = mw.gen_continents(coord='E', gps=self.gps) if coord=='E' else [],
                          continents_color = self.continents_color,
                          continents_alpha = self.continents_alpha,
                        )

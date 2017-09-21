@@ -18,6 +18,8 @@ plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
 import numpy as np
 import healpy as hp
 
+from detector_cache import detectors ### for detector arms
+
 import triangulate
 
 #-------------------------------------------------
@@ -25,6 +27,7 @@ import triangulate
 axpos = [0.03, 0.03, 0.94, 0.94]
 
 twopi = 2*np.pi
+pi2 = 0.5*np.pi
 
 #-------------------------------------------------
 
@@ -43,7 +46,7 @@ def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None ):
 
     return fig, ax
 
-def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=False, continents_color='k', continents_alpha=1.0 ):
+def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
     '''
     annotates the mollweide projection
     '''
@@ -91,15 +94,14 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
                  alpha=marker_alpha )
 
     ### add continents
-    if continents:
-        geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
-        file_obj = open(geojson_filename, 'r')
-        geojson = json.load(file_obj)
-        file_obj.close()
+    for verts in continents: ### plot repeatedly to account for periodicity
+        ax.plot( verts[:, 0], verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:, 0]+twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+        ax.plot( verts[:, 0]-twopi, verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
 
-        for shape in geojson['geometries']:
-            verts = np.deg2rad(shape['coordinates'])
-            ax.plot( verts[:, 0], verts[:, 1], color=continents_color, linewidth=0.5, alpha=continents_alpha )
+    ### add arms
+    for x, y in arms:
+        ax.plot( x, y, color=arms_color, linewidth=arms_linewidth, alpha=arms_alpha )
 
 def heatmap( post, ax, color_map='OrRd' ):
     '''
@@ -136,8 +138,8 @@ def gen_line_of_sight( IFOs, coord='C', gps=None ):
         y, x = triangulate.line_of_sight(ifos[1], ifos[0], coord=coord, tgeocent=gps, degrees=False)
         X, Y = triangulate.antipode( x, y, coord=coord, degrees=False)
         if coord=="E": ### convert theta->dec
-            y = 0.5*np.pi - y
-            Y = 0.5*np.pi - Y
+            y = pi2 - y
+            Y = pi2 - Y
         line_of_sight.append( (ifos, (y,x), (Y,X)) )
     return line_of_sight
 
@@ -150,10 +152,51 @@ def gen_zenith( IFOs, coord='C', gps=None ):
         y, x = triangulate.overhead(ifo, coord=coord, tgeocent=gps, degrees=False)
         X, Y = triangulate.antipode( x, y, coord=coord, degrees=False)
         if coord=="E": ### convert theta->dec
-            y = 0.5*np.pi - y
-            Y = 0.5*np.pi - Y
+            y = pi2 - y
+            Y = pi2 - Y
         zenith.append( (ifo, (y,x), (Y,X)) )
     return zenith
+
+def gen_arms( IFOs, coord='C', gps=None, extend=1.0):
+    '''
+    computes the detector arms and returns them in a friendly format for plotting
+    this is assumed to *only* be run for mollweide projections, so I've hard-coded some lengths
+
+    you can extend the length of the arms using "extend"!=1.0
+    '''
+    arms = []
+    for ifo in IFOs:
+        ### get these in coord=E
+        det = detectors[ifo]
+
+        crnr = det.dr / np.sum(det.dr**2)**0.5
+        crnr_y = np.arccos(crnr[2])
+        crnr_x = np.arctan2(crnr[1], crnr[0])
+
+        xend = det.dr + det.nx*1e-3 * extend ### extend controls arm length
+        xend /= np.sum(xend**2)**0.5
+        xend_y = np.arccos(xend[2])
+        xend_x = np.arctan2(xend[1], xend[0])
+
+        yend = det.dr + det.ny*1e-3 * extend ### extend controls arm length
+        yend /= np.sum(yend**2)**0.5
+        yend_y = np.arccos(yend[2])
+        yend_x = np.arctan2(yend[1], yend[0])
+
+        ### convert theta->dec
+        crnr_y = pi2 - crnr_y 
+        xend_y = pi2 - xend_y 
+        yend_y = pi2 - yend_y 
+
+        if coord=="C":
+            crnr_x = triangulate.rotateRAE2C(crnr_x, gps, noWRAP=True)
+            xend_x = triangulate.rotateRAE2C(xend_x, gps, noWRAP=True)
+            yend_x = triangulate.rotateRAE2C(yend_x, gps, noWRAP=True)
+
+        arms.append( np.array([(crnr_x, xend_x), (crnr_y, xend_y)]) )
+        arms.append( np.array([(crnr_x, yend_x), (crnr_y, yend_y)]) )
+
+    return arms
 
 def gen_time_delay( SRCs, IFOs, coord='C', gps=None, degrees=False ):
     '''
@@ -170,9 +213,9 @@ def gen_time_delay( SRCs, IFOs, coord='C', gps=None, degrees=False ):
             y, x = triangulate.time_delay_locus( dt, ifos[1], ifos[0], coord=coord, tgeocent=gps, degrees=False )
 
             if coord=="E": ### convert theta-> dec
-                y = 0.5*np.pi - y
+                y = pi2 - y
 
-                x[x>np.pi] -= 2*np.pi ### ensure that everything is between -pi and pi
+                x[x>np.pi] -= twopi ### ensure that everything is between -pi and pi
 
             ### find big jumps in azimuthal angle and split up the plotting jobs
             d = np.concatenate( ([0],np.nonzero(np.abs(x[1:]-x[:-1])>np.pi)[0]+1,[len(x)]) )
@@ -192,15 +235,32 @@ def gen_marker_Dec_RA( SRCs, coord='C', gps=None, degrees=False ):
                 dec *= triangulate.deg2rad
                 ra *= triangulate.deg2rad
             if ra > np.pi:
-                ra -= 2*np.pi
-            marker_Dec_RA.append( (0.5*np.pi-dec, ra) )
+                ra -= twopi
+            marker_Dec_RA.append( (pi2-dec, ra) )
     else: ### coord=="C"
         for dec, ra in SRCs:
             if degrees:
                 dec *= triangulate.deg2rad
                 ra *= triangulate.deg2rad
 #            if ra > np.pi:
-#                ra -= 2*np.pi
+#                ra -= twopi
             marker_Dec_RA.append( (dec, ra) )
 
     return marker_Dec_RA
+
+def gen_continents( coord='C', gps=None ):
+    '''
+    extract the little line segments needed to plot continents and ensure they're all in the correct coordinate system
+    '''
+    geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
+    file_obj = open(geojson_filename, 'r')
+    geojson = json.load(file_obj)
+    file_obj.close()
+
+    verts = [np.deg2rad(shape['coordinates']) for shape in geojson['geometries']]
+
+    if coord=='C': ### rotate into Celestial coordinages
+        for vert in verts:
+            vert[:,0] = triangulate.rotateRAE2C(vert[:,0], gps, noWRAP=True)
+
+    return verts
