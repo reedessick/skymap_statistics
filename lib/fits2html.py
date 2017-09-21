@@ -448,7 +448,7 @@ class snglFITS(object):
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
             ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-            ct.annotate( ax, IFOs=ifos, twiny=True )
+            ct.annotateDT( ax, IFOs=ifos, twiny=True )
 
             if self.no_margticks:
                 ax.set_yticklabels([])
@@ -465,16 +465,16 @@ class snglFITS(object):
             d['fig'] = fig.saveAndUpload( figname )
 
             ### annotate the plot
-            ct.annotate( ax,
-                         [ hp.pix2ang( self.nside, np.argmax(self.postE) ) ],
-                         ifos,
-                         coord   = 'E',
-                         gps     = self.gps,
-                         color   = self.time_delay_color,
-                         alpha   = self.time_delay_alpha,
-                         degrees = False,
-                         twiny   = False, ### already did this
-                       )
+            ct.annotateDT( ax,
+                           [ hp.pix2ang( self.nside, np.argmax(self.postE) ) ],
+                           ifos,
+                           coord   = 'E',
+                           gps     = self.gps,
+                           color   = self.time_delay_color,
+                           alpha   = self.time_delay_alpha,
+                           degrees = False,
+                           twiny   = False, ### already did this
+                         )
 
             ### save annotated dT marginals
             figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, self.tag, self.figtype)
@@ -1249,7 +1249,7 @@ class multFITS(object):
             ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
             ax.set_ylabel(r'$p(\Delta t_{%s}|\mathrm{data})$'%(ifos))
 
-            ct.annotate( ax, IFOs=ifos, twiny=True )
+            ct.annotateDT( ax, IFOs=ifos, twiny=True )
 
             if self.no_margticks:
                 ax.set_yticklabels([])
@@ -1270,16 +1270,16 @@ class multFITS(object):
             for fitsname in self.fitsnames:
                 if verbose:
                     print "      "+self.labels[fitsname]
-                ct.annotate( ax,
-                             [ hp.pix2ang( self.fitsdata[fitsname]['nside'], np.argmax(self.fitsdata[fitsname]['E']) ) ],
-                             ifos,
-                             coord   = 'E',
-                             gps     = self.fitsdata[fitsname]['gps'],
-                             color   = getColor.next(),
-                             alpha   = self.time_delay_alpha,
-                             degrees = False,
-                             twiny   = False, ### already did this
-                       )
+                ct.annotateDT( ax,
+                               [ hp.pix2ang( self.fitsdata[fitsname]['nside'], np.argmax(self.fitsdata[fitsname]['E']) ) ],
+                               ifos,
+                               coord   = 'E',
+                               gps     = self.fitsdata[fitsname]['gps'],
+                               color   = getColor.next(),
+                               alpha   = self.time_delay_alpha,
+                               degrees = False,
+                               twiny   = False, ### already did this
+                         )
 
             ### save annotated dT marginals
             figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, self.tag, self.figtype)

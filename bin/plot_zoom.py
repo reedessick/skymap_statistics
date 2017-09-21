@@ -1,6 +1,6 @@
 #!/usr/bin/python
-usage       = "plot_maps.py [--options] label1,fits1 label2,fits2 ..."
-description = "plot skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_heatmap"
+usage       = "plot_zoom.py [--options] label1,fits1 label2,fits2 ..."
+description = "plot skymaps on a figure for visualization. This uses a Cartesian projection of the angles and a very simple histograming procedure."
 author      = "R. Essick (reed.essick@ligo.org)"
 
 #=================================================
@@ -12,7 +12,8 @@ import numpy as np
 import healpy as hp
 
 from plotting import mollweide as mw
-plt = mw.plt
+from plotting import cartesian as ct
+plt = ct.plt
 lalinf_plot = mw.lalinf_plot
 from plotting import colors
 
@@ -26,6 +27,18 @@ parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
+parser.add_option("", "--min-RA", default=None, type='float',
+    help='Set axis limits. If coord=C, interpreted as RA. Otherwise interpreted as phi. DEFAULT=None')
+parser.add_option("", "--max-RA", default=None, type='float',
+    help='Set axis limits. If coord=C, interpreted as RA. Otherwise interpreted as phi. DEFAULT=None')
+parser.add_option("", "--min-Dec", default=None, type='float',
+    help='Set axis limits. If coord=C, interpreted as Dec. Otherwise interpreted as theta. DEFAULT=None')
+parser.add_option("", "--max-Dec", default=None, type='float',
+    help='Set axis limits. If coord=C, interpreted as Dec. Otherwise interpreted as theta. DEFAULT=None')
+
+parser.add_option("", "--limits-degrees", default=False, action='store_true',
+    help="if supplied, limits will be interpreted as degrees")
+
 parser.add_option("", "--stack-posteriors", default=False, action="store_true")
 parser.add_option("", "--stack-posteriors-background", default=None, type="string", help="a FITS file to plot in the background of the stacked plot")
 parser.add_option("", "--stack-posteriors-linewidths", default=1, type="float", help="the linewidth for contours on stacked plot")
@@ -37,7 +50,6 @@ parser.add_option("-W", "--figwidth", default=9, type="float")
 
 parser.add_option("-o", "--output-dir", default=".", type="string")
 
-parser.add_option("-p", "--projection", default="astro mollweide", type="string", help="either \"mollweide\", \"astro mollweide\"")
 parser.add_option("", "--color-map", default="Reds", type="string", help="Default=\"Reds\"")
 
 parser.add_option("-t", "--tag", default="", type="string")
@@ -99,10 +111,12 @@ labels = sorted(maps.keys())
 if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA)) and (opts.coord!="E") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
 
-opts.continents =  opts.continents and (opts.coord=="E") and (opts.projection=="mollweide")
+opts.continents =  opts.continents and (opts.coord=="E")
 
 if opts.stack_posteriors and (not opts.stack_posteriors_levels):
     opts.stack_posteriors_levels = [0.1, 0.5, 0.9]
+
+xlim, ylim = ct.gen_limits(opts.min_RA, opts.max_RA, opts.min_Dec, opts.max_Dec, coord=opts.coord, degrees=opts.limits_degrees)
 
 #=============================================
 
@@ -123,7 +137,7 @@ marker_Dec_RA = mw.gen_marker_Dec_RA( opts.marker_Dec_RA, coord=opts.coord, gps=
 
 figind = 0
 if opts.stack_posteriors:
-    stack_fig, stack_ax = mw.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, projection=opts.projection )
+    stack_fig, stack_ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
     figind += 1
 
     genColor = colors.getColor()
@@ -134,10 +148,9 @@ if opts.stack_posteriors:
         post, header = hp.read_map( opts.stack_posteriors_background, h=True, verbose=False )
         if opts.verbose:
             print "plotting background for stackedPosteriors"
-        mw.heatmap( post, stack_ax, color_map=opts.color_map )
+        ct.heatmap( post, stack_ax, xlim, ylim, color_map=opts.color_map )
 
-    mw.annotate( stack_ax,
-                 projection          = opts.projection,
+    ct.annotate( stack_ax,
                  line_of_sight       = line_of_sight,
                  line_of_sight_color = opts.line_of_sight_color,
                  zenith              = zenith,
@@ -169,12 +182,11 @@ for label in labels:
     if opts.verbose:
         print "    nside=%d"%nside
 
-    fig, ax = mw.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, projection=opts.projection )
+    fig, ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
     figind += 1
 
-    mw.heatmap( post, ax, color_map=opts.color_map )
-    mw.annotate( ax,
-                 projection          = opts.projection,
+    ct.heatmap( post, ax, xlim, ylim, color_map=opts.color_map )
+    ct.annotate( ax,
                  line_of_sight       = line_of_sight,
                  line_of_sight_color = opts.line_of_sight_color,
                  zenith              = zenith,
@@ -193,6 +205,15 @@ for label in labels:
                  continents_color    = opts.continents_color,
                  continents_alpha    = opts.continents_alpha,
                )
+
+    ct.set_lim( ax,
+        xmin=xlim[0],
+        xmax=xlim[1],
+        ymin=ylim[0],
+        ymax=ylim[1],
+    )
+
+    ct.set_labels( ax, coord=opts.coord )
 
     if opts.transparent:
         fig.patch.set_alpha(0.)
@@ -217,18 +238,29 @@ for label in labels:
     ### plot contribution to stacked posteriors
     if opts.stack_posteriors:
         color = genColor.next()
-        mw.contour( post, 
+        ct.contour( post, 
                     stack_ax, 
+                    xlim,
+                    ylim,
                     colors     = color, 
                     levels     = opts.stack_posteriors_levels, 
                     alpha      = opts.stack_posteriors_alpha, 
                     linewidths = opts.stack_posteriors_linewidths )
-        stack_fig.text(0.01, 0.99-0.05*(figind-1), label, color=color, ha='left', va='top')
+        stack_fig.text(0.11, 0.99-0.05*(figind-1), label, color=color, ha='left', va='top')
 
 ### save the stacked posterior plot
 if opts.stack_posteriors:
     plt.figure( 0 )
     plt.sca( stack_ax )
+
+    ct.set_lim( stack_ax, 
+        xmin=xlim[0],
+        xmax=xlim[1],
+        ymin=ylim[0],
+        ymax=ylim[1],
+    )
+
+    ct.set_labels( stack_ax, coord=opts.coord )
 
     if opts.transparent:
         stack_fig.patch.set_alpha(0.)

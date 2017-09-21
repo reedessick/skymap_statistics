@@ -126,15 +126,15 @@ for ifos in opts.time_delay:
         ct.plot_dT( ax, sampDt, kde, label=label, color='b', xlim_dB=opts.xlim_dB )
 
         ### annotate the plot
-        ct.annotate( ax, 
-                     opts.time_delay_Dec_RA, 
-                     ifos,
-                     coord   = opts.coord, 
-                     gps     = opts.gps, 
-                     color   = opts.time_delay_color, 
-                     alpha   = opts.time_delay_alpha, 
-                     degrees = opts.time_delay_degrees,
-                   )
+        ct.annotateDT( ax, 
+                       opts.time_delay_Dec_RA, 
+                       ifos,
+                       coord   = opts.coord, 
+                       gps     = opts.gps, 
+                       color   = opts.time_delay_color, 
+                       alpha   = opts.time_delay_alpha, 
+                       degrees = opts.time_delay_degrees,
+                     )
 
         ### decorate
         ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
@@ -163,15 +163,15 @@ for ifos in opts.time_delay:
 
     if opts.stack_posteriors:
         ### annotate the plot
-        ct.annotate( stack_ax, 
-                     opts.time_delay_Dec_RA, 
-                     ifos,
-                     coord   = opts.coord, 
-                     gps     = opts.gps, 
-                     color   = opts.time_delay_color, 
-                     alpha   = opts.time_delay_alpha, 
-                     degrees = opts.time_delay_degrees,
-                   )
+        ct.annotateDT( stack_ax, 
+                       opts.time_delay_Dec_RA, 
+                       ifos,
+                       coord   = opts.coord, 
+                       gps     = opts.gps, 
+                       color   = opts.time_delay_color, 
+                       alpha   = opts.time_delay_alpha, 
+                       degrees = opts.time_delay_degrees,
+                     )
 
         ### decorate
         stack_ax.set_xlabel(r'$\Delta t_{%s}\ [\mathrm{ms}]$'%(ifos))
