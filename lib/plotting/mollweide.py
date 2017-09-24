@@ -46,7 +46,7 @@ def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None, grid=True ):
 
     return fig, ax
 
-def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0, constellation_boundaries=[], constellation_boundaries_color='k', constellation_boundaries_alpha=1.0, constellation_centers=[], constellation_centers_color='k', constellation_centers_alpha=1.0 ):
+def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', line_of_sight_fontsize=8, line_of_sight_markersize=2, zenith=[], zenith_color='k', zenith_markersize=2, zenith_fontsize=8, time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0, constellation_boundaries=[], constellation_boundaries_color='k', constellation_boundaries_alpha=1.0, constellation_centers=[], constellation_centers_color='k', constellation_centers_alpha=1.0, constellation_centers_fontsize=8 ):
     '''
     annotates the mollweide projection
     '''
@@ -58,11 +58,11 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
             if X > np.pi:
                 X -= twopi
 
-        ax.plot( x, y, color=line_of_sight_color, markeredgecolor=line_of_sight_color, marker='o', markersize=2 )
-        ax.plot( X, Y, color=line_of_sight_color, markeredgecolor=line_of_sight_color, marker='o', markersize=2 )
+        ax.plot( x, y, color=line_of_sight_color, markeredgecolor=line_of_sight_color, marker='o', markersize=line_of_sight_markersize )
+        ax.plot( X, Y, color=line_of_sight_color, markeredgecolor=line_of_sight_color, marker='o', markersize=line_of_sight_markersize )
 
-        ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=line_of_sight_color )
-        ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=line_of_sight_color )
+        ax.text( x, y, " %s-%s"%(ifos[1],ifos[0]), ha='left', va='bottom', color=line_of_sight_color, fontsize=line_of_sight_fontsize )
+        ax.text( X, Y, " %s-%s"%(ifos[0],ifos[1]), ha='left', va='bottom', color=line_of_sight_color, fontsize=line_of_sight_fontsize )
 
     ### plot zenith markers
     for ifo, (y,x), (Y,X) in zenith:
@@ -72,11 +72,11 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
             if X > np.pi:
                 X -= twopi
 
-        ax.plot( x, y, color=zenith_color, markeredgecolor=zenith_color, marker='s', markersize=2 )
-        ax.plot( X, Y, color=zenith_color, markeredgecolor=zenith_color, marker='s', markersize=2 )
+        ax.plot( x, y, color=zenith_color, markeredgecolor=zenith_color, marker='s', markersize=zenith_markersize )
+        ax.plot( X, Y, color=zenith_color, markeredgecolor=zenith_color, marker='s', markersize=zenith_markersize )
 
-        ax.text( x, y, " "+ifo+"+", ha='left', va='bottom', color=zenith_color )
-        ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=zenith_color )
+        ax.text( x, y, " "+ifo+"+", ha='left', va='bottom', color=zenith_color, fontsize=zenith_fontsize )
+        ax.text( X, Y, " "+ifo+"-", ha='left', va='bottom', color=zenith_color, fontsize=zenith_fontsize )
 
     ### plot time-delay loci
     for y, x in time_delay:
@@ -112,9 +112,17 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
     ### add stars
     for x, y, mag in stars:
         markersize=max(1, 5-mag) ### FIXME: hard coded...bad?
+        if projection=="mollweide":
+            if x < -np.pi:
+                x += twopi
+            elif x > np.pi:
+                x -= twopi
+        elif projection=="astro mollweide":
+            if x < 0:
+                x += twopi
+            elif x > twopi:
+                x -= twopi
         ax.plot(x, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
-        ax.plot(x+twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
-        ax.plot(x-twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
 
     ### add constellation boundaries
     for x, y in constellation_boundaries:
@@ -124,9 +132,24 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
 
     ### add constellation centers
     for x, y, name in constellation_centers:
-        ax.text(x, y, name, ha='center', va='center', alpha=constellation_centers_alpha, color=constellation_centers_color)
-        ax.text(x-twopi, y, name, ha='center', va='center', alpha=constellation_centers_alpha, color=constellation_centers_color)
-        ax.text(x+twopi, y, name, ha='center', va='center', alpha=constellation_centers_alpha, color=constellation_centers_color)
+        if projection=="mollweide":
+            if x < -np.pi:
+                x += twopi
+            elif x > np.pi:
+                x -= twopi
+        elif projection=="astro mollweide":
+            if x < 0:
+                x += twopi
+            elif x > twopi:
+                x -= twopi
+        ax.text(
+            x, y, name, 
+            ha='center', 
+            va='center', 
+            alpha=constellation_centers_alpha, 
+            color=constellation_centers_color, 
+            fontsize=constellation_centers_fontsize,
+        )
 
 def heatmap( post, ax, color_map='OrRd' ):
     '''
@@ -323,7 +346,7 @@ def gen_stars( coord='C', gps=None ):
     stars = np.array(constjson['stars'])
 
     if coord=='E': ### rotate into E coordinates
-        stars[:,0] = triangulate.rotateRAC2E(stars[:,0], gps, noWRAP=True)
+        stars[:,0] = triangulate.rotateRAC2E(stars[:,0], gps)
 
     return stars
 
@@ -358,6 +381,6 @@ def gen_constellationCenters( coord='C', gps=None ):
 
     if coord=='E': ### rotate into E coordinates
         for name, (ra, dec) in centers.items():
-            centers[name] = (triangulate.rotateRAC2E(ra, gps, noWRAP=True), dec)
+            centers[name] = (triangulate.rotateRAC2E(ra, gps), dec)
 
     return [(ra, dec, name) for name, (ra, dec) in centers.items()]
