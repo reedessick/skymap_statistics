@@ -68,7 +68,6 @@ parser.add_option("", "--time-delay-Dec-RA", nargs=2, default=[], action="append
 parser.add_option("", "--time-delay-degrees", default=False, action="store_true", help="interpret --time-delay-Dec-RA as degrees")
 parser.add_option("", "--time-delay-color", default='k', type='string', help='the line color for time-delay lines')
 parser.add_option("", "--time-delay-alpha", default=1.0, type='float', help='the alpha saturation for time-delay lines')
-parser.add_option("", "--time-delay-alpha", default=1.0, type='float', help='the alpha saturation for time-delay lines')
 
 parser.add_option("", "--marker-Dec-RA", nargs=2, default=[], action="append", type="float", help="Should be specified in adians and this option requires two arguments (--marker-Dec-RA ${dec} ${ra}). If suppplied, we label this point with a circles (if told to plot them). If coord==C, this is interpreted as Dec,RA. If coord==E, this is interpreted as Theta,Phi.")
 parser.add_option("", "--marker-degrees", default=False, action="store_true", help="interpret --marker-Dec-RA as degrees")
@@ -88,6 +87,14 @@ parser.add_option("", "--continents-alpha", default=0.5, type='float', help='the
 parser.add_option("", "--constellations", default=False, action="store_true", help="draw the constellations on the map")
 parser.add_option("", "--constellations-color", default='k', type='string', help='the color used to draw the constellations')
 parser.add_option("", "--constellations-alpha", default=0.5, type='float', help='the alpha value for the contellations')
+
+parser.add_option("", "--constellation-centers", default=False, action="store_true", help="draw the constellation centers on the map")
+parser.add_option("", "--constellation-centers-color", default='k', type='string', help='the color used to draw the constellation centers')
+parser.add_option("", "--constellation-centers-alpha", default=0.5, type='float', help='the alpha value for the contellation centers')
+
+parser.add_option("", "--constellation-boundaries", default=False, action="store_true", help="draw the constellation boundariess on the map")
+parser.add_option("", "--constellation-boundaries-color", default='k', type='string', help='the color used to draw the constellation boundaries')
+parser.add_option("", "--constellation-boundaries-alpha", default=0.5, type='float', help='the alpha value for the contellation boundaries')
 
 parser.add_option("", "--stars", default=False, action="store_true", help="draw the stars on the map")
 parser.add_option("", "--stars-color", default='k', type='string', help='the color used to draw the stars')
@@ -174,6 +181,18 @@ if opts.stars:
 else:
     opts.stars = []
 
+### constellation boundaries
+if opts.constellation_boundaries:
+    opts.constellation_boundaries = mw.gen_constellationBoundaries(coord=opts.coord, gps=opts.gps)
+else:
+    opts.constellation_boundaries = []
+
+### constellatoin centers
+if opts.constellation_centers:
+    opts.constellation_centers = mw.gen_constellationCenters(coord=opts.coord, gps=opts.gps)
+else:
+    opts.constellation_centers = []
+
 #=================================================
 
 ### iterate through and plot
@@ -238,6 +257,12 @@ for ind, label1 in enumerate(labels):
                      constellations       = opts.constellations,
                      constellations_color = opts.constellations_color,
                      constellations_alpha = opts.constellations_alpha,
+                     constellation_centers       = opts.constellation_centers,
+                     constellation_centers_color = opts.constellation_centers_color,
+                     constellation_centers_alpha = opts.constellation_centers_alpha,
+                     constellation_boundaries       = opts.constellation_boundaries,
+                     constellation_boundaries_color = opts.constellation_boundaries_color,
+                     constellation_boundaries_alpha = opts.constellation_boundaries_alpha,
                      stars               = opts.stars,
                      stars_color         = opts.stars_color,
                      stars_alpha         = opts.stars_alpha,

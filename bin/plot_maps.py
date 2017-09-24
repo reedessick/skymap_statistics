@@ -87,6 +87,14 @@ parser.add_option("", "--constellations", default=False, action="store_true", he
 parser.add_option("", "--constellations-color", default='k', type='string', help='the color used to draw the constellations')
 parser.add_option("", "--constellations-alpha", default=0.5, type='float', help='the alpha value for the contellations')
 
+parser.add_option("", "--constellation-centers", default=False, action="store_true", help="draw the constellation centers on the map")
+parser.add_option("", "--constellation-centers-color", default='k', type='string', help='the color used to draw the constellation centers')
+parser.add_option("", "--constellation-centers-alpha", default=0.5, type='float', help='the alpha value for the contellation centers')
+
+parser.add_option("", "--constellation-boundaries", default=False, action="store_true", help="draw the constellation boundariess on the map")
+parser.add_option("", "--constellation-boundaries-color", default='k', type='string', help='the color used to draw the constellation boundaries')
+parser.add_option("", "--constellation-boundaries-alpha", default=0.5, type='float', help='the alpha value for the contellation boundaries')
+
 parser.add_option("", "--stars", default=False, action="store_true", help="draw the stars on the map")
 parser.add_option("", "--stars-color", default='k', type='string', help='the color used to draw the stars')
 parser.add_option("", "--stars-alpha", default=0.5, type='float', help='the alpha value for the stars')
@@ -115,7 +123,7 @@ labels = sorted(maps.keys())
 if (opts.line_of_sight or opts.zenith or (opts.time_delay and opts.time_delay_Dec_RA) or opts.continents or opts.arms) and (opts.coord!="E") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
 
-if (opts.constellations or opts.stars) and (opts.coord!="C") and (opts.gps==None):
+if (opts.constellations or opts.stars or opts.constellation_boundaries or opts.constellation_centers) and (opts.coord!="C") and (opts.gps==None):
     opts.gps = float(raw_input("gps = "))
 
 if opts.stack_posteriors and (not opts.stack_posteriors_levels):
@@ -155,6 +163,18 @@ if opts.stars:
     opts.stars = mw.gen_stars(coord=opts.coord, gps=opts.gps)
 else:
     opts.stars = []
+
+### constellation boundaries
+if opts.constellation_boundaries:
+    opts.constellation_boundaries = mw.gen_constellationBoundaries(coord=opts.coord, gps=opts.gps)
+else:
+    opts.constellation_boundaries = []
+
+### constellatoin centers
+if opts.constellation_centers:
+    opts.constellation_centers = mw.gen_constellationCenters(coord=opts.coord, gps=opts.gps)
+else:
+    opts.constellation_centers = []
 
 #=============================================
 ### generate plots
@@ -196,6 +216,12 @@ if opts.stack_posteriors:
                  constellations       = opts.constellations,
                  constellations_color = opts.constellations_color,
                  constellations_alpha = opts.constellations_alpha,
+                 constellation_centers       = opts.constellation_centers,
+                 constellation_centers_color = opts.constellation_centers_color,
+                 constellation_centers_alpha = opts.constellation_centers_alpha,
+                 constellation_boundaries       = opts.constellation_boundaries,
+                 constellation_boundaries_color = opts.constellation_boundaries_color,
+                 constellation_boundaries_alpha = opts.constellation_boundaries_alpha,
                  stars               = opts.stars,
                  stars_color         = opts.stars_color,
                  stars_alpha         = opts.stars_alpha,
@@ -241,6 +267,12 @@ for label in labels:
                  constellations       = opts.constellations,
                  constellations_color = opts.constellations_color,
                  constellations_alpha = opts.constellations_alpha,
+                 constellation_centers       = opts.constellation_centers,
+                 constellation_centers_color = opts.constellation_centers_color,
+                 constellation_centers_alpha = opts.constellation_centers_alpha,
+                 constellation_boundaries       = opts.constellation_boundaries,
+                 constellation_boundaries_color = opts.constellation_boundaries_color,
+                 constellation_boundaries_alpha = opts.constellation_boundaries_alpha,
                  stars               = opts.stars,
                  stars_color         = opts.stars_color,
                  stars_alpha         = opts.stars_alpha,

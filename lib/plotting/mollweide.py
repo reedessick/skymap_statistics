@@ -46,7 +46,7 @@ def gen_fig_ax( figind, figheight=5, figwidth=9, projection=None, grid=True ):
 
     return fig, ax
 
-def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0 ):
+def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', zenith=[], zenith_color='k', time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0, constellation_boundaries=[], constellation_boundaries_color='k', constellation_boundaries_alpha=1.0, constellation_centers=[], constellation_centers_color='k', constellation_centers_alpha=1.0 ):
     '''
     annotates the mollweide projection
     '''
@@ -115,6 +115,18 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', ze
         ax.plot(x, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
         ax.plot(x+twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
         ax.plot(x-twopi, y, markersize=markersize, marker='o', markerfacecolor=stars_color, markeredgecolor='none', alpha=stars_alpha)
+
+    ### add constellation boundaries
+    for x, y in constellation_boundaries:
+        ax.plot(x, y, linewidth=0.5, color=constellation_boundaries_color, alpha=constellation_boundaries_alpha)
+        ax.plot(x-twopi, y, linewidth=0.5, color=constellation_boundaries_color, alpha=constellation_boundaries_alpha)
+        ax.plot(x+twopi, y, linewidth=0.5, color=constellation_boundaries_color, alpha=constellation_boundaries_alpha)
+
+    ### add constellation centers
+    for x, y, name in constellation_centers:
+        ax.text(x, y, name, ha='center', va='center', alpha=constellation_centers_alpha, color=constellation_centers_color)
+        ax.text(x-twopi, y, name, ha='center', va='center', alpha=constellation_centers_alpha, color=constellation_centers_color)
+        ax.text(x+twopi, y, name, ha='center', va='center', alpha=constellation_centers_alpha, color=constellation_centers_color)
 
 def heatmap( post, ax, color_map='OrRd' ):
     '''
@@ -301,7 +313,7 @@ def gen_constellations( coord='C', gps=None ):
 
 def gen_stars( coord='C', gps=None ):
     '''
-    extract the constellations from disk and prepare them for plotting
+    extract the bright stars from disk and prepare them for plotting
     '''
     json_filename = os.path.join(os.path.dirname(__file__), 'constellationsANDstars.json')
     file_obj = open(json_filename, 'r')
@@ -314,3 +326,38 @@ def gen_stars( coord='C', gps=None ):
         stars[:,0] = triangulate.rotateRAC2E(stars[:,0], gps, noWRAP=True)
 
     return stars
+
+def gen_constellationBoundaries( coord='C', gps=None ):
+    '''
+    extract constellation boundaries from disk and prepare them for plotting
+    '''
+    json_filename = os.path.join(os.path.dirname(__file__), 'constellationsANDstars.json')
+    file_obj = open(json_filename, 'r')
+    constjson = json.load(file_obj)
+    file_obj.close()
+
+    boundaries = []
+    for edge in constjson['boundaries']:
+        boundaries.append( np.array([np.array(edge[0]), np.array(edge[1])]) )
+    boundaries = np.array(boundaries)
+
+    if coord=='E':
+        boundaries[:,0] = triangulate.rotateRAC2E(boundaries[:,0], gps, noWRAP=True)
+    return boundaries
+
+def gen_constellationCenters( coord='C', gps=None ):
+    '''
+    extract constellatoin centers from disk and prepare them for plotting
+    '''
+    json_filename = os.path.join(os.path.dirname(__file__), 'constellationsANDstars.json')
+    file_obj = open(json_filename, 'r')
+    constjson = json.load(file_obj)
+    file_obj.close()
+
+    centers = constjson['centers']
+
+    if coord=='E': ### rotate into E coordinates
+        for name, (ra, dec) in centers.items():
+            centers[name] = (triangulate.rotateRAC2E(ra, gps, noWRAP=True), dec)
+
+    return [(ra, dec, name) for name, (ra, dec) in centers.items()]
