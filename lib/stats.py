@@ -379,7 +379,7 @@ def symmetric_KLdivergence(posterior1, posterior2, base=2.0):
 	computes the symmetric Kullback-Leibler divergence
 		sum log(p1/p2)*(p1 - p2)
 	"""
-	return KLdivergence(posterior1, posterior2, base=base) + KLdivergence(posterior2, posterior2, base=base)
+	return KLdivergence(posterior1, posterior2, base=base) + KLdivergence(posterior2, posterior1, base=base)
 
 ###
 def symmetric_KLdivergence_walk( posterior1, posterior2, base=2.0, nside=False, nest=False ):
