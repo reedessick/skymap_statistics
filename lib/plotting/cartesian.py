@@ -46,36 +46,36 @@ def gen_fig_ax( figind, figwidth=6, figheight=5 ):
     '''
     return genCR_fig_ax(figind, figwidth=figwidth, figheigh=figheight)
 
-def genCR_fig_ax( figind, figwidth=6, figheight=5 ):
+def genCR_fig_ax( figind, figwidth=6, figheight=5, grid=True ):
     '''
     generates figure and axis in the set-up we prefer
     '''
     fig = plt.figure(figind, figsize=(figwidth, figheight))
     ax = fig.add_axes(cr_axpos)
-    ax.grid(True, which='both')
+    ax.grid(grid, which='both')
 
     return fig, ax
 
-def genDT_fig_ax( figind, figwidth=9, figheight=5 ):
+def genDT_fig_ax( figind, figwidth=9, figheight=5, grid=True ):
     '''
     generates figure and axis in the set-up we prefer
     '''
     fig = plt.figure(figind, figsize=(figwidth, figheight) )
     ax = fig.add_axes(dT_axpos)
-    ax.grid(True, which='both')
+    ax.grid(grid, which='both')
 
     return fig, ax
 
-def genHist_fig_ax( figind, figwidth=9, figheight=5 ):
+def genHist_fig_ax( figind, figwidth=9, figheight=5, grid=True ):
     fig = plt.figure(figind, figsize=(figwidth, figheight) )
 
     ax    = fig.add_axes(primetime)
     rproj = fig.add_axes(right_proj)
     tproj = fig.add_axes(top_proj)
 
-    ax.grid(True, which='both')
-    rproj.grid(True, which='both')
-    tproj.grid(True, which='both')
+    ax.grid(grid, which='both')
+    rproj.grid(grid, which='both')
+    tproj.grid(grid, which='both')
 
     return fig, ax, rproj, tproj
 

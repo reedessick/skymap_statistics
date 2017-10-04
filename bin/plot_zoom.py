@@ -27,6 +27,8 @@ parser = OptionParser(usage=usage, description=description)
 
 parser.add_option("-v", "--verbose", default=False, action="store_true")
 
+parser.add_option('', '--grid', default=False, action='store_true')
+
 parser.add_option("", "--min-RA", default=None, type='float',
     help='Set axis limits. If coord=C, interpreted as RA. Otherwise interpreted as phi. DEFAULT=None')
 parser.add_option("", "--max-RA", default=None, type='float',
@@ -193,7 +195,7 @@ else:
 
 figind = 0
 if opts.stack_posteriors:
-    stack_fig, stack_ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+    stack_fig, stack_ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, grid=opts.grid )
     figind += 1
 
     genColor = colors.getColor()
@@ -254,7 +256,7 @@ for label in labels:
     if opts.verbose:
         print "    nside=%d"%nside
 
-    fig, ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight )
+    fig, ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, grid=opts.grid )
     figind += 1
 
     ct.heatmap( post, ax, xlim, ylim, color_map=opts.color_map )
