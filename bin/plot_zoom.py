@@ -46,6 +46,7 @@ parser.add_option("", "--stack-posteriors-background", default=None, type="strin
 parser.add_option("", "--stack-posteriors-linewidths", default=1, type="float", help="the linewidth for contours on stacked plot")
 parser.add_option("", "--stack-posteriors-alpha", default=1.0, type="float", help="the alpha for contours on stacked plot")
 parser.add_option("", "--stack-posteriors-levels", default=[], type='float', action='append', help='the confidence levels for contours in stacked plot')
+parser.add_option("", "--stack-posteriors-skip-legend", default=False, action='store_true', help="do not plot the legend in stacked posterior plots")
 
 parser.add_option("-H", "--figheight", default=5, type="float")
 parser.add_option("-W", "--figwidth", default=9, type="float")
@@ -336,7 +337,8 @@ for label in labels:
                     levels     = opts.stack_posteriors_levels, 
                     alpha      = opts.stack_posteriors_alpha, 
                     linewidths = opts.stack_posteriors_linewidths )
-        stack_fig.text(0.11, 0.99-0.05*(figind-1), label, color=color, ha='left', va='top')
+        if not ops.stack_posteriors_skip_legend:
+            stack_fig.text(0.11, 0.99-0.05*(figind-1), label, color=color, ha='left', va='top')
 
 ### save the stacked posterior plot
 if opts.stack_posteriors:

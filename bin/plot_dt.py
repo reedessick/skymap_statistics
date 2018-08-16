@@ -28,6 +28,7 @@ parser = OptionParser(usage=usage, description=description)
 parser.add_option("-v", "--verbose", default=False, action='store_true')
 
 parser.add_option("", "--stack-posteriors", default=False, action="store_true")
+parser.add_option("", "--stack-posteriors-skip-legend", default=False, action='store_true', help="do not plot the legend in stacked posterior plots")
 
 parser.add_option("-H", "--figheight", default=5, type="float")
 parser.add_option("-W", "--figwidth", default=9, type="float")
@@ -159,7 +160,8 @@ for ifos in opts.time_delay:
         if opts.stack_posteriors:
             color = genColor.next()
             ct.plot_dT( stack_ax, sampDt, kde, label=label, color=color, xlim_dB=opts.xlim_dB )
-            stack_fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
+            if not opts.stack_posteriors_skip_legend:
+                stack_fig.text(0.10+0.02, 0.93-0.05*ind, label, color=color, ha='left', va='top')
 
     if opts.stack_posteriors:
         ### annotate the plot
