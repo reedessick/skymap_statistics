@@ -151,12 +151,15 @@ def annotate( ax, projection=None, line_of_sight=[], line_of_sight_color='k', li
             fontsize=constellation_centers_fontsize,
         )
 
-def heatmap( post, ax, color_map='OrRd' ):
+def heatmap( post, ax, color_map='OrRd', colorbar=False, colorbar_label='' ):
     '''
     generate mollweide projection of heatmap with requested annotations
     '''
     plt.sca( ax )
     lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(color_map) ) ### is this buggy when projection=="mollweide"?
+    if colorbar:
+        cb = plt.colorbar(orientation='horizontal')
+        cb.set_label(colorbar_label)
 
 def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1 ):
     '''

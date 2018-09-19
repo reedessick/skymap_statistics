@@ -103,6 +103,9 @@ parser.add_option("", "--stars-alpha", default=0.5, type='float', help='the alph
 parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
 parser.add_option("", "--no-ticklabels", default=False, action="store_true", help="remove the x and y ticklabels from mollweide plots")
 
+parser.add_option("", "--colorbar", default=False, action="store_true", help='include a colorbar if there is a background map specified')
+parser.add_option("", "--colorbar-label", default='', type='string', help='the label for the colorbar')
+
 opts, args = parser.parse_args()
 
 if not opts.figtype:
@@ -216,7 +219,7 @@ for ind, label1 in enumerate(labels):
         figind += 1
 
         if opts.background:
-            ax.healpix_heatmap( bkgnd, cmap=plt.get_cmap(opts.color_map) )
+            mw.heatmap( bkgnd, ax, cmap=plt.get_cmap(opts.color_map), colorbar=opts.colorbar, colorbar_label=opts.colorbar_label )
 
         ### could be sped up by only computing the cumulative posteriors once, but this delegation makes things simple...
         c1 = mw.contour( post1, 

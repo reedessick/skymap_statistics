@@ -115,6 +115,9 @@ parser.add_option("", "--stars-alpha", default=0.5, type='float', help='the alph
 parser.add_option("", "--outline-labels", default=False, action="store_true", help="put a white outline around axis labels")
 parser.add_option("", "--no-ticklabels", default=False, action="store_true", help="remove the x and y ticklabels from mollweide plots")
 
+parser.add_option("", "--colorbar", default=False, action="store_true", help='include a colorbar if there is a background map specified')
+parser.add_option("", "--colorbar-label", default='', type='string', help='the label for the colorbar')
+
 opts, args = parser.parse_args()
 
 if not opts.figtype:
@@ -207,7 +210,7 @@ if opts.stack_posteriors:
         post, header = hp.read_map( opts.stack_posteriors_background, h=True, verbose=False )
         if opts.verbose:
             print "plotting background for stackedPosteriors"
-        ct.heatmap( post, stack_ax, xlim, ylim, color_map=opts.color_map )
+        ct.heatmap( post, stack_ax, xlim, ylim, color_map=opts.color_map, colorbar=opts.colorbar, colorbar_label=opts.colorbar_label )
 
     ct.annotate( stack_ax,
                  line_of_sight       = line_of_sight,
@@ -260,7 +263,7 @@ for label in labels:
     fig, ax = ct.genCR_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, grid=opts.grid )
     figind += 1
 
-    ct.heatmap( post, ax, xlim, ylim, color_map=opts.color_map )
+    ct.heatmap( post, ax, xlim, ylim, color_map=opts.color_map, colorbar=opts.colorbar, colorbar_label=opts.colorbar_label )
     ct.annotate( ax,
                  line_of_sight       = line_of_sight,
                  line_of_sight_color = opts.line_of_sight_color,

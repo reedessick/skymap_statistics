@@ -132,7 +132,7 @@ def gen_limits(minX, maxX, minY, maxY, coord='C', degrees=False):
 
 #------------------------
 
-def heatmap( post, ax, xlim, ylim, color_map='jet', Npts=1001 ):
+def heatmap( post, ax, xlim, ylim, color_map='jet', Npts=1001, colorbar=False, colorbar_label='' ):
     '''
     take a HEALPix posterior and make a cartesian heatmap
     '''
@@ -144,6 +144,9 @@ def heatmap( post, ax, xlim, ylim, color_map='jet', Npts=1001 ):
         aspect='auto',
         cmap=plt.get_cmap(color_map),
     )
+    if colorbar:
+        cb = plt.colorbar(ax=ax)
+        cb.set_label(colorbar_label)
 
 def contour( post, ax, xlim, ylim, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1, Npts=1001 ):
     '''
