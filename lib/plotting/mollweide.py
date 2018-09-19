@@ -158,7 +158,7 @@ def heatmap( post, ax, color_map='OrRd', colorbar=False, colorbar_label='' ):
     plt.sca( ax )
     lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(color_map) ) ### is this buggy when projection=="mollweide"?
     if colorbar:
-        cb = plt.colorbar(orientation='horizontal')
+        cb = plt.colorbar(orientation='horizontal', fraction=0.15, pad=0.03, shrink=0.8) ### FIXME: hard-coded options are a bit fragile...
         cb.set_label(colorbar_label)
 
 def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1 ):
