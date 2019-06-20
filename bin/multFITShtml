@@ -1,6 +1,6 @@
 #!/usr/bin/python
-usage       = "snglFITShtml.py [--options] fits"
-description = "generates plots and statistics summarizing a FITS file, and writes html documents to display the results"
+usage       = "multFITShtml.py [--options] fits fits fits ..."
+description = "generates plots and statistics summarizing and comparing several FITS files, and writes html documents to display the results. Note: assumes snglFITShtml.py was *already* called for all FITS files provided, and therefore predicts the URL for their snglFITS pages within links."
 author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
@@ -9,11 +9,12 @@ import os
 
 import numpy as np
 
-import fits2html
+from optparse import OptionParser
+
+### non-standard libraries
+from skymap_statistics import fits2html
 
 from ligo.gracedb.rest import GraceDb
-
-from optparse import OptionParser
 
 #-------------------------------------------------
 
@@ -29,13 +30,9 @@ parser.add_option('-G', '--graceDbURL', default='https://gracedb.ligo.org/api/',
 
 parser.add_option('-s', '--skip-gracedb-upload', default=False, action='store_true')
 parser.add_option('', '--graceDb-tagname', default=[], action='append', type='string', help='additional tagnames used when uploading to GraceDb')
-parser.add_option('', '--graceDb-html-tagname', default=[], action='append', type='string', help='additional tagnames used when uploading html document to GraceDb')
+parser.add_option('', '--graceDb-html-tagname', default=[], action='append', type='string', help='additional tagnames used when uploading html to GraceDb')
 
 # options about input FITS file
-
-parser.add_option('', '--posterior-samples', default=None, type='string', help='path to posterior_samples.dat. If supplied, will be used to build an interactive \"postviz\" page. CURRENTLY NOT YET IMPLEMENTED!')
-parser.add_option('', '--posterior-samples-var', default=[], action='append', type='string', help='the column headers that should be included in the postviz corner plots.')
-parser.add_option('', '--posterior-samples-decrement', default=4, type='int', help='the factor by which we divide nside (from the FITS file) to define the nside used with the postviz representation')
 
 # options about network
 
@@ -78,11 +75,8 @@ parser.add_option("", "--dT-xlim-dB", default=-20, type='float')
 # options for computing statistics
 
 parser.add_option("", "--base", default=2.0, type='float', help='base of logarithm used to compute entropy and information')
-parser.add_option("", "--conf", default=[], action='append', type='float', help='the confidence levels used to evaluate size of map')
-
-# options about json representation
-
-parser.add_option('', '--json-nside', default=128, type='int', help='resample the posterior to this nside when writing json representations') 
+parser.add_option("", "--conf", default=[], action='append', type='float', help='the confidence levels used to evaluate size and geometric overlap of maps')
+parser.add_option("", "--area", default=[], action='append', type='float', help='the areas used to evaluate geometric overlap of maps. Must be specified in deg2')
 
 # general options
 
@@ -95,11 +89,10 @@ parser.add_option("", "--dpi", default=500, type="int")
 
 #---
 
-opts, args = parser.parse_args()
+opts, fitsfiles = parser.parse_args()
 
-if len(args)!=1:
-    raise ValueError('please supply exactly 1 argument\n%s'%usage)
-fits = args[0]
+if not fitsfiles:
+    raise ValueError('please supply at least 1 argument\n%s'%usage)
 
 if opts.tag:
     opts.tag = "_"+opts.tag
@@ -110,6 +103,9 @@ if not opts.mollweide_levels:
 if not opts.conf:
     opts.conf = np.linspace(0, 1.0, 51)
 
+if not opts.area:
+    opts.area = np.logspace(1, 4, 51)
+
 opts.skip_gracedb_upload = opts.skip_gracedb_upload or (opts.graceid==None)
 
 #-------------------------------------------------
@@ -119,16 +115,23 @@ opts.ifo = sorted(opts.ifo)
 #-------------------------------------------------
 
 ### create plots and summary info for map
+#outdir = os.path.join( opts.output_dir, 'multFITS' )
+#outurl = os.path.join( opts.output_url, 'multFITS' )
+outdir = opts.output_dir
+outurl = opts.output_url
+if not os.path.exists(outdir):
+    os.makedirs(outdir)
+
 if opts.verbose:
-    print "%s\n  outdir -> %s\n  outurl -> %s"%(fits, opts.output_dir, opts.output_url)
+    print "%s\n  outdir -> %s\n  outurl -> %s"%("\n".join(fitsfiles), outdir, outurl)
 
 #-------------------------------------------------
 
 ### build the object that will write the html document
-snglfits = fits2html.snglFITS( fits,
+multfits = fits2html.multFITS( fitsfiles,
                                ### general output routing
-                               output_dir = opts.output_dir,
-                               output_url = opts.output_url,
+                               output_dir = outdir,
+                               output_url = outurl,
                                tag        = opts.tag,
                                figtype    = opts.figtype,
                                dpi        = opts.dpi,
@@ -164,29 +167,28 @@ snglfits = fits2html.snglFITS( fits,
                                ### options for computing statistics
                                base = opts.base,
                                conf = opts.conf,
-                               ### options about json representation of posterior
-                               json_nside = opts.json_nside,
+                               area = opts.area,
                              )
 
 #-----------
 
 ### generate all figures, data, etc
-snglfits.readFITS( verbose=opts.verbose ) ### read in FITS files
+multfits.readFITS( verbose=opts.verbose ) ### read in FITS files
 
-snglfits.make_mollweide( verbose=opts.verbose ) ### make mollweide plots
+multfits.make_mollweide( verbose=opts.verbose ) ### make mollweide plots
 
-snglfits.make_dT( verbose=opts.verbose ) ### make time-delay historgrams, et al
+multfits.make_dT( verbose=opts.verbose ) ### make time-delay historgrams, et al
 
-snglfits.make_los( verbose=opts.verbose ) ### make line-of-sight projections
+multfits.make_los( verbose=opts.verbose ) ### make line-of-sight projections
 
-snglfits.make_confidence_regions( verbose=opts.verbose ) ### make confidence region stuff
+multfits.make_confidence_regions( verbose=opts.verbose ) ### make confidence region stuff
 
-snglfits.make_antenna_patterns( verbose=opts.verbose ) ### compute antenna pattern statistics
+multfits.make_comparison( verbose=opts.verbose ) ### copmute comparison statistics
 
 #-----------
 
 ### generate final html document
-htmlname = snglfits.write( verbose=opts.verbose )
+htmlname = multfits.write( verbose=opts.verbose )
 
 ### upload to GraceDb
 if not opts.skip_gracedb_upload:
@@ -194,6 +196,5 @@ if not opts.skip_gracedb_upload:
         print "uploading %s to GraceDb(%s)"%(htmlname, opts.graceDbURL)
 
     gdb = GraceDb( opts.graceDbURL )
-    gdbdir = os.path.join( opts.graceDbURL, '..', 'events', opts.graceid, 'files' )
-    fitsbase = os.path.basename(fits)
-    gdb.writeLog( opts.graceid, message='skymap summary for <a href="%s">%s</a> can be found <a href=\"%s\">here</a>'%(os.path.join(gdbdir, fitsbase), fitsbase, os.path.join( gdbdir, os.path.basename(htmlname) )), filename=htmlname, tagname=fits2html.standard_tagname+opts.graceDb_tagname+opts.graceDb_html_tagname )
+    gdbdir = os.path.join(opts.graceDbURL, '..', 'events', opts.graceid, 'files' )
+    gdb.writeLog( opts.graceid, message='comparison of skymaps can be found <a href="%s">here</a>'%os.path.join(gdbdir, os.path.basename(htmlname)), filename=htmlname, tagname=fits2html.standard_tagname+opts.graceDb_tagname+opts.graceDb_html_tagname ) 

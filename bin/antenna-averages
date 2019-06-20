@@ -10,10 +10,11 @@ import os
 import numpy as np
 import healpy as hp
 
-import detector_cache ### relies on BayesBurst code
-import antenna
-
 from optparse import OptionParser
+
+### non-standard libraries
+from skymap_statistics import detector_cache
+from skymap_statitics import antenna
 
 #-------------------------------------------------
 

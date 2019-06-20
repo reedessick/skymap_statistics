@@ -8,11 +8,12 @@ author      = "reed.essick@ligo.org"
 import sys
 import json
 
-from ligo.gracedb.rest import GraceDb
-
 from ConfigParser import SafeConfigParser
 
 from optparse import OptionParser
+
+### non-standard libraries
+from ligo.gracedb.rest import GraceDb
 
 #-------------------------------------------------
 

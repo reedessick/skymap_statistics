@@ -1,6 +1,0 @@
-#!/bin/bash
-cd /home/gracedb.processor/users/ressick/skymap_statistics/
-. setup.sh
-
-#alert2html.py -V /home/gracedb.processor/users/ressick/skymap_statistics/etc/alert2html.ini
-alert2html.py -V /home/gracedb.processor/users/ressick/skymap_statistics/etc/alert2html.ini 1>> /home/gracedb.processor/users/ressick/working/skymap_autosummary/alert2html.out 2>> /home/gracedb.processor/users/ressick/working/skymap_autosummary/alert2html.err

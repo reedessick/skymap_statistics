@@ -6,6 +6,9 @@ author      = "reed.essick@ligo.org"
 import os
 import json
 
+import healpy as hp
+import numpy as np
+
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
@@ -15,11 +18,9 @@ except:
         raise StandardError("Could not import lalinference.plot")
 plt.rcParams.update({'font.family':'serif', 'text.usetex':True})
 
-import stats
-import triangulate
-
-import healpy as hp
-import numpy as np
+### non-standard libraries
+from skymap_statistics import stats
+from skymap_statistics import triangulate
 
 #-------------------------------------------------
 

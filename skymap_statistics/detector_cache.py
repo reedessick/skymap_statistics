@@ -4,8 +4,9 @@ author      = "reed.essick@ligo.org"
 #=================================================
 
 import copy
-
 import antenna
+
+from pkg_resources import resource_filename
 
 import numpy as np
 
@@ -131,12 +132,6 @@ class Detector(object):
         ny = %.5f , %.5f , %.5f
         PSD : %s"""%(self.name, self.dr[0], self.dr[1], self.dr[2], self.nx[0], self.nx[1], self.nx[2], self.ny[0], self.ny[1], self.ny[2], str(self.psd))
 
-
-#=================================================
-# path to psd cache
-#=================================================
-path = __file__.strip(__name__+".py")
-
 #=================================================
 # known PSDs
 #=================================================
@@ -146,12 +141,12 @@ default_psd = PSD(np.array([0]), np.array([1]), kind="linear")
 psds["default"] = default_psd
 
 ### design psd's
-aligo_design_psd_file = path+'PSDs/aLIGO_design.txt'
+aligo_design_psd_file = resource_filename(__name__, 'PSDs/aLIGO_design.txt')
 aligo_design_psd_dat = np.genfromtxt(aligo_design_psd_file)
 aligo_design_psd = PSD(aligo_design_psd_dat[:,0], aligo_design_psd_dat[:,1]**2, kind="linear")
 psds["aligo_design"] = aligo_design_psd
 
-avirgo_design_psd_file = path+'PSDs/aVirgo_design.txt'
+avirgo_design_psd_file = resource_filename(__name__, 'PSDs/aVirgo_design.txt')
 avirgo_design_psd_dat = np.genfromtxt(avirgo_design_psd_file)
 avirgo_design_psd = PSD(avirgo_design_psd_dat[:,0], avirgo_design_psd_dat[:,1]**2, kind="linear")
 psds["avirgo_design"] = avirgo_design_psd

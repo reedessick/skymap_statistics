@@ -10,13 +10,14 @@ import os
 import numpy as np
 import healpy as hp
 
-import triangulate
+from optparse import OptionParser
 
-from plotting import mollweide as mw
+### non-standard libraries
+from skymap_statistics import triangulate
+
+from skymap_statistics.plotting import mollweide as mw
 plt = mw.plt
 lalinf_plot = mw.lalinf_plot
-
-from optparse import OptionParser
 
 #==========================================================
 

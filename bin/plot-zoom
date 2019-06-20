@@ -11,13 +11,14 @@ import json
 import numpy as np
 import healpy as hp
 
-from plotting import mollweide as mw
-from plotting import cartesian as ct
+from optparse import OptionParser
+
+### non-standard libraries
+from skymap_statistics.plotting import mollweide as mw
+from skymap_statistics.plotting import cartesian as ct
 plt = ct.plt
 lalinf_plot = mw.lalinf_plot
-from plotting import colors
-
-from optparse import OptionParser
+from skymap_statistics.plotting import colors
 
 #================================================-
 

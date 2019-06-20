@@ -7,17 +7,18 @@ author      = "R. Essick (reed.essick@ligo.org)"
 
 import os
 
-import stats
-import triangulate 
-
 import healpy as hp
 import numpy as np
 
-from plotting import cartesian as ct
-plt = ct.plt
-from plotting import colors
-
 from optparse import OptionParser
+
+### non-standard libraries
+from skymap_statistics import stats
+from skymap_statistics import triangulate 
+
+from skymap_statistics.plotting import cartesian as ct
+plt = ct.plt
+from skymap_statistics.plotting import colors
 
 #-------------------------------------------------
 

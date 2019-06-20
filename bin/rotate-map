@@ -5,12 +5,13 @@ author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
 
-import triangulate
-
 import healpy as hp
 import numpy as np
 
 from optparse import OptionParser
+
+### non-standard libraries
+from skymap_statistics import triangulate
 
 #-------------------------------------------------
 
