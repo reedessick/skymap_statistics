@@ -109,6 +109,10 @@ class Detector(object):
         else:
             return antenna.antenna_patterns(theta, phi, psi, self.nx, self.ny, freqs=freqs, dr=self.dr)
 
+    def project(self, theta, phi, psi, hp, hx, freqs=None):
+        Fp, Fx = self.antenna_patterns(theta, phi, psi, freq=freqs)
+        return Fp*hp + Fx*hx
+
     def snr(self, data, freqs=None):
         """ 
         returns the SNR for data using the PSD stored within the object 
@@ -131,6 +135,52 @@ class Detector(object):
         nx = %.5f , %.5f , %.5f
         ny = %.5f , %.5f , %.5f
         PSD : %s"""%(self.name, self.dr[0], self.dr[1], self.dr[2], self.nx[0], self.nx[1], self.nx[2], self.ny[0], self.ny[1], self.ny[2], str(self.psd))
+
+class Network(object):
+    """an object respresenting a network of detectors
+    """
+    def __init__(self, detectors=[]):
+        self._detectors = dict((det.name, det) for det in detectors)
+
+    def __len__(self):
+        return len(self._detectors)
+
+    @property
+    def _instr(self):
+        return list(self._detectors.keys())
+
+    def add(self, det):
+        assert det.name not in self._detectors, 'detector %s already included in the network!'%det.name
+        self._detectors[det.name] = det
+
+    def remove(self, det):
+        if not isinstance(det, str):
+            det = det.name
+        assert det in self._detectors, 'detector %s not in the network!'%det
+        self._detectors.pop(det)
+
+    def snr(self, *args, **kwargs):
+        """a wrapper that will attempt to automatically detect the function signature and delegate as needed
+        """
+        if len(args)==5: ### interpret as (theta, phi, psi, hp, hx)
+            theta, phi, psi, hp, hx = args
+            freqs = kwargs.get('freqs', None)
+
+        elif len(args)==1: ### interpret as (event,)
+            event = args[0]
+            theta = event.theta
+            phi = event.phi
+            psi = event.polarization
+            hp, hx, freqs = event.waveform(
+                flow=kwargs.get('flow', 10.),
+                fhigh=kwargs.get('fhigh', 2048.),
+                deltaf=kwargs.get('deltaf', 0.125),
+            )
+
+        else:
+            raise NotImplementedError('function signature not recognized. Please specify either (theta, phi, psi, hp, hx) or (event,)')
+
+        return dict((det.name, det.snr(det.project(theta, phi, psi, hp, hx, freqs=freqs))) for det in self._detectors.values())
 
 #=================================================
 # known PSDs
