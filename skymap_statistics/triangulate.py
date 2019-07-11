@@ -270,8 +270,7 @@ def overhead( ifo, coord="E", tgeocent=None, degrees=False ):
     if ifo not in detectors.keys():
         raise ValueError("ifo=%s not understood"%ifo )
 
-    nz = __overhead_Evec( ifo )
-    t, p = hp.vec2ang( nz )
+    t, p = __overhead_Evec( ifo )
 
     if isinstance(t, np.ndarray):
         t = t[0]
@@ -295,9 +294,7 @@ def __overhead_Evec( ifo ):
     """
     a helper function to get the overhead direction
     """
-    nx = detectors[ifo].nx
-    ny = detectors[ifo].ny
-    return np.array( [ nx[1]*ny[2] - nx[2]*ny[1] , -nx[0]*ny[2] + nx[2]*ny[0] , nx[0]*ny[1] - nx[1]*ny[0] ] ) ### take cross product by hand...
+    return detectors[ifo].zenith
 
 #=================================================
 

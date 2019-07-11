@@ -9,6 +9,7 @@ import antenna
 from pkg_resources import resource_filename
 
 import numpy as np
+import healpy as hp
 
 #=================================================
 
@@ -95,6 +96,13 @@ class Detector(object):
 
     def __repr__(self):
         return self.__str__()
+
+    @property
+    def zenith(self):
+        nx = self.nx
+        ny = self.ny
+        nz = np.array( [ nx[1]*ny[2] - nx[2]*ny[1] , -nx[0]*ny[2] + nx[2]*ny[0] , nx[0]*ny[1] - nx[1]*ny[0] ] ) ### take cross product by hand...
+        return hp.vec2ang( nz ) ### theta, phi
 
     def set_psd(self, psd, freqs=None):
         self.psd.update(psd, freqs=freqs)
