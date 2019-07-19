@@ -16,7 +16,10 @@ def antenna_patterns(theta, phi, psi, nx, ny, freqs=None, dt=0.0, dr=None):
 
     Antenna patterns are computed accoring to Eqn. B7 from Anderson, et all PhysRevD 63(04) 2003
     """
-    n_pix = len(theta)
+    if isinstance(theta, (int, float)):
+        n_pix = 1
+    else:
+        n_pix = len(theta)
 
     cos_theta = np.cos(theta)
     sin_theta = np.sin(theta)
