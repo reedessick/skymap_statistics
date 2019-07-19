@@ -118,7 +118,7 @@ class Detector(object):
             return antenna.antenna_patterns(theta, phi, psi, self.nx, self.ny, freqs=freqs, dr=self.dr)
 
     def project(self, theta, phi, psi, hp, hx, freqs=None):
-        Fp, Fx = self.antenna_patterns(theta, phi, psi, freq=freqs)
+        Fp, Fx = self.antenna_patterns(theta, phi, psi, freqs=freqs)
         return Fp*hp + Fx*hx
 
     def snr(self, data, freqs=None):
