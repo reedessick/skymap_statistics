@@ -129,7 +129,7 @@ class Detector(object):
         if freqs==None:
             freqs = self.get_psd().get_freqs()
         if len(data) != len(freqs):
-            raise ValueError, "len(data) != len(freqs)"
+            raise ValueError, "len(data)=%d != len(freqs)=%d"%(len(data), len(freqs))
 
         return ( 4*np.sum((data.real**2+data.imag**2) / self.get_psd().interpolate(freqs))*(freqs[1]-freqs[0]) )**0.5 ### return SNR
 
@@ -188,7 +188,7 @@ class Network(object):
         else:
             raise NotImplementedError('function signature not recognized. Please specify either (theta, phi, psi, hp, hx) or (event,)')
 
-        return dict((det.name, det.snr(det.project(theta, phi, psi, hp, hx, freqs=freqs))) for det in self._detectors.values())
+        return dict((det.name, det.snr(det.project(theta, phi, psi, hp, hx, freqs=freqs), freqs=freqs)) for det in self._detectors.values())
 
 #=================================================
 # known PSDs
