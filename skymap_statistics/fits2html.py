@@ -11,16 +11,16 @@ import getpass
 import os
 import json
 
-import stats
-import triangulate
+from skymap_statistics import stats
+from skymap_statistics import triangulate
 
-from plotting import mollweide as mw
-from plotting import cartesian as ct
-from plotting import colors
+from skymap_statistics.plotting import mollweide as mw
+from skymap_statistics.plotting import cartesian as ct
+from skymap_statistics.plotting import colors
 plt = mw.plt
 
-import detector_cache
-import antenna
+from skymap_statistics import detector_cache
+from skymap_statistics import antenna
 
 import numpy as np
 import healpy as hp

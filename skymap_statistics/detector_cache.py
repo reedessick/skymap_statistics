@@ -4,12 +4,12 @@ author      = "reed.essick@ligo.org"
 #=================================================
 
 import copy
-import antenna
-
 from pkg_resources import resource_filename
 
 import numpy as np
 import healpy as hp
+
+from skymap_statistics import antenna
 
 #=================================================
 
