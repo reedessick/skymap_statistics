@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "plot_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "plot skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_heatmap"
 author      = "R. Essick (reed.essick@ligo.org)"
@@ -192,10 +195,10 @@ if opts.stack_posteriors:
 
     if opts.stack_posteriors_background:
         if opts.verbose:
-            print "reading map from", fits
+            print( "reading map from", fits )
         post, header = hp.read_map( opts.stack_posteriors_background, h=True, verbose=False )
         if opts.verbose:
-            print "plotting background for stackedPosteriors"
+            print( "plotting background for stackedPosteriors" )
         mw.heatmap( post, stack_ax, color_map=opts.color_map, colorbar=opts.colorbar, colorbar_label=opts.colorbar_label )
 
     mw.annotate( stack_ax,
@@ -236,14 +239,14 @@ if opts.stack_posteriors:
 for label in labels:
     fits = maps[label]['fits']
     if opts.verbose:
-        print "reading map from", fits
+        print( "reading map from", fits )
     post, header = hp.read_map( fits, h=True, verbose=False )
     npix = len(post)
     if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
         post = hp.nest2ring(nside, post)
     nside = hp.npix2nside(npix)
     if opts.verbose:
-        print "    nside=%d"%nside
+        print( "    nside=%d"%nside )
 
     fig, ax = mw.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, projection=opts.projection, grid=opts.grid )
     figind += 1
@@ -302,7 +305,7 @@ for label in labels:
     for figtype in opts.figtype:
         figname = "%s/%s%s.%s"%(opts.output_dir, label, opts.tag, figtype)
         if opts.verbose:
-            print "    "+figname
+            print( "    "+figname )
         plt.savefig( figname, dpi=opts.dpi )
     plt.close( fig )
 
@@ -338,6 +341,6 @@ if opts.stack_posteriors:
     for figtype in opts.figtype:
         figname = "%s/stackedPosterior%s.%s"%(opts.output_dir, opts.tag, figtype)
         if opts.verbose:
-            print figname
+            print( figname )
         plt.savefig( figname, dpi=opts.dpi )
     plt.close( stack_fig )

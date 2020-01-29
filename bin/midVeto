@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "midVeto.py [--options] config.ini"
 description = "listens for uploads of mutual information distance and generates labels appropriately"
 author      = "reed.essick@ligo.org"
@@ -30,24 +33,24 @@ configname = args[0]
 #-------------------------------------------------
 
 if opts.verbose:
-    print "reading config file : %s"%configname
+    print( "reading config file : %s"%configname )
 config = SafeConfigParser()
 config.read( configname )
 
 graceDbURL = config.get('general', 'gracedb_url' )
 if opts.verbose:
-    print "connecting to graceDbURL=%s"%graceDbURL
+    print( "connecting to graceDbURL=%s"%graceDbURL )
 gracedb = GraceDb( graceDbURL )
 
 #-------------------------------------------------
 
 alert = sys.stdin.read()
 if opts.verbose:
-    print alert
+    print( alert )
 alert = json.loads( alert )
 graceid = alert['graceid']
 if opts.verbose:
-    print "found graceid=%s"%graceid
+    print( "found graceid=%s"%graceid )
 
 ### figure out if this is the 
 if (alert['alert_type']=='update') and alert['file'] and alert['file'].endswith('js') and ("_los" in alert['file']): ### this could be fragile...
@@ -74,4 +77,4 @@ if (alert['alert_type']=='update') and alert['file'] and alert['file'].endswith(
 
 else:
     if opts.verbose:
-        print "ignoring..."    
+        print( "ignoring..." )

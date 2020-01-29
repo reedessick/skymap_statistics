@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "rotate_map.py [--options] gps input.fits.gz output.fits.gz"
 description = "reads in the map and rotates it from geographic to equatorial coordinates or vice versa"
 author      = "reed.essick@ligo.org"
@@ -38,22 +41,22 @@ if opts.target_coord not in ['C', 'E']:
 #-------------------------------------------------
 
 if opts.verbose:
-    print "reading in : %s"%inFITS
+    print( "reading in : %s"%inFITS )
 post = hp.read_map( inFITS, verbose=False )
 
 #------------------------
 
 if opts.source_coord=="C":
     if opts.verbose: 
-        print "  interpretting as Equatorial coordinates (C)"
+        print( "  interpretting as Equatorial coordinates (C)" )
 
     if opts.target_coord=="C":
         if opts.verbose:
-            print "  no rotation necessary (--target-coord=C)"
+            print( "  no rotation necessary (--target-coord=C)" )
         
     elif opts.target_coord=="E":
         if opts.verbose:
-            print "  rotating to Geographic coordinates (E) at time=%.3f"%gps
+            print( "  rotating to Geographic coordinates (E) at time=%.3f"%gps )
         post = triangulate.rotateMapC2E( post, gps )
         
     else:
@@ -61,16 +64,16 @@ if opts.source_coord=="C":
         
 elif opts.source_coord=="E":
     if opts.verbose:
-        print "  interpretting as Geographic coordinates (E)"
+        print( "  interpretting as Geographic coordinates (E)" )
 
     if opts.target_coord=="C":
         if opts.verbose:
-            print "  rotating to Equatorial coordinates (C) at time=%.3f"%gps
+            print( "  rotating to Equatorial coordinates (C) at time=%.3f"%gps )
         post = triangulate.rotateMapE2C( post, gps )
 
     elif opts.target_coord=="E":
         if opts.verbose:
-            print "  no rotation necessary (--target-coord=E)"
+            print( "  no rotation necessary (--target-coord=E)" )
 
     else:
         raise ValueError('--target-ccord must be either "C" or "E"')
@@ -81,5 +84,5 @@ else:
 #------------------------
 
 if opts.verbose:
-    print "writing to : %s"%outFITS
+    print( "writing to : %s"%outFITS )
 hp.write_map( outFITS, post )

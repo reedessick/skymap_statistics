@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "overlay_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "overlays skymaps on a figure for visualization. Basically a wrapper for lalinference.plot.healpix_contour"
 author      = "R. Essick (reed.essick@ligo.org)"
@@ -142,7 +145,7 @@ for label in labels:
     d = maps[label]
     fits = d['fits']
     if opts.verbose:
-        print "reading map from", fits
+        print( "reading map from", fits )
     post, header = hp.read_map( fits, h=True, verbose=False )
     if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
         post = hp.nest2ring(nside, post)
@@ -213,7 +216,7 @@ for ind, label1 in enumerate(labels):
         d2 = maps[label2]
         post2 = d2['post']
 
-        print "%s vs %s"%(label1, label2)
+        print( "%s vs %s"%(label1, label2) )
 		
         fig, ax = mw.gen_fig_ax( figind, figwidth=opts.figwidth, figheight=opts.figheight, projection=opts.projection, grid=opts.grid )
         figind += 1
@@ -290,6 +293,6 @@ for ind, label1 in enumerate(labels):
         for figtype in opts.figtype:
             figname = "%s/%s-%s%s.%s"%(opts.output_dir, label1, label2, opts.tag, figtype)
             if opts.verbose:
-                print "    "+figname
+                print( "    "+figname )
             plt.savefig( figname, dpi=opts.dpi )
         plt.close( fig )

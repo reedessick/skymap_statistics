@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "compare_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several comparison statistics for the FITs files provided. Computes comparison statistics for all possible pairings (downsampling the finner resolution map if needed)"
 author      = "reed.essick@ligo.org"
@@ -71,14 +74,14 @@ for label in labels:
     d = maps[label]
     fits = d['fits']
     if opts.verbose:
-        print "reading map from", fits
+        print( "reading map from", fits )
     post, header = hp.read_map( fits, h=True, verbose=False )
     npix = len(post)
     if (dict(header)['ORDERING']=='NEST'): ### convert to RING ordering
         post = hp.nest2ring(nside, post)
     nside = hp.npix2nside(npix)
     if opts.verbose:
-        print "    nside=%d"%nside
+        print( "    nside=%d"%nside )
 
     if opts.rankmap: ### convert maps to rankmpas, not posteriors
         post = stats.rankmap( post, npix=npix, normed=True )
@@ -102,7 +105,7 @@ for ind, label1 in enumerate(labels):
         Post2 = d2['post']
         nside2 = d2['nside']
 
-        print "%s vs %s"%(label1, label2)
+        print( "%s vs %s"%(label1, label2) )
 
         ### resample if needed
         nside = max(nside1, nside2)
@@ -110,98 +113,98 @@ for ind, label1 in enumerate(labels):
 
         if nside2 < nside:
             if opts.verbose:
-                print "    resampling %s : %d -> %d"%(label2, nside2, nside)
+                print( "    resampling %s : %d -> %d"%(label2, nside2, nside) )
             post2 = stats.resample(Post2[:], nside)
         else:
             post2 = Post2[:]
         if nside1 < nside:
             if opts.verbose:
-                print "    resampling %s : %d -> %d"%(label1, nside1, nside)
+                print( "    resampling %s : %d -> %d"%(label1, nside1, nside) )
             post1 = stats.resample(Post1[:], nside)
         else:
             post1 = Post1[:]
 
         if opts.verbose:
-            print "    nside : %d"%(nside)
-            print "    pixarea : %.6f %s"%(pixarea, areaunit)
+            print( "    nside : %d"%(nside) )
+            print( "    pixarea : %.6f %s"%(pixarea, areaunit) )
 
         messages = []
 	
         ### compute statistics
         if opts.dMAP:
             if opts.Verbose:
-                print "        dMAP"
+                print( "        dMAP" )
             t1, p1 = d1['estang']
             t2, p2 = d2['estang']
             messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
 
         if opts.fidelity:
             if opts.Verbose:
-                print "        fidelity"
+                print( "        fidelity" )
             messages.append( "fidelity : %.5f"%(stats.fidelity(post1, post2)) )
 
         if opts.joint_entropy:
             if opts.Verbose:
-                print "        joint_entropy"
+                print( "        joint_entropy" )
             messages.append( "joint entropy : %.5f %s"%(pixarea * 2**(stats.indep_joint_entropy(post1, post2, base=2.0)), areaunit) )
 
         if opts.symKL:
             if opts.Verbose:
-                print "        symKL"
+                print( "        symKL" )
             messages.append( "symmetric KL divergence : %.5f"%stats.symmetric_KLdivergence(post1, post2) )
 
         if opts.symKL_walk:
             if opts.Verbose:
-                print "        symKL_walk"
+                print( "        symKL_walk" )
             messages.append( "hierarchical symmetric KL divergence : %.5f at nside=%d"%stats.symmetric_KLdivergence_walk( post1, post2, base=2.0, nside=nside ) )
 
         if opts.mse:
             if opts.Verbose:
-                print "        mse"
+                print( "        mse" )
             messages.append( "mean square error : %.5e"%stats.mse(post1, post2) )
 
         if opts.peak_snr:
             if opts.Verbose:
-                print "        peak_snr"
+                print( "        peak_snr" )
             messages.append( "peak SNR : (%.5f, %.5f)"%(stats.peak_snr(post1, post2)) )
 
         if opts.structural_similarity:
             if opts.Verbose:
-                print "        structural_similarity"
+                print( "        structural_similarity" )
             messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.min(np.mean(post1),np.mean(post2)), c2=0.01*np.min(np.var(post1), np.var(post2)) ) )
 
         if opts.pearson:
             if opts.Verbose:
-                print "        pearson"
+                print( "        pearson" )
             messages.append( "pearson : %.5f"%stats.pearson(post1, post2) )
 
         if opts.dot:
             if opts.Verbose:
-                print "        dot"
+                print( "        dot" )
             messages.append( "dot : %.5f"%stats.dot(post1, post2) )
 
         if opts.spotcheck:
             if opts.Verbose:
-              print "        spotcheck"
+              print( "        spotcheck" )
             p12, p21 = stats.spotcheck(post1, post2, opts.spotcheck)
             for conf, a, b in zip( opts.spotcheck, p12, p21 ):
                 messages.append( "spotcheck %.3f %s: (%.5f, %.5f)"%(conf*100, "%", a, b) )
 
         if opts.Verbose:
-            print "        Credible Regions"
+            print( "        Credible Regions" )
         for conf, pix1, pix2 in zip(opts.credible_interval, stats.credible_region(post1, opts.credible_interval), stats.credible_region(post2, opts.credible_interval) ):
             if opts.Verbose:
-                print "        CR: %.6f"%(conf)
+                print( "        CR: %.6f"%(conf) )
             header = "%.3f %s CR"%(conf*100, "%")
 
             messages.append( "%s : %s = %.3f %s"%(header, label1, pixarea*len(pix1) , areaunit) )
             messages.append( "%s : %s = %.3f %s"%(header, label2, pixarea*len(pix2) , areaunit) )
 
             if opts.Verbose:
-                print "        geometric_overlap"
+                print( "        geometric_overlap" )
             i, u = stats.geometric_overlap(pix1, pix2, nside=nside, degrees=opts.degrees)
             messages.append( "%s : intersection = %.3f %s"%(header, i, areaunit) )
             messages.append( "%s : union = %.3f %s"%(header, u, areaunit) )
 
         for message in messages:
-            print "    "+message
+            print( "    "+message )

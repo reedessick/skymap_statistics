@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "alert2html.py [--options] config.ini"
 description = "an lvalert_listen interface to generate and upload html summaries of FITS files"
 author      = "reed.essick@ligo.org"
@@ -181,13 +184,13 @@ else: ### read from stdin
 localnames = sorted( glob.glob( '%s/*.fits'%outdir ) + glob.glob( '%s/*.fits.gz'%outdir ) )
 
 if opts.Verbose:
-    print "processing %d new FITS files"%len(filenames)
+    print( "processing %d new FITS files"%len(filenames) )
     for filename in filenames:
-        print "    "+filename
+        print( "    "+filename )
 
-    print "found %d existing FITS files"%len(localnames)
+    print( "found %d existing FITS files"%len(localnames) )
     for filename in localnames:
-        print "    "+filename
+        print( "    "+filename )
 
 #-------------------------------------------------
 # BEGIN THE ANALYSIS
@@ -274,7 +277,7 @@ for filename in filenames:
     proc = sp.Popen(snglFITScmd, stderr=sp.PIPE)
     _, err = proc.communicate()
     if proc.returncode:
-        print err
+        print( err )
         if opts.skip_gracedb_upload:
             raise RuntimeError('snglFITS returncode=%d\n%s'%(proc.returncode, " ".join(snglFITScmd)))
 
@@ -372,7 +375,7 @@ if opts.verbose:
 proc = sp.Popen(multFITScmd, stderr=sp.PIPE)
 _, err = proc.communicate()
 if proc.returncode:
-    print err
+    print( err )
     if opts.skip_gracedb_upload:
         raise NotImplementedError('WARNING: multFITS returncode=%d\n%s'%(proc.returncode, " ".join(multFITScmd)))
     else:

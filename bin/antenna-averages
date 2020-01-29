@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "anteanna_averages.py [--options] FITS"
 description = "a simple script that computes averages of a few antenna pattern things. Relies on bayesburst code"
 author      = "R. Essick (reed.essick@ligo.org)"
@@ -51,7 +54,7 @@ if opts.tag:
 #---------------------------------------------
 
 if opts.verbose:
-    print "reading map from %s"%fitsname
+    print( "reading map from %s"%fitsname )
 
 ### load map
 post = hp.read_map( fitsname, verbose=False )
@@ -60,7 +63,7 @@ for ifo in opts.observatory:
     if opts.write_fits:
         new_fitsname = "%s/%s-antennaNorm%s.fits"%(opts.output_dir, ifo, opts.tag)
         if opts.verbose:
-            print "writing antenna patterns into : %s"%(new_fitsname)
+            print( "writing antenna patterns into : %s"%(new_fitsname) )
     else:
         new_fitsname = None
 
@@ -68,6 +71,6 @@ for ifo in opts.observatory:
         raise ValueError('ifo=%s not understood'%ifo)
     MAP, AVE = antenna.summarize( post, detector_cache.detectors[ifo], coord=opts.coord, gps=opts.gps, fitsname=new_fitsname )
 
-    print ifo
-    print "    MAP:\n        F+^2 + Fx^2 = %.9f\n        F+ = %.9f\n        Fx = %.9f"%MAP
-    print "    ave:\n        F+^2 + Fx^2 = %.9f\n        F+ = %.9f\n        Fx = %.9f"%AVE
+    print( ifo )
+    print( "    MAP:\n        F+^2 + Fx^2 = %.9f\n        F+ = %.9f\n        Fx = %.9f"%MAP )
+    print( "    ave:\n        F+^2 + Fx^2 = %.9f\n        F+ = %.9f\n        Fx = %.9f"%AVE )

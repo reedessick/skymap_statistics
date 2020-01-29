@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 description = "a module that houses classes that write html structures for fits2html.py and friends. NOTE: there's a lot of ~repeated code between snglFITS and multFITS which could possibly be unified somehow. Something to think about..."
 author      = "reed.essick@ligo.org"
 
@@ -220,7 +222,7 @@ class snglFITS(object):
         reads in the FITS file and sets up local copies
         '''
         if verbose:
-            print "reading : %s -> %s"%(self.fitsname, self.label)
+            print( "reading : %s -> %s"%(self.fitsname, self.label) )
         ### load in map
         post, header = hp.read_map( self.fitsname, h=True, verbose=verbose )
         header = dict(header)
@@ -234,7 +236,7 @@ class snglFITS(object):
 
         ### set up references to maps in C and E coordinates
         if verbose:
-            print "  setting up local copies in C and E coordinates"
+            print( "  setting up local copies in C and E coordinates" )
         coord = header['COORDSYS']
         if coord == 'C':
             self.postC = post[:]
@@ -247,7 +249,7 @@ class snglFITS(object):
 
         ### set up meta-data about the map
         if verbose:
-            print "  setting up local references to angles"
+            print( "  setting up local references to angles" )
         self.npix    = len(post)
         self.nside   = hp.npix2nside( self.npix )
         self.pixarea = hp.nside2pixarea(self.nside, degrees=True)
@@ -260,8 +262,8 @@ class snglFITS(object):
         ### make json representations
         jsonname = "%s_postC%s.js"%(self.label, self.tag)
         if verbose:
-            print "building json represenation of postC"
-            print "  "+jsonname
+            print( "building json represenation of postC" )
+            print( "  "+jsonname )
         self.jsPost = Json( list(stats.resample(self.postC, self.json_nside)),
                              self.output_dir,
                              self.output_url,
@@ -272,8 +274,8 @@ class snglFITS(object):
 
         jsonname = "%s_cpostC%s.js"%(self.label, self.tag)
         if verbose:
-            print "building json respresentation of cumulative postC"
-            print "  "+jsonname
+            print( "building json respresentation of cumulative postC" )
+            print( "  "+jsonname )
 
         # function resolution is somehow getting messed up here, so we resort to getattr
         self.jsCPost = Json( list(getattr(stats, '__to_cumulative')(stats.resample(self.postC, self.json_nside))),
@@ -289,7 +291,7 @@ class snglFITS(object):
         make mollweide projections
         """
         if verbose:
-            print "building mollweide projections"
+            print( "building mollweide projections" )
         self.mollweide = dict()
 
         for projection, coord, post in [('astro hours mollweide', 'C', self.postC), ('mollweide', 'E', self.postE)]:
@@ -314,7 +316,7 @@ class snglFITS(object):
             ### save just the heatmap
             figname = "%s_heatmap%s%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print( "  "+figname )
             self.mollweide[coord] = fig.saveAndUpload( figname )
 
             ### annotate with fancy crap
@@ -344,7 +346,7 @@ class snglFITS(object):
             ### save heatmap + fancy crap
             figname = "%s_heatmap%s-annotated%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print( "  "+figname )
             self.mollweide[coord+" ann"] = fig.saveAndUpload( figname )
 
             ### add antenna patterns as contours
@@ -369,7 +371,7 @@ class snglFITS(object):
             ### save heatmap + fancy crap + antenna pattern contours
             figname = "%s_heatmap%s-antennas%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print( "  "+figname )
             self.mollweide[coord+" ant"] = fig.saveAndUpload( figname )
 
             ### done with this figure
@@ -402,7 +404,7 @@ class snglFITS(object):
             ### save just the heatmap
             figname = "%s_contour%s%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print( "  "+figname )
             self.mollweide[coord+" cnt"] = fig.saveAndUpload( figname )
 
     def make_dT(self, verbose=False):
@@ -410,14 +412,14 @@ class snglFITS(object):
         make time-delay marginal plots and statistics
         '''
         if verbose:
-            print "building time-delay marginals"
+            print( "building time-delay marginals" )
         self.dT = dict()
         obj = dict()
 
         for ifo1, ifo2 in self.ifo_pairs:
             ifos = "".join([ifo1, ifo2])
             if verbose:
-                print "  %s - %s"%(ifo1, ifo2)
+                print( "  %s - %s"%(ifo1, ifo2) )
 
             d = dict()
 
@@ -461,7 +463,7 @@ class snglFITS(object):
             ### save just dT marginals
             figname = "%s_dT_%s%s.%s"%(self.label, ifos, self.tag, self.figtype)
             if verbose:
-                print "    "+figname
+                print( "    "+figname )
             d['fig'] = fig.saveAndUpload( figname )
 
             ### annotate the plot
@@ -479,7 +481,7 @@ class snglFITS(object):
             ### save annotated dT marginals
             figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, self.tag, self.figtype)
             if verbose:
-                print "    "+figname
+                print( "    "+figname )
             d['ann fig'] = fig.saveAndUpload( figname )
 
             plt.close(fig.fig)
@@ -490,7 +492,7 @@ class snglFITS(object):
         ### upload json file
         jsonname = "%s_dT%s.js"%(self.label, self.tag)
         if verbose:
-            print "    "+jsonname
+            print( "    "+jsonname )
         self.dTREF = Json( obj,
                            self.output_dir,
                            self.output_url,
@@ -504,14 +506,14 @@ class snglFITS(object):
         make line-of-sight cartesian projections and statistics
         '''
         if verbose:
-            print "building line-of-sight cartesian projections"
+            print( "building line-of-sight cartesian projections" )
         self.los = dict() 
         obj = dict()
 
         for ifo1, ifo2 in self.ifo_pairs:
             ifos = "%s%s"%(ifo1,ifo2)
             if verbose:
-                print "  %s - %s"%(ifo1, ifo2)
+                print( "  %s - %s"%(ifo1, ifo2) )
 
             t, p = triangulate.line_of_sight( ifo1, ifo2, coord='E' )
 
@@ -549,7 +551,7 @@ class snglFITS(object):
             ### save
             figname = "%s_los-%s-%s%s.%s"%(self.label, ifo1, ifo2, self.tag, self.figtype)
             if verbose:
-                print "    "+figname
+                print( "    "+figname )
             self.los[ifos]['fig'] = fig.saveAndUpload( figname )
 
             plt.close( fig.fig )
@@ -558,7 +560,7 @@ class snglFITS(object):
         ### make json
         jsonname = "%s_los%s.js"%(self.label, self.tag)
         if verbose:
-            print "    "+jsonname
+            print( "    "+jsonname )
         self.losREF = Json( obj,
                             self.output_dir,
                             self.output_url,
@@ -573,7 +575,7 @@ class snglFITS(object):
         we compute confidence region sizes, max(dTheta), and the number and size of modes
         '''
         if verbose:
-            print "analyzing confidence regions"
+            print( "analyzing confidence regions" )
         self.maxDtheta = []
         self.modes     = []
         into_modes = getattr(stats, '__into_modes') ### function resolution is getting messed, so we resort to getattr
@@ -588,7 +590,7 @@ class snglFITS(object):
         ### write json file
         jsonname = "%s_CRStats%s.js"%(self.label, self.tag)
         if verbose:
-            print "  "+jsonname
+            print( "  "+jsonname )
         self.jsCR = Json( {'modes':self.modes, 'maxDtheta':self.maxDtheta, 'conf':list(self.conf)},
                           self.output_dir, 
                           self.output_url, 
@@ -614,7 +616,7 @@ class snglFITS(object):
 
         figname = "%s_CRSize%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.CR['size'] = fig.saveAndUpload( figname )
 
         plt.close( fig.fig )
@@ -633,7 +635,7 @@ class snglFITS(object):
 
         figname = "%s_CRMaxdTheta%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.CR['dTheta'] = fig.saveAndUpload( figname )
 
         plt.close( fig.fig )
@@ -652,7 +654,7 @@ class snglFITS(object):
 
         figname = "%s_CRNumModes%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.CR['modes'] = fig.saveAndUpload( figname )
 
         plt.close( fig.fig )
@@ -663,7 +665,7 @@ class snglFITS(object):
         compute antenna pattern statistics
         '''
         if verbose:
-            print "computing antenna pattern statistics"
+            print( "computing antenna pattern statistics" )
         self.ant = {}
 
         for ifo in self.ifos:
@@ -675,7 +677,7 @@ class snglFITS(object):
         ### make json
         jsonname = "%s_AntStats%s.js"%(self.label, self.tag)
         if verbose:
-            print "  "+jsonname
+            print( "  "+jsonname )
         self.jsAnt = Json( self.ant,
                            self.output_dir,
                            self.output_url,
@@ -708,7 +710,7 @@ class snglFITS(object):
         '''
         htmlname = os.path.join( self.output_dir, "%s-skymapSummary%s.html"%(self.label, self.tag) )
         if verbose:
-            print "writing html document : "+htmlname
+            print( "writing html document : "+htmlname )
         file_obj = open(htmlname, "w")
         file_obj.write( str(self) )
         file_obj.close()
@@ -852,7 +854,7 @@ class snglFITS(object):
 
             ### put in the statistics
 
-            print "\nWARNING: several of these should be interactive (ie: pull down) and should reference the json file, but we hack it for now\n"
+            print( "\nWARNING: several of these should be interactive (ie: pull down) and should reference the json file, but we hack it for now\n" )
 
             col = row.div(klass='col-md-6') 
             row = col.div(klass='row')
@@ -1074,7 +1076,7 @@ class multFITS(object):
         for fitsname in self.fitsnames:
             data = {}
             if verbose:
-                print "reading : %s -> %s"%(fitsname, self.labels[fitsname])
+                print( "reading : %s -> %s"%(fitsname, self.labels[fitsname]) )
             ### load in map
             post, header = hp.read_map( fitsname, h=True, verbose=verbose )
             header = dict(header)
@@ -1088,7 +1090,7 @@ class multFITS(object):
 
             ### set up references to maps in C and E coordinates
             if verbose:
-                print "  setting up local copies in C and E coordinates"
+                print( "  setting up local copies in C and E coordinates" )
             coord = header['COORDSYS']
             if coord == 'C':
                 data['C'] = postC = post[:]
@@ -1101,7 +1103,7 @@ class multFITS(object):
 
             ### set up meta-data about the map
             if verbose:
-                print "  setting up local references to angles"
+                print( "  setting up local references to angles" )
             data['npix']    = len(post)
             data['nside']   = hp.npix2nside( data['npix'] )
             data['pixarea'] = hp.nside2pixarea(data['nside'], degrees=True)
@@ -1114,7 +1116,7 @@ class multFITS(object):
         make mollweide projections
         """
         if verbose:
-            print "building mollweide projections"
+            print( "building mollweide projections" )
         self.mollweide = dict()
 
         for projection, coord in [('astro hours mollweide', 'C'), ('mollweide', 'E')]:
@@ -1127,7 +1129,7 @@ class multFITS(object):
             getColor = colors.getColor()
             for ind, fitsname in enumerate(self.fitsnames): ### iterate through FITS files
                 if verbose:
-                    print "    "+self.labels[fitsname]
+                    print( "    "+self.labels[fitsname] )
                 color = getColor.next()
                 mw.contour( self.fitsdata[fitsname][coord],
                             ax,
@@ -1151,14 +1153,14 @@ class multFITS(object):
             ### save just the heatmap
             figname = "%s_contour%s%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print( "  "+figname )
             self.mollweide[coord] = fig.saveAndUpload( figname )
 
             ### annotate with fancy crap
             getColor = colors.getColor()
             for ind, fitsname in enumerate(self.fitsnames):
                 if verbose:
-                    print "    "+self.labels[fitsname]
+                    print( "    "+self.labels[fitsname] )
                 mapIND = self.fitsdata[fitsname][coord].argmax()
                 theta, phi = hp.pix2ang( self.fitsdata[fitsname]['nside'], np.arange(self.fitsdata[fitsname]['npix']) )
                 mapY = theta[mapIND]
@@ -1189,7 +1191,7 @@ class multFITS(object):
             ### save heatmap + fancy crap
             figname = "%s_contour%s-annotated%s.%s"%(self.label, coord, self.tag, self.figtype)
             if verbose:
-                print "  "+figname
+                print( "  "+figname )
             self.mollweide[coord+" ann"] = fig.saveAndUpload( figname )
 
     def make_dT(self, verbose=False):
@@ -1197,14 +1199,14 @@ class multFITS(object):
         make time-delay marginal plots and statistics
         '''
         if verbose:
-            print "building time-delay marginals"
+            print( "building time-delay marginals" )
         self.dT = dict()
         obj = {}
 
         for ifo1, ifo2 in self.ifo_pairs:
             ifos = "".join([ifo1, ifo2])
             if verbose:
-                print "  %s - %s"%(ifo1, ifo2)
+                print( "  %s - %s"%(ifo1, ifo2) )
 
             d = dict()
             dd = dict()
@@ -1222,9 +1224,9 @@ class multFITS(object):
             margs = {}
             for ind, fitsname in enumerate(self.fitsnames):
                 if verbose:
-                    print "      "+self.labels[fitsname]
+                    print( "      "+self.labels[fitsname] )
 
-                print "\nWARNING: may want to read in the json file with marginal distribution instead of recomputing it...\n"
+                print( "\nWARNING: may want to read in the json file with marginal distribution instead of recomputing it...\n" )
 
                 if self.dT_nside:
                     kde = ct.post2marg( stats.resample(self.fitsdata[fitsname]['E'], self.dT_nside), ifos, sampDt, coord='E' )
@@ -1262,14 +1264,14 @@ class multFITS(object):
             ### save just dT marginals
             figname = "%s_dT_%s%s.%s"%(self.label, ifos, self.tag, self.figtype)
             if verbose:
-                print "    "+figname
+                print( "    "+figname )
             d['fig'] = fig.saveAndUpload( figname )
 
             ### annotate the plot
             getColor = colors.getColor()
             for fitsname in self.fitsnames:
                 if verbose:
-                    print "      "+self.labels[fitsname]
+                    print( "      "+self.labels[fitsname] )
                 ct.annotateDT( ax,
                                [ hp.pix2ang( self.fitsdata[fitsname]['nside'], np.argmax(self.fitsdata[fitsname]['E']) ) ],
                                ifos,
@@ -1284,7 +1286,7 @@ class multFITS(object):
             ### save annotated dT marginals
             figname = "%s_dT_%s-annotated%s.%s"%(self.label, ifos, self.tag, self.figtype)
             if verbose:
-                print "    "+figname
+                print( "    "+figname )
             d['ann fig'] = fig.saveAndUpload( figname )
 
             plt.close(fig.fig)
@@ -1295,7 +1297,7 @@ class multFITS(object):
         ### upload json file
         jsonname = "%s_dT%s.js"%(self.label, self.tag)
         if verbose:
-            print "    "+jsonname
+            print( "    "+jsonname )
         self.dTREF = Json( obj, 
                            self.output_dir,
                            self.output_url,
@@ -1310,13 +1312,13 @@ class multFITS(object):
         make line-of-sight cartesian projections and statistics
         '''
         if verbose:
-            print "building line-of-sight cartesian projections"
+            print( "building line-of-sight cartesian projections" )
         self.los = dict()
 
         for ifo1, ifo2 in self.ifo_pairs:
             ifos = "%s%s"%(ifo1,ifo2)
             if verbose:
-                print "  %s - %s"%(ifo1, ifo2)
+                print( "  %s - %s"%(ifo1, ifo2) )
 
             t, p = triangulate.line_of_sight( ifo1, ifo2, coord='E' )
 
@@ -1328,7 +1330,7 @@ class multFITS(object):
             getColor = colors.getColor()
             for ind, fitsname in enumerate(self.fitsnames):
                 if verbose:
-                    print "      "+self.labels[fitsname]
+                    print( "      "+self.labels[fitsname] )
                 theta, phi = hp.pix2ang( self.fitsdata[fitsname]['nside'], np.arange(self.fitsdata[fitsname]['npix']) )
                 rtheta, rphi = triangulate.rotate2pole( theta, phi, t, p )
 
@@ -1357,7 +1359,7 @@ class multFITS(object):
             ### save
             figname = "%s_los-%s-%s%s.%s"%(self.label, ifo1, ifo2, self.tag, self.figtype)
             if verbose:
-                print "    "+figname
+                print( "    "+figname )
             self.los[ifos] = fig.saveAndUpload( figname )
 
             plt.close( fig.fig )
@@ -1369,7 +1371,7 @@ class multFITS(object):
         NOTE: we compute geometric overlaps of confidence regions in make_comparison because that standardized the location in which we upsample maps for comparisons
         '''
         if verbose:
-            print "analyzing confidence regions"
+            print( "analyzing confidence regions" )
 
         ### make confidence region figures!
         self.CR = dict()
@@ -1395,9 +1397,9 @@ class multFITS(object):
         getColor = colors.getColor()
         for ind, fitsname in enumerate(self.fitsnames):
             if verbose:
-                print "    "+self.labels[fitsname]
+                print( "    "+self.labels[fitsname] )
 
-            print "\nWARNING: may want to read in the json file with confidence regions instead of recomputing them...\n"
+            print( "\nWARNING: may want to read in the json file with confidence regions instead of recomputing them...\n" )
 
             maxDtheta = []
             modes     = []
@@ -1430,7 +1432,7 @@ class multFITS(object):
 
         figname = "%s_CRSize%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.CR['size'] = sizfig.saveAndUpload( figname )
 
         plt.close( sizfig.fig )
@@ -1443,7 +1445,7 @@ class multFITS(object):
 
         figname = "%s_CRMaxdTheta%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.CR['dTheta'] = mdtfig.saveAndUpload( figname )
 
         plt.close( mdtfig.fig )
@@ -1456,7 +1458,7 @@ class multFITS(object):
 
         figname = "%s_CRNumModes%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.CR['modes'] = numfig.saveAndUpload( figname )
 
         plt.close( numfig.fig )
@@ -1468,7 +1470,7 @@ class multFITS(object):
               the only comparison statistics that are not copmuted here involve the time-delay marginals, which are computed in make_dT
         '''
         if verbose:
-            print "computing comparison statistics"
+            print( "computing comparison statistics" )
         self.comp = dict()
 
         # conf region intersection
@@ -1613,7 +1615,7 @@ class multFITS(object):
         ### save json
         jsonname = "%s_compStats%s.js"%(self.label, self.tag)
         if verbose:
-            print "  "+jsonname
+            print( "  "+jsonname )
         self.jsComp = Json( self.comp,
                           self.output_dir,
                           self.output_url,
@@ -1632,7 +1634,7 @@ class multFITS(object):
 
         figname = "%s_CRIntersection%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['cri'] = cri_fig.saveAndUpload( figname )
 
         plt.close( cri_fig.fig )
@@ -1645,7 +1647,7 @@ class multFITS(object):
 
         figname = "%s_CRUnion%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['cru'] = cru_fig.saveAndUpload( figname )
 
         plt.close( cru_fig.fig )
@@ -1658,7 +1660,7 @@ class multFITS(object):
 
         figname = "%s_CRRatio%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['crr'] = crr_fig.saveAndUpload( figname )
 
         plt.close( crr_fig.fig )
@@ -1681,7 +1683,7 @@ class multFITS(object):
 
         figname = "%s_CRContained%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['crc'] = crc_fig.saveAndUpload( figname )
 
         plt.close( crc_fig.fig )
@@ -1694,7 +1696,7 @@ class multFITS(object):
 
         figname = "%s_AreaIntersection%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['ari'] = ari_fig.saveAndUpload( figname )
 
         plt.close( ari_fig.fig )
@@ -1707,7 +1709,7 @@ class multFITS(object):
 
         figname = "%s_AreaUnion%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['aru'] = aru_fig.saveAndUpload( figname )
 
         plt.close( aru_fig.fig )
@@ -1720,7 +1722,7 @@ class multFITS(object):
 
         figname = "%s_AreaRatio%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['arr'] = arr_fig.saveAndUpload( figname )
 
         plt.close( arr_fig.fig )
@@ -1743,7 +1745,7 @@ class multFITS(object):
 
         figname = "%s_AreaContained%s.%s"%(self.label, self.tag, self.figtype)
         if verbose:
-            print "  "+figname
+            print( "  "+figname )
         self.comp['arc'] = arc_fig.saveAndUpload( figname )
 
         plt.close( arc_fig.fig )
@@ -1754,7 +1756,7 @@ class multFITS(object):
         '''
         htmlname = os.path.join( self.output_dir, "%s-skymapComparison%s.html"%(self.label, self.tag) )
         if verbose:
-            print "  "+htmlname
+            print( "  "+htmlname )
         file_obj = open(htmlname, "w")
         file_obj.write( str(self) )
         file_obj.close()

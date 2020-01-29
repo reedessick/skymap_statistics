@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "snglFITShtml.py [--options] fits"
 description = "generates plots and statistics summarizing a FITS file, and writes html documents to display the results"
 author      = "reed.essick@ligo.org"
@@ -121,7 +124,7 @@ opts.ifo = sorted(opts.ifo)
 
 ### create plots and summary info for map
 if opts.verbose:
-    print "%s\n  outdir -> %s\n  outurl -> %s"%(fits, opts.output_dir, opts.output_url)
+    print( "%s\n  outdir -> %s\n  outurl -> %s"%(fits, opts.output_dir, opts.output_url) )
 
 #-------------------------------------------------
 
@@ -192,7 +195,7 @@ htmlname = snglfits.write( verbose=opts.verbose )
 ### upload to GraceDb
 if not opts.skip_gracedb_upload:
     if opts.verbose:
-        print "uploading %s to GraceDb(%s)"%(htmlname, opts.graceDbURL)
+        print( "uploading %s to GraceDb(%s)"%(htmlname, opts.graceDbURL) )
 
     gdb = GraceDb( opts.graceDbURL )
     gdbdir = os.path.join( opts.graceDbURL, '..', 'events', opts.graceid, 'files' )

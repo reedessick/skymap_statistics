@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "gracids2html.py [--options] config.ini"
 description = "creates a set of summary documents based on *all* FITS files attached to the GraceIDs specified. Does *not* upload the resulting documents automatically."
 author      = "reed.essick@ligo.org"
@@ -218,7 +221,7 @@ for graceid in opts.graceid:
         proc = sp.Popen(snglFITScmd, stderr=sp.PIPE)
         _, err = proc.communicate()
         if proc.returncode:
-            print err
+            print( err )
             raise NotImplementedError('snglFITS returncode=%d\n%s'%(proc.returncode, " ".join(snglFITScmd)))
 
 #------------------------
@@ -287,4 +290,4 @@ if opts.verbose:
 proc = sp.Popen(multFITScmd, stderr=sp.PIPE)
 _, err = proc.communicate()
 if proc.returncode:
-    print err
+    print( err )

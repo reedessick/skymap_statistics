@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+
+from __future__ import print_function
+
 usage       = "sanitycheck_maps.py [--options] label,fits label,fits label,fits ..."
 description = "generate some sanity checks based on basic triangulation"
 author      = "reed.essick@ligo.org"
@@ -72,24 +75,24 @@ if not opts.levels:
 
 ### read in maps
 if opts.verbose:
-    print "loading fits files:"
+    print( "loading fits files:" )
 maps = {}
 for arg in args:
     label, filename = arg.split(",")
     if opts.verbose:
-        print "    %s <- %s"%(label, filename)
+        print( "    %s <- %s"%(label, filename) )
     m = hp.read_map( filename, verbose=False )
     npix = len(m)
     nside = hp.npix2nside( npix )
     if opts.verbose:
-        print "        nside = %d"%(nside)
+        print( "        nside = %d"%(nside) )
     maps[label] = {"filename":filename, "map":m, "nside":nside, "npix":npix}
 
     if opts.mutualinformation:
         Nbins = max(100, int(npix**0.5/5))
         theta, phi = hp.pix2ang(nside, np.arange(npix))
         mi, entj = triangulate.compute_mi( theta, phi, Nbins, weights=m )
-        print "    mutualinformationDistance(%s) : %.6f"%(label, mi/entj)
+        print( "    mutualinformationDistance(%s) : %.6f"%(label, mi/entj) )
         maps[label].update( {'mutualinformation':mi/entj} )
 
 labels = sorted(maps.keys())
@@ -100,11 +103,11 @@ figind = 0
 
 ### line-of-sight
 if opts.verbose and len(opts.los):
-    print "line-of-sight"
+    print( "line-of-sight" )
 for opt in opts.los:
     ifo1, ifo2 = opt
     if opts.verbose:
-        print "    %s -> %s"%(ifo1, ifo2)
+        print( "    %s -> %s"%(ifo1, ifo2) )
 
     t, p = triangulate.line_of_sight( ifo1, ifo2, coord=opts.coord, tgeocent=opts.gps )
     if opts.coord=="C":
@@ -121,7 +124,7 @@ for opt in opts.los:
         figind += 1
 
         if opts.verbose:
-            print "        %s"%(label)
+            print( "        %s"%(label) )
         m = maps[label]['map']
         nside = maps[label]['nside']
         npix = maps[label]['npix']
@@ -135,7 +138,7 @@ for opt in opts.los:
 
         if opts.mutualinformation:
             mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
-            print "        mutualinformationDistance(%s) : %.6f"%(label, mi/entj)
+            print( "        mutualinformationDistance(%s) : %.6f"%(label, mi/entj) )
 
         ct.histogram2d( rtheta, rphi, ax, rproj, tproj, Nbins=Nbins, weights=m, log=opts.log, contour=opts.contour, color='b', cmap=opts.color_map, levels=opts.levels)
 
@@ -146,7 +149,7 @@ for opt in opts.los:
         for figtype in opts.figtype:
             figname = "%s/los-%s-%s_%s%s.%s"%(opts.output_dir, ifo1, ifo2, opts.tag, label, figtype)
             if opts.verbose:
-                print "        %s"%(figname)
+                print( "        %s"%(figname) )
             fig.savefig( figname, dpi=opts.dpi )
         plt.close( fig )
 
@@ -161,7 +164,7 @@ for opt in opts.los:
         for figtype in opts.figtype:
             figname = "%s/los-%s-%s_stacked%s.%s"%(opts.output_dir, ifo1, ifo2, opts.tag, figtype)
             if opts.verbose:
-                print "    %s"%(figname)
+                print( "    %s"%(figname) )
             stack_fig.savefig( figname, dpi=opts.dpi )
         plt.close( stack_fig )
 
@@ -169,10 +172,10 @@ for opt in opts.los:
 
 ### distance from zenith
 if opts.verbose and len(opts.zenith):
-    print "zenith"
+    print( "zenith" )
 for ifo in opts.zenith:
     if opts.verbose:
-        print "    %s"%(ifo)
+        print( "    %s"%(ifo) )
 
     t, p = triangulate.overhead( ifo, coord=opts.coord, tgeocent=opts.gps )
     if opts.coord=="C":
@@ -189,7 +192,7 @@ for ifo in opts.zenith:
         figind += 1
 
         if opts.verbose:
-            print "        %s"%(label)
+            print( "        %s"%(label) )
         m = maps[label]['map']
         nside = maps[label]['nside']
         npix = maps[label]['npix']
@@ -203,7 +206,7 @@ for ifo in opts.zenith:
 
         if opts.mutualinformation:
             mi, entj = triangulate.compute_mi( rtheta, rphi, Nbins, weights=m )
-            print "    mutualinformation(%s) : %.6f nats"%(label, mi/entj)
+            print( "    mutualinformation(%s) : %.6f nats"%(label, mi/entj) )
 
         ct.histogram2d( rtheta, rphi, ax, rproj, tproj, Nbins=Nbins, weights=m, log=opts.log, contour=opts.contour, color='b', cmap=opts.color_map, levels=opts.levels )
 
@@ -213,7 +216,7 @@ for ifo in opts.zenith:
         for figtype in opts.figtype:
             figname = "%s/zenith-%s_%s%s.%s"%(opts.output_dir, ifo, opts.tag, label, figtype)
             if opts.verbose:
-                print "        %s"%(figname)
+                print( "        %s"%(figname) )
             fig.savefig( figname, dpi=opts.dpi )
         plt.close( fig )
 
@@ -229,6 +232,6 @@ for ifo in opts.zenith:
         for figtype in opts.figtype:
             figname = "%s/zenith-%s_stacked%s.%s"%(opts.output_dir, ifo, opts.tag, figtype)
             if opts.verbose:
-                print "    %s"%(figname)
+                print( "    %s"%(figname) )
             stack_fig.savefig( figname, dpi=opts.dpi )
         plt.close( stack_fig )
