@@ -417,8 +417,8 @@ def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths
     indecies = np.argsort(post)[::-1]
     cpost[indecies] = np.cumsum(post[indecies])
 
-    plt.sca( ax )
     healpix_contour( cpost,
+                     ax,
                      levels=levels,
                      alpha=alpha,
                      colors=colors,

@@ -21,6 +21,7 @@ setup(
     data_files = [],
     package_data = {
         'skymap_statistics.PSDs': ['*.txt'],
+        'skymap_statistics.plotting': ['*.json'],
     },
     requires = [],
 )
