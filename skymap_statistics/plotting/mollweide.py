@@ -13,6 +13,7 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
+from matplotlib import patheffects
 
 ### non-standard libraries
 from skymap_statistics.detector_cache import detectors ### for detector arms
@@ -175,6 +176,13 @@ def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths
 #-------------------------------------------------
 
 ### adapted from lalinference (although the source code has since moved...)
+def outline_text(ax):
+    """If we are using a new enough version of matplotlib, then
+    add a white outline to all text to make it stand out from the background."""
+    effects = [patheffects.withStroke(linewidth=2, foreground='w')]
+    for artist in ax.findobj(text.Text):
+        artist.set_path_effects(effects)
+
 def _healpix_lookup(map, lon, lat, nest=False, dlon=0):
     """Look up the value of a HEALPix map in the pixel containing the point
     with the specified longitude and latitude."""
