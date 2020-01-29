@@ -11,9 +11,21 @@ import healpy as hp
 
 import matplotlib
 matplotlib.use("Agg")
+
+import distutils.version
+mpl_version = distutils.version.LooseVersion(matplotlib.__version__)
+
 from matplotlib import pyplot as plt
 plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
+
+from matplotlib.axes import Axes
+from matplotlib import text
+from matplotlib import ticker
+from matplotlib.ticker import Formatter, FixedLocator
 from matplotlib import patheffects
+from matplotlib.projections import projection_registry
+from matplotlib.projections.geo import MollweideAxes
+from matplotlib.transforms import Transform, Affine2D
 
 ### non-standard libraries
 from skymap_statistics.detector_cache import detectors ### for detector arms
@@ -25,6 +37,246 @@ axpos = [0.03, 0.03, 0.94, 0.94]
 
 twopi = 2*np.pi
 pi2 = 0.5*np.pi
+
+#-------------------------------------------------
+
+### adapted from lalinference (although the source code has since moved...)
+
+if mpl_version >= '1.3.0':
+    FixedMollweideAxes = MollweideAxes
+
+elif mpl_version < '1.2.0':
+    class FixedMollweideAxes(MollweideAxes):
+        """Patched version of matplotlib's Mollweide projection that implements a
+        correct inverse transform."""
+
+        name = 'fixed mollweide'
+
+        class FixedMollweideTransform(MollweideAxes.MollweideTransform):
+
+            def inverted(self):
+                return FixedMollweideAxes.InvertedFixedMollweideTransform(self._resolution)
+            inverted.__doc__ = Transform.inverted.__doc__
+
+        class InvertedFixedMollweideTransform(MollweideAxes.InvertedMollweideTransform):
+
+            def inverted(self):
+                return FixedMollweideAxes.FixedMollweideTransform(self._resolution)
+            inverted.__doc__ = Transform.inverted.__doc__
+
+            def transform(self, xy):
+                x = xy[:, 0:1]
+                y = xy[:, 1:2]
+
+                sqrt2 = np.sqrt(2)
+                sintheta = y / sqrt2
+                with np.errstate(invalid='ignore'):
+                    costheta = np.sqrt(1. - 0.5 * y * y)
+                longitude = 0.25 * sqrt2 * np.pi * x / costheta
+                latitude = np.arcsin(2 / np.pi * (np.arcsin(sintheta) + sintheta * costheta))
+                return np.concatenate((longitude, latitude), 1)
+            transform.__doc__ = Transform.transform.__doc__
+
+            transform_non_affine = transform
+
+        def _get_core_transform(self, resolution):
+            return self.FixedMollweideTransform(resolution)
+
+else:
+    class FixedMollweideAxes(MollweideAxes):
+        """Patched version of matplotlib's Mollweide projection that implements a
+        correct inverse transform."""
+
+        name = 'fixed mollweide'
+
+        class FixedMollweideTransform(MollweideAxes.MollweideTransform):
+
+            def inverted(self):
+                return FixedMollweideAxes.InvertedFixedMollweideTransform(self._resolution)
+            inverted.__doc__ = Transform.inverted.__doc__
+
+        class InvertedFixedMollweideTransform(MollweideAxes.InvertedMollweideTransform):
+
+            def inverted(self):
+                return FixedMollweideAxes.FixedMollweideTransform(self._resolution)
+            inverted.__doc__ = Transform.inverted.__doc__
+
+            def transform_non_affine(self, xy):
+                x = xy[:, 0:1]
+                y = xy[:, 1:2]
+
+                sqrt2 = np.sqrt(2)
+                sintheta = y / sqrt2
+                with np.errstate(invalid='ignore'):
+                    costheta = np.sqrt(1. - 0.5 * y * y)
+                longitude = 0.25 * sqrt2 * np.pi * x / costheta
+                latitude = np.arcsin(2 / np.pi * (np.arcsin(sintheta) + sintheta * costheta))
+                return np.concatenate((longitude, latitude), 1)
+            transform_non_affine.__doc__ = Transform.transform_non_affine.__doc__
+
+        def _get_core_transform(self, resolution):
+            return self.FixedMollweideTransform(resolution)
+
+class AstroDegreesMollweideAxes(FixedMollweideAxes):
+    """Mollweide axes with phi axis flipped and in degrees from 360 to 0
+    instead of in degrees from -180 to 180."""
+
+    name = 'astro degrees mollweide'
+
+    def cla(self):
+        super(AstroDegreesMollweideAxes, self).cla()
+        self.set_xlim(0, 2*np.pi)
+
+    def set_xlim(self, *args, **kwargs):
+        Axes.set_xlim(self, 0., 2*np.pi)
+        Axes.set_ylim(self, -np.pi / 2.0, np.pi / 2.0)
+
+    def _get_core_transform(self, resolution):
+        return Affine2D().translate(-np.pi, 0.) + super(AstroDegreesMollweideAxes, self)._get_core_transform(resolution)
+
+    def set_longitude_grid(self, degrees):
+        # Copied from matplotlib.geo.GeoAxes.set_longitude_grid and modified
+        super(AstroDegreesMollweideAxes, self).set_longitude_grid(degrees)
+        number = (360.0 / degrees) + 1
+        self.xaxis.set_major_locator(
+            FixedLocator(
+                np.linspace(0, 2*np.pi, number, True)[1:-1]))
+
+    def _set_lim_and_transforms(self):
+        # Copied from matplotlib.geo.GeoAxes._set_lim_and_transforms and modified
+        super(AstroDegreesMollweideAxes, self)._set_lim_and_transforms()
+
+        # This is the transform for latitude ticks.
+        yaxis_stretch = Affine2D().scale(np.pi * 2.0, 1.0)
+        yaxis_space = Affine2D().scale(-1.0, 1.1)
+        self._yaxis_transform = \
+            yaxis_stretch + \
+            self.transData
+        yaxis_text_base = \
+            yaxis_stretch + \
+            self.transProjection + \
+            (yaxis_space + \
+             self.transAffine + \
+             self.transAxes)
+        self._yaxis_text1_transform = \
+            yaxis_text_base + \
+            Affine2D().translate(-8.0, 0.0)
+        self._yaxis_text2_transform = \
+            yaxis_text_base + \
+            Affine2D().translate(8.0, 0.0)
+
+    def _get_affine_transform(self):
+        transform = self._get_core_transform(1)
+        xscale, _ = transform.transform_point((0, 0))
+        _, yscale = transform.transform_point((0, np.pi / 2.0))
+        return Affine2D() \
+            .scale(0.5 / xscale, 0.5 / yscale) \
+            .translate(0.5, 0.5)
+
+class AstroHoursMollweideAxes(AstroDegreesMollweideAxes):
+    """Mollweide axes with phi axis flipped and in hours from 24 to 0 instead of
+    in degrees from -180 to 180."""
+
+    name = 'astro mollweide'
+
+    class RaFormatter(Formatter):
+        # Copied from matplotlib.geo.GeoAxes.ThetaFormatter and modified
+        def __init__(self, round_to=1.0):
+            self._round_to = round_to
+
+        def __call__(self, x, pos=None):
+            hours = (x / np.pi) * 12.
+            hours = round(15 * hours / self._round_to) * self._round_to / 15
+            return r"%0.0f$^\mathrm{h}$" % hours
+
+    def set_longitude_grid(self, degrees):
+        super(AstroHoursMollweideAxes, self).set_longitude_grid(degrees)
+        self.xaxis.set_major_formatter(self.RaFormatter(degrees))
+
+### actually register custom projections
+
+projection_registry.register(FixedMollweideAxes)
+projection_registry.register(AstroDegreesMollweideAxes)
+projection_registry.register(AstroHoursMollweideAxes)
+
+#------------------------
+
+def outline_text(ax):
+    """If we are using a new enough version of matplotlib, then
+    add a white outline to all text to make it stand out from the background."""
+    effects = [patheffects.withStroke(linewidth=2, foreground='w')]
+    for artist in ax.findobj(text.Text):
+        artist.set_path_effects(effects)
+
+def _healpix_lookup(map, lon, lat, nest=False, dlon=0):
+    """Look up the value of a HEALPix map in the pixel containing the point
+    with the specified longitude and latitude."""
+    nside = hp.npix2nside(len(map))
+    return map[hp.ang2pix(nside, 0.5 * np.pi - lat, lon - dlon, nest=nest)]
+
+def healpix_heatmap(post, ax, *args, **kwargs):
+    """Produce a heatmap from a HEALPix map."""
+    mpl_kwargs = dict(kwargs)
+    dlon = mpl_kwargs.pop('dlon', 0)
+    nest = mpl_kwargs.pop('nest', False)
+
+    # Set up a regular grid tiling the bounding box of the axes.
+    x = np.arange(ax.bbox.x0, ax.bbox.x1 + 0.5, 0.5)
+    y = np.arange(ax.bbox.y0, ax.bbox.y1 + 0.5, 0.5)
+    xx, yy = np.meshgrid(x, y)
+
+    # Get axis data limits.
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+
+    # Retrieve the inverse transform of the current axes (which converts display
+    # coodinates to data coordinates).
+    itrans = ax.transData.inverted()
+
+    # Get the longitude and latitude of every point in the bounding box.
+    lons, lats = itrans.transform(np.column_stack((xx.ravel(), yy.ravel()))).T
+
+    # Create a mask that selects only the pixels that fall inside the map boundary.
+    mask = np.isfinite(lons) & np.isfinite(lats) & (lons >= xmin) & (lons <= xmax)
+    zz = np.ma.array(np.empty(lons.shape), mask=~mask)
+
+    # Evaluate the function everywhere that the mask is set.
+    zz[mask] = _healpix_lookup(post, lons[mask], lats[mask], nest=nest, dlon=dlon)
+
+    # Plot bitmap using imshow.
+    aximg = plt.imshow(zz.reshape(xx.shape), aspect=ax.get_aspect(),
+        origin='upper', extent=(xmin, xmax, ymax, ymin),
+        *args, **kwargs)
+
+    # Hide masked-out values by displaying them in transparent white.
+    aximg.cmap.set_bad('w', alpha=0.)
+
+    # Done.
+    return aximg
+
+def healpix_contour(post, ax, *args, **kwargs):
+    """Produce a contour plot from a HEALPix map."""
+    mpl_kwargs = dict(kwargs)
+    dlon = mpl_kwargs.pop('dlon', 0)
+    nest = mpl_kwargs.pop('nest', False)
+    filled = mpl_kwargs.pop('filled', False)
+
+    # Set up a regular grid tiling in right ascension and declination
+    x = np.linspace(*ax.get_xlim(), num=500)
+    y = np.linspace(*ax.get_ylim(), num=500)
+    xx, yy = np.meshgrid(x, y)
+
+    # Evaluate the function everywhere.
+    zz = _healpix_lookup(post, xx, yy, nest=nest, dlon=dlon)
+
+    # Add contour plot
+    if filled:
+        ax = plt.contourf(xx, yy, zz, *args, **kwargs)
+    else:
+        ax = plt.contour(xx, yy, zz, *args, **kwargs)
+
+    # Done.
+    return ax
 
 #-------------------------------------------------
 
@@ -172,86 +424,6 @@ def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths
                      colors=colors,
                      linewidths=linewidths,
                      filled=filled )
-
-#-------------------------------------------------
-
-### adapted from lalinference (although the source code has since moved...)
-def outline_text(ax):
-    """If we are using a new enough version of matplotlib, then
-    add a white outline to all text to make it stand out from the background."""
-    effects = [patheffects.withStroke(linewidth=2, foreground='w')]
-    for artist in ax.findobj(text.Text):
-        artist.set_path_effects(effects)
-
-def _healpix_lookup(map, lon, lat, nest=False, dlon=0):
-    """Look up the value of a HEALPix map in the pixel containing the point
-    with the specified longitude and latitude."""
-    nside = hp.npix2nside(len(map))
-    return map[hp.ang2pix(nside, 0.5 * np.pi - lat, lon - dlon, nest=nest)]
-
-def healpix_heatmap(post, ax, *args, **kwargs):
-    """Produce a heatmap from a HEALPix map."""
-    mpl_kwargs = dict(kwargs)
-    dlon = mpl_kwargs.pop('dlon', 0)
-    nest = mpl_kwargs.pop('nest', False)
-
-    # Set up a regular grid tiling the bounding box of the axes.
-    x = np.arange(ax.bbox.x0, ax.bbox.x1 + 0.5, 0.5)
-    y = np.arange(ax.bbox.y0, ax.bbox.y1 + 0.5, 0.5)
-    xx, yy = np.meshgrid(x, y)
-
-    # Get axis data limits.
-    xmin, xmax = ax.get_xlim()
-    ymin, ymax = ax.get_ylim()
-
-    # Retrieve the inverse transform of the current axes (which converts display
-    # coodinates to data coordinates).
-    itrans = ax.transData.inverted()
-
-    # Get the longitude and latitude of every point in the bounding box.
-    lons, lats = itrans.transform(np.column_stack((xx.ravel(), yy.ravel()))).T
-
-    # Create a mask that selects only the pixels that fall inside the map boundary.
-    mask = np.isfinite(lons) & np.isfinite(lats) & (lons >= xmin) & (lons <= xmax)
-    zz = np.ma.array(np.empty(lons.shape), mask=~mask)
-
-    # Evaluate the function everywhere that the mask is set.
-    zz[mask] = _healpix_lookup(post, lons[mask], lats[mask], nest=nest, dlon=dlon)
-
-    # Plot bitmap using imshow.
-    aximg = plt.imshow(zz.reshape(xx.shape), aspect=ax.get_aspect(),
-        origin='upper', extent=(xmin, xmax, ymax, ymin),
-        *args, **kwargs)
-
-    # Hide masked-out values by displaying them in transparent white.
-    aximg.cmap.set_bad('w', alpha=0.)
-
-    # Done.
-    return aximg
-
-def healpix_contour(post, ax, *args, **kwargs):
-    """Produce a contour plot from a HEALPix map."""
-    mpl_kwargs = dict(kwargs)
-    dlon = mpl_kwargs.pop('dlon', 0)
-    nest = mpl_kwargs.pop('nest', False)
-    filled = mpl_kwargs.pop('filled', False)
-
-    # Set up a regular grid tiling in right ascension and declination
-    x = np.linspace(*ax.get_xlim(), num=500)
-    y = np.linspace(*ax.get_ylim(), num=500)
-    xx, yy = np.meshgrid(x, y)
-
-    # Evaluate the function everywhere.
-    zz = _healpix_lookup(post, xx, yy, nest=nest, dlon=dlon)
-
-    # Add contour plot
-    if filled:
-        ax = plt.contourf(xx, yy, zz, *args, **kwargs)
-    else:
-        ax = plt.contour(xx, yy, zz, *args, **kwargs)
-
-    # Done.
-    return ax
 
 #-------------------------------------------------
 
