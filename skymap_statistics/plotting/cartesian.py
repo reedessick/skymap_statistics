@@ -115,7 +115,7 @@ def gen_limits(minX, maxX, minY, maxY, coord='C', degrees=False):
         minY, maxY = pi2 - np.array([maxY, minY]) ### change theta -> Dec
         
     else:
-        raise ValueError, 'coord=%s not understood'%coord
+        raise ValueError( 'coord=%s not understood'%coord )
 
     ### insure evertyhing wraps correctly
     if minX!=twopi:
@@ -285,7 +285,7 @@ def set_labels( ax, coord='C' ):
         ax.set_yticklabels(['$%.1f^\circ$'%((pi2-_)*rad2deg) for _ in ax.get_yticks()])
 
     else:
-        raise ValueError, 'coord=%s not understood'%coord
+        raise ValueError( 'coord=%s not understood'%coord )
 
 def annotate( ax, line_of_sight=[], line_of_sight_color='k', line_of_sight_fontsize=8, line_of_sight_markersize=2, zenith=[], zenith_color='k', zenith_fontsize=8, zenith_markersize=2, time_delay=[], time_delay_color='k', time_delay_alpha=1.0, time_delay_linestyle='solid', marker_Dec_RA=[], marker='o', marker_color='k', marker_size=4, marker_edgewidth=1, marker_alpha=1.0, continents=[], continents_color='k', continents_alpha=1.0, constellations=[], constellations_color='k', constellations_alpha=1.0, stars=[], stars_color='k', stars_alpha=1.0, arms=[], arms_color='k', arms_linewidth=1, arms_alpha=1.0, constellation_boundaries=[], constellation_boundaries_color='k', constellation_boundaries_alpha=1.0, constellation_centers=[], constellation_centers_color='k', constellation_centers_alpha=1.0, constellation_centers_fontsize=8 ):
     '''

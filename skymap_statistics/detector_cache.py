@@ -23,9 +23,9 @@ class PSD(object):
         len_freqs = len(freqs)
         self.n_freqs = len_freqs
         if len(psd) != len_freqs:
-            raise ValueError, "freqs and ps must have the same length"
+            raise ValueError( "freqs and ps must have the same length" )
         if not len_freqs:
-            raise ValueError, "freqs and psd must have at least 1 entries"
+            raise ValueError( "freqs and psd must have at least 1 entries" )
         elif len_freqs == 1:
             freqs = np.array(2*list(freqs))
             psd = np.array(2*list(psd))
@@ -38,7 +38,7 @@ class PSD(object):
     def update(self, psd, freqs=None):
         if freqs!=None:
             if len(freqs)!=len(psd):
-                raise ValueError, "len(freqs) != len(psd)"
+                raise ValueError( "len(freqs) != len(psd)" )
             self.freqs = freqs[:]
             self.psd = psd[:]
         else:
@@ -129,7 +129,7 @@ class Detector(object):
         if freqs==None:
             freqs = self.get_psd().get_freqs()
         if len(data) != len(freqs):
-            raise ValueError, "len(data)=%d != len(freqs)=%d"%(len(data), len(freqs))
+            raise ValueError( "len(data)=%d != len(freqs)=%d"%(len(data), len(freqs)) )
 
         return ( 4*np.sum((data.real**2+data.imag**2) / self.get_psd().interpolate(freqs))*(freqs[1]-freqs[0]) )**0.5 ### return SNR
 
