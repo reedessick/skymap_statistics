@@ -19,6 +19,8 @@ setup(
     scripts = glob.glob('bin/*'),
     packages = find_packages(),
     data_files = [],
-    package_data = {'skymap_statistics.PSDs': ['*.txt']},
+    package_data = {
+        'skymap_statistics.PSDs': ['*.txt'],
+    },
     requires = [],
 )

@@ -12,10 +12,6 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-try:
-        from lalinference import plot as lalinf_plot
-except:
-        raise StandardError("Could not import lalinference.plot")
 plt.rcParams.update({'font.family':'serif', 'text.usetex':True})
 
 ### non-standard libraries

@@ -12,10 +12,6 @@ import healpy as hp
 import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
-try:
-        from lalinference import plot as lalinf_plot
-except:
-        raise StandardError("Could not import lalinference.plot")
 plt.rcParams.update({'font.family':'serif', 'text.usetex':True })
 
 ### non-standard libraries
@@ -155,13 +151,12 @@ def heatmap( post, ax, color_map='OrRd', colorbar=False, colorbar_label='' ):
     '''
     generate mollweide projection of heatmap with requested annotations
     '''
-    plt.sca( ax )
-    lalinf_plot.healpix_heatmap( post, cmap=plt.get_cmap(color_map) ) ### is this buggy when projection=="mollweide"?
+    healpix_heatmap( post, ax, cmap=plt.get_cmap(color_map) ) ### is this buggy when projection=="mollweide"?
     if colorbar:
         cb = plt.colorbar(orientation='horizontal', fraction=0.15, pad=0.03, shrink=0.8) ### FIXME: hard-coded options are a bit fragile...
         cb.set_label(colorbar_label)
 
-def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1 ):
+def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths=1, filled=False ):
     '''
     generate mollweide projection of contours with requested annotations
     '''
@@ -170,11 +165,85 @@ def contour( post, ax, levels=[0.1, 0.5, 0.9], alpha=1.0, colors='b', linewidths
     cpost[indecies] = np.cumsum(post[indecies])
 
     plt.sca( ax )
-    lalinf_plot.healpix_contour( cpost,
-                                 levels=levels,
-                                 alpha=alpha,
-                                 colors=colors,
-                                 linewidths=linewidths )
+    healpix_contour( cpost,
+                     levels=levels,
+                     alpha=alpha,
+                     colors=colors,
+                     linewidths=linewidths,
+                     filled=filled )
+
+#-------------------------------------------------
+
+### adapted from lalinference (although the source code has since moved...)
+def _healpix_lookup(map, lon, lat, nest=False, dlon=0):
+    """Look up the value of a HEALPix map in the pixel containing the point
+    with the specified longitude and latitude."""
+    nside = hp.npix2nside(len(map))
+    return map[hp.ang2pix(nside, 0.5 * np.pi - lat, lon - dlon, nest=nest)]
+
+def healpix_heatmap(post, ax, *args, **kwargs):
+    """Produce a heatmap from a HEALPix map."""
+    mpl_kwargs = dict(kwargs)
+    dlon = mpl_kwargs.pop('dlon', 0)
+    nest = mpl_kwargs.pop('nest', False)
+
+    # Set up a regular grid tiling the bounding box of the axes.
+    x = np.arange(ax.bbox.x0, ax.bbox.x1 + 0.5, 0.5)
+    y = np.arange(ax.bbox.y0, ax.bbox.y1 + 0.5, 0.5)
+    xx, yy = np.meshgrid(x, y)
+
+    # Get axis data limits.
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+
+    # Retrieve the inverse transform of the current axes (which converts display
+    # coodinates to data coordinates).
+    itrans = ax.transData.inverted()
+
+    # Get the longitude and latitude of every point in the bounding box.
+    lons, lats = itrans.transform(np.column_stack((xx.ravel(), yy.ravel()))).T
+
+    # Create a mask that selects only the pixels that fall inside the map boundary.
+    mask = np.isfinite(lons) & np.isfinite(lats) & (lons >= xmin) & (lons <= xmax)
+    zz = np.ma.array(np.empty(lons.shape), mask=~mask)
+
+    # Evaluate the function everywhere that the mask is set.
+    zz[mask] = _healpix_lookup(post, lons[mask], lats[mask], nest=nest, dlon=dlon)
+
+    # Plot bitmap using imshow.
+    aximg = plt.imshow(zz.reshape(xx.shape), aspect=ax.get_aspect(),
+        origin='upper', extent=(xmin, xmax, ymax, ymin),
+        *args, **kwargs)
+
+    # Hide masked-out values by displaying them in transparent white.
+    aximg.cmap.set_bad('w', alpha=0.)
+
+    # Done.
+    return aximg
+
+def healpix_contour(post, ax, *args, **kwargs):
+    """Produce a contour plot from a HEALPix map."""
+    mpl_kwargs = dict(kwargs)
+    dlon = mpl_kwargs.pop('dlon', 0)
+    nest = mpl_kwargs.pop('nest', False)
+    filled = mpl_kwargs.pop('filled', False)
+
+    # Set up a regular grid tiling in right ascension and declination
+    x = np.linspace(*ax.get_xlim(), num=500)
+    y = np.linspace(*ax.get_ylim(), num=500)
+    xx, yy = np.meshgrid(x, y)
+
+    # Evaluate the function everywhere.
+    zz = _healpix_lookup(post, xx, yy, nest=nest, dlon=dlon)
+
+    # Add contour plot
+    if filled:
+        ax = plt.contourf(xx, yy, zz, *args, **kwargs)
+    else:
+        ax = plt.contour(xx, yy, zz, *args, **kwargs)
+
+    # Done.
+    return ax
 
 #-------------------------------------------------
 
@@ -303,7 +372,7 @@ def gen_continents( coord='C', gps=None ):
     '''
     extract the little line segments needed to plot continents and ensure they're all in the correct coordinate system
     '''
-    geojson_filename = os.path.join(os.path.dirname(lalinf_plot.__file__), 'ne_simplified_coastline.json')
+    geojson_filename = os.path.join(os.path.dirname(__file__), 'ne_simplified_coastline.json')
     file_obj = open(geojson_filename, 'r')
     geojson = json.load(file_obj)
     file_obj.close()
