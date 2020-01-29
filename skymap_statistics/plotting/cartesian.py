@@ -1,4 +1,4 @@
-description = "a module that houses convenient functions for plotting skymaps and skymap-related things, focusing on mollweide projections"
+description = "a module that houses convenient functions for plotting skymaps and skymap-related things, focusing on cartesian projections"
 author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
