@@ -17,7 +17,6 @@ from optparse import OptionParser
 from skymap_statistics.plotting import mollweide as mw
 from skymap_statistics.plotting import cartesian as ct
 plt = ct.plt
-lalinf_plot = mw.lalinf_plot
 from skymap_statistics.plotting import colors
 
 #================================================-
@@ -316,7 +315,7 @@ for label in labels:
         ax.set_alpha(0.)
 
     if opts.outline_labels:
-        lalinf_plot.outline_text(ax)
+        mw.outline_text(ax)
 
     if opts.no_ticklabels:
         plt.setp(ax.get_xticklabels(), visible=False)
@@ -364,7 +363,7 @@ if opts.stack_posteriors:
         stack_ax.set_alpha(0.)
 
     if opts.outline_labels:
-        lalinf_plot.outline_text(stack_ax)
+        mw.outline_text(stack_ax)
 
     if opts.no_ticklabels:
         plt.setp(ax.get_xticklabels(), visible=False)
