@@ -23,9 +23,10 @@ from matplotlib import text
 from matplotlib import ticker
 from matplotlib.ticker import Formatter, FixedLocator
 from matplotlib import patheffects
-from matplotlib.projections import projection_registry
+#from matplotlib.projections.__init__ import projection_registry
 from matplotlib.projections.geo import MollweideAxes
 from matplotlib.transforms import Transform, Affine2D
+from matplotlib.projections import register_projection
 
 ### non-standard libraries
 from skymap_statistics.detector_cache import detectors ### for detector arms
@@ -140,7 +141,7 @@ class AstroDegreesMollweideAxes(FixedMollweideAxes):
         number = (360.0 / degrees) + 1
         self.xaxis.set_major_locator(
             FixedLocator(
-                np.linspace(0, 2*np.pi, number, True)[1:-1]))
+                np.linspace(0, 2*np.pi, int(number), True)[1:-1]))
 
     def _set_lim_and_transforms(self):
         # Copied from matplotlib.geo.GeoAxes._set_lim_and_transforms and modified
@@ -195,9 +196,14 @@ class AstroHoursMollweideAxes(AstroDegreesMollweideAxes):
 
 ### actually register custom projections
 
-projection_registry.register(FixedMollweideAxes)
-projection_registry.register(AstroDegreesMollweideAxes)
-projection_registry.register(AstroHoursMollweideAxes)
+#projection_registry.register(FixedMollweideAxes)
+#projection_registry.register(AstroDegreesMollweideAxes)
+#projection_registry.register(AstroHoursMollweideAxes)
+
+
+register_projection(FixedMollweideAxes)
+register_projection(AstroDegreesMollweideAxes)
+register_projection(AstroHoursMollweideAxes)
 
 #------------------------
 
@@ -265,7 +271,7 @@ def healpix_contour(post, ax, *args, **kwargs):
     x = np.linspace(*ax.get_xlim(), num=500)
     y = np.linspace(*ax.get_ylim(), num=500)
     xx, yy = np.meshgrid(x, y)
-
+    
     # Evaluate the function everywhere.
     zz = _healpix_lookup(post, xx, yy, nest=nest, dlon=dlon)
 
