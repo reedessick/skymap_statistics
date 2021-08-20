@@ -27,6 +27,8 @@ parser.add_option("-d", "--degrees", default=False, action="store_true")
 parser.add_option("-r", "--rankmap", default=False, action="store_true", help="make comparisons with rankmaps instead of probability maps")
 
 parser.add_option("", "--dMAP", default=False, action="store_true", help="compute the angular separation between maximum a posteriori points")
+parser.add_option("", "--dMAP-cm", default=False, action="store_true", help="compute the angular separation between the maximum a posteriori point and the center of mass of the posterior")
+
 
 parser.add_option("", "--fidelity", default=False, action="store_true", help="compute the fidelity between maps")
 parser.add_option("", "--joint-entropy", default=False, action="store_true", help="compute joint entropy between maps")
@@ -64,7 +66,7 @@ if opts.degrees:
     angle_conversion = 180/np.pi
 else:
     unit = "radians"
-    areaunit = "stradians"
+    areaunit = "steradians"
     angle_conversion = 1.0
 
 #==========================================================
@@ -137,7 +139,21 @@ for ind, label1 in enumerate(labels):
             t1, p1 = d1['estang']
             t2, p2 = d2['estang']
             messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
+        
+        if opts.dMAP_cm:
+            if opts.Verbose:
+                print( "        dMAP_cm" )
+            t1, p1 = d1['estang']
+            t1c, p1c = stats.center_of_mass(post1)
+            t2, p2 = d2['estang']
+            t2c, p2c = stats.center_of_mass(post2)
+            header = "dtheta_cm_max"
+            header_2 = "dtheta_cm"
+            messages.append("%s : %.3f %s"%(header2, angle_conversion*np.arccos(stats.cos_dtheta(t1c, p1c, t2c, p2c, safe=True)), unit) )
+            messages.append("%s : %s = %.3f %s"%(header, label1, angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t1c, p1c, safe=True)), unit) )
+            messages.append("%s : %s = %.3f %s"%(header, label2, angle_conversion*np.arccos(stats.cos_dtheta(t2, p2, t2c, p2c, safe=True)), unit) )
 
+        
         if opts.fidelity:
             if opts.Verbose:
                 print( "        fidelity" )
@@ -171,7 +187,7 @@ for ind, label1 in enumerate(labels):
         if opts.structural_similarity:
             if opts.Verbose:
                 print( "        structural_similarity" )
-            messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.min(np.mean(post1),np.mean(post2)), c2=0.01*np.min(np.var(post1), np.var(post2)) ) )
+            messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.minimum(np.mean(post1),np.mean(post2)), c2=0.01*np.minimum(np.var(post1), np.var(post2)) ) )
 
         if opts.pearson:
             if opts.Verbose:
