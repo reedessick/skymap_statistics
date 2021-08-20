@@ -1,0 +1,2 @@
+Install Html package to your virtual environment. This package is different from the pre-installed html Python package.
+Use "tar -xvzf Html-1.16.tar.gz" to unzip the file.
