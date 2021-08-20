@@ -18,7 +18,6 @@ from optparse import OptionParser
 from skymap_statistics import fits2html
 
 from ligo.gracedb.rest import GraceDb
-
 #-------------------------------------------------
 
 parser = OptionParser(usage=usage, description=description)
