@@ -195,12 +195,6 @@ class AstroHoursMollweideAxes(AstroDegreesMollweideAxes):
         self.xaxis.set_major_formatter(self.RaFormatter(degrees))
 
 ### actually register custom projections
-
-#projection_registry.register(FixedMollweideAxes)
-#projection_registry.register(AstroDegreesMollweideAxes)
-#projection_registry.register(AstroHoursMollweideAxes)
-
-
 register_projection(FixedMollweideAxes)
 register_projection(AstroDegreesMollweideAxes)
 register_projection(AstroHoursMollweideAxes)
