@@ -29,7 +29,7 @@ def getIFOColor( ifo ):
     returns a specific color for each known IFO.
     if IFO is not know, the default is 'k'
     '''
-    if ifoColors.has_key(ifo):
+    if ifo in ifoColors:
         return ifoColors[ifo]
     else:
         return 'k'
