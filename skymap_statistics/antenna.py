@@ -43,12 +43,12 @@ def antenna_patterns(theta, phi, psi, nx, ny, freqs=None, dt=0.0, dr=None):
     Fp = np.zeros((n_pix,),float)
     Fx = np.zeros((n_pix,),float)
 
-    for i in xrange(3):
+    for i in range(3):
         nx_i = nx[i]
         ny_i = ny[i]
         Xi = X[i]
         Yi = Y[i]
-        for j in xrange(3):
+        for j in range(3):
             Xj = X[j]
             Yj = Y[j]
             Dij = 0.5*(nx_i*nx[j] - ny_i*ny[j])
