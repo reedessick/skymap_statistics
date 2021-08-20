@@ -4,9 +4,6 @@ description = "a module that houses classes that write html structures for fits2
 author      = "reed.essick@ligo.org"
 
 #-------------------------------------------------
-
-from Html import HTML #install the "Html" package from this repository. Note that this "Html" package is different from the pre-installed "html" package in Python.
-
 import getpass
 
 import os
