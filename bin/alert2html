@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "alert2html.py [--options] config.ini"
 description = "an lvalert_listen interface to generate and upload html summaries of FITS files"
 author      = "reed.essick@ligo.org"
