@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "compare_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several comparison statistics for the FITs files provided. Computes comparison statistics for all possible pairings (downsampling the finner resolution map if needed)"
 author      = "reed.essick@ligo.org"
@@ -139,7 +137,9 @@ for ind, label1 in enumerate(labels):
             t1, p1 = d1['estang']
             t2, p2 = d2['estang']
             messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
-        
+
+'''
+	### it does not seem to work properly. Needs to think about the calculations.
         if opts.dMAP_cm:
             if opts.Verbose:
                 print( "        dMAP_cm" )
@@ -152,7 +152,7 @@ for ind, label1 in enumerate(labels):
             messages.append("%s : %.3f %s"%(header2, angle_conversion*np.arccos(stats.cos_dtheta(t1c, p1c, t2c, p2c, safe=True)), unit) )
             messages.append("%s : %s = %.3f %s"%(header, label1, angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t1c, p1c, safe=True)), unit) )
             messages.append("%s : %s = %.3f %s"%(header, label2, angle_conversion*np.arccos(stats.cos_dtheta(t2, p2, t2c, p2c, safe=True)), unit) )
-
+'''
         
         if opts.fidelity:
             if opts.Verbose:
