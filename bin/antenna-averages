@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "anteanna_averages.py [--options] FITS"
 description = "a simple script that computes averages of a few antenna pattern things. Relies on bayesburst code"
 author      = "R. Essick (reed.essick@ligo.org)"
