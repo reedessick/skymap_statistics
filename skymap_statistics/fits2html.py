@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 description = "a module that houses classes that write html structures for fits2html.py and friends. NOTE: there's a lot of ~repeated code between snglFITS and multFITS which could possibly be unified somehow. Something to think about..."
 author      = "reed.essick@ligo.org"
 
