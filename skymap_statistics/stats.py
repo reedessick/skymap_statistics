@@ -16,7 +16,7 @@ def cos_dtheta(theta1, phi1, theta2, phi2, safe=False):
 		we check to make sure that numerical error doesn't put out outside the range of cosine
 	"""
 	cosdtheta = np.cos(theta1)*np.cos(theta2) + np.sin(theta1)*np.sin(theta2)*np.cos(phi1-phi2)
-	
+
 	if safe:
 		if isinstance(cosdtheta, np.ndarray):
 			cosdtheta[cosdtheta<-1] = -1
@@ -26,7 +26,6 @@ def cos_dtheta(theta1, phi1, theta2, phi2, safe=False):
 				cosdtheta = -1
 			elif cosdtheta > 1:
 				cosdtheta = 1
-	
 	return cosdtheta
 
 #=================================================
@@ -153,9 +152,7 @@ def min_cos_dtheta(posterior, theta, phi, nside=None, nest=False, safe=False):
 	ipix = hp.ang2pix(nside, theta, phi, nest=nest)
 	## get all ang included in this area
 	thetas, phis = hp.pix2ang(nside, np.arange(len(posterior))[posterior >= posterior[ipix]])
-	
 	t, p = estang(posterior)
-	
 	return np.min(cos_dtheta(thetas, phis, t, p, safe=safe))
 
 ###
@@ -180,7 +177,7 @@ def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
 	computes the maximum angular separation between any two pixels within pix=[ipix,ipix,...]
 	does this with a boarder-to-boarder search after checking some other things
 	this could be in error up to the pixel size (hopefully small)
-	
+
 	This algorithm is due in part to Antonios Kontos, who helped Reed Essick think through the details
 	"""
 	Npix = len(pix)
@@ -197,7 +194,6 @@ def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
 	                                                            ### reflection accomplished in cartesian coords
 	if np.sum( selected*antipodes ): ### point and it's antipode are in the set
 		return -1 ### could be in error by the pixel size...
-	
 	### boarder-to-boarder search
 	boarder_pix = []
 	for bpix in __into_boarders( nside, pix, nest=nest ):
@@ -270,36 +266,28 @@ def __into_modes(nside, pix, nest=False):
 	"""
 	### establish an array representing the included pixels
 	npix = hp.nside2npix(nside)
-	
 	truth = np.zeros((npix,),bool)
 	truth[pix] = True
-	
 	pixnums = np.arange(npix) ### convenient array we establish once
-	
 	modes = []
 	while truth.any():
 		ipix = pixnums[truth][0] ### take the first pixel
 		truth[ipix] = False ### remove it from the global set
 		mode = [ipix]
 		to_check = [ipix] ### add it to the list of things to check
-		
 		while len(to_check): # there are pixels in this mode we have to check
 			ipix = to_check.pop() # take one pixel from those to be checked.
-			
 			for neighbour in hp.get_all_neighbours(nside, ipix, nest=nest):# get neighbors as rtheta, rphi
-				
 				if neighbour == -1: ### when neighbour == -1, there is no corresponding pixel in this direction
 					pass
 				# try to find pixel in skymap
 				elif truth[neighbour]: ### pixel in the set and has not been visited before
 					truth[neighbour] = False ### remove neighbour from global set
-#					truth[neighbour] = 0 ### remove neighbour from global set
 					mode.append( neighbour ) ### add to this mode
 					to_check.append( neighbour ) ### add to list of things to check
 				else: ### pixel not in the set or has been visited before
 					pass 
 		modes.append( mode )
-	
 	return modes
 
 ###
@@ -405,7 +393,6 @@ def symmetric_KLdivergence_walk( posterior1, posterior2, base=2.0, nside=False, 
 		posterior1 = resample(posterior1, nside, nest=nest)
 		posterior2 = resample(posterior2, nside, nest=nest)
 		symKL = symmetric_KLdivergence( posterior1, posterior2, base=base )
-		
 	return symKL, nside
 
 ###
@@ -487,10 +474,11 @@ def twoPt_fitsfits(posterior1, posterior2, Nsamp=101):
 	nside1 = hp.npix2nside(npix1)
 	npix2 = len(posterior2)
 	nside2 = hp.npix2nside(npix2)
+
 	pixarea1 = hp.nside2pixarea(nside1)
 	pixarea2 = hp.nside2pixarea(nside2)
 	kde_bandwidth = (pixarea1+pixarea2) ### variance of KDE Gaussian
-	
+
         ### delegate!
 	return twoPt_tabletable(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
@@ -508,11 +496,11 @@ def twoPt_fitsfits_fast(posterior1, posterior2, Nsamp=101):
 	nside1 = hp.npix2nside(npix1)
 	npix2 = len(posterior2)
 	nside2 = hp.npix2nside(npix2)
-	
+
 	pixarea1 = hp.nside2pixarea(nside1)
 	pixarea2 = hp.nside2pixarea(nside2)
 	kde_bandwidth = (pixarea1+pixarea2)
-	
+
 	### delegate!
 	return twoPt_tabletable_fast(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
@@ -527,7 +515,7 @@ def twoPt_fitstable(posterior, table, Nsamp=101):
 	npix = len(posterior)
 	nside = hp.npix2nside(npix)
 	kde_bandwidth = hp.nside2pixarea(nside)
-	
+
 	### delegate!
 	return twoPt_tabletable(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
@@ -537,15 +525,15 @@ def twoPt_fitstable_fast(posterior, table, Nsamp=101):
 	estimates the 2-pt correlation function between 2 posteriors
 	assumes "posterior" is a HEALPix all-sky map and "table" is a tabular data format
 	table must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
-	
+
 	WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
 	"""
 	### extract parameters from the maps to set up iteration
 	npix = len(posterior)
 	nside = hp.npix2nside(npix)
-	
+
 	kde_bandwidth = hp.nside2pixarea(nside)
-	
+
 	### delegate!
 	return twoPt_tabletable_fast(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
@@ -555,16 +543,16 @@ def twoPt_tabletable(table1, table2, kde_bandwidth=1.0, Nsamp=101):
 	estimate the 2-pt correlation function between 2 posteriors
 	assumes both are tabular data formats
 	tables must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
-	
+
 	kde_bandwidth is the vairance used in the Gaussian KDE
 	"""
 	N = (2*np.pi*kde_bandwidth)**-0.5
 	n = 0.5/kde_bandwidth
-	
+
 	### set up iteration
 	theta = np.linspace(0, np.pi, Nsamp)
 	count = np.zeros_like(theta, dtype=float)
-	
+
 	for t1, p1, post1 in table1:
 		cosT1 = np.cos(t1)
 		sinT1 = np.sin(t1)
@@ -576,31 +564,29 @@ def twoPt_tabletable(table1, table2, kde_bandwidth=1.0, Nsamp=101):
 ###
 def twoPt_tabletable_fast(table1, table2, kde_bandwidth=1.0, Nsamp=101):
 	"""
-	estimate the 2-pt correlation function between 2 posteriors
-	assumes both are tabular data formats
-	tables must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
-	
-	kde_bandwidth is the variance used in the Gaussian KDE
-	
-	WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
+        estimate the 2-pt correlation function between 2 posteriors
+        assumes both are tabular data formats
+        tables must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
+
+        kde_bandwidth is the variance used in the Gaussian KDE
+        WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
 	"""
 	### set up array indexing
 	t1, p1, posterior1 = table1.transpose()
 	t2, p2, posterior2 = table2.transpose()
-	
+
 	IND1, IND2 = np.meshgrid(np.arange(len(t1)), np.arange(len(t2)))
 	IND1 = IND1.flatten()
 	IND2 = IND2.flatten()
-	
+
 	### compute angular separation between all pairs of points
 	dTheta = np.arccos( cos_dtheta(t1[IND1], p1[IND1], t2[IND2], p2[IND2]) )
-	
+
 	### compute sampling via KDE
 	theta = np.linspace(0, np.pi, Nsamp)
-	
+
 	kernal = (2*np.pi*kde_bandwidth)**-0.5 * np.exp(-0.5*(np.outer(dTheta, np.ones_like(theta)) - np.outer(np.ones_like(dTheta), theta))**2/kde_bandwidth)
 	weights = np.outer(posterior1[IND1]*posterior2[IND2], np.ones_like(theta))
-	
 	count = np.sum(kernal * weights, axis=0) ### sum over all pixel pairs
 	
 	return theta, count
