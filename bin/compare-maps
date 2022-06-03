@@ -129,7 +129,7 @@ for ind, label1 in enumerate(labels):
             print( "    pixarea : %.6f %s"%(pixarea, areaunit) )
 
         messages = []
-	
+
         ### compute statistics
         if opts.dMAP:
             if opts.Verbose:
@@ -137,7 +137,7 @@ for ind, label1 in enumerate(labels):
             t1, p1 = d1['estang']
             t2, p2 = d2['estang']
             messages.append( "dtheta_MAP : %.5f %s"%(angle_conversion*np.arccos(stats.cos_dtheta(t1, p1, t2, p2, safe=True)), unit) )
-        
+
         if opts.fidelity:
             if opts.Verbose:
                 print( "        fidelity" )
