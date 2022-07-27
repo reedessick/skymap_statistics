@@ -25,8 +25,6 @@ parser.add_option("-d", "--degrees", default=False, action="store_true")
 parser.add_option("-r", "--rankmap", default=False, action="store_true", help="make comparisons with rankmaps instead of probability maps")
 
 parser.add_option("", "--dMAP", default=False, action="store_true", help="compute the angular separation between maximum a posteriori points")
-parser.add_option("", "--dMAP-cm", default=False, action="store_true", help="compute the angular separation between the maximum a posteriori point and the center of mass of the posterior")
-
 
 parser.add_option("", "--fidelity", default=False, action="store_true", help="compute the fidelity between maps")
 parser.add_option("", "--joint-entropy", default=False, action="store_true", help="compute joint entropy between maps")
