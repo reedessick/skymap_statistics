@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "gracids2html.py [--options] config.ini"
 description = "creates a set of summary documents based on *all* FITS files attached to the GraceIDs specified. Does *not* upload the resulting documents automatically."
 author      = "reed.essick@ligo.org"

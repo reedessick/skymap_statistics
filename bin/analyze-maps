@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "analyze_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several descriptive statistics about the maps provided"
 author      = "reed.essick@ligo.org"

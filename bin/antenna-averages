@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "anteanna_averages.py [--options] FITS"
 description = "a simple script that computes averages of a few antenna pattern things. Relies on bayesburst code"
 author      = "R. Essick (reed.essick@ligo.org)"
@@ -17,7 +15,7 @@ from optparse import OptionParser
 
 ### non-standard libraries
 from skymap_statistics import detector_cache
-from skymap_statitics import antenna
+from skymap_statistics import antenna
 
 #-------------------------------------------------
 
@@ -67,7 +65,7 @@ for ifo in opts.observatory:
     else:
         new_fitsname = None
 
-    if not detector_cache.detectors.has_key(ifo):
+    if ifo not in detector_cache.detectors:
         raise ValueError('ifo=%s not understood'%ifo)
     MAP, AVE = antenna.summarize( post, detector_cache.detectors[ifo], coord=opts.coord, gps=opts.gps, fitsname=new_fitsname )
 

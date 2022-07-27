@@ -26,7 +26,6 @@ def cos_dtheta(theta1, phi1, theta2, phi2, safe=False):
 				cosdtheta = -1
 			elif cosdtheta > 1:
 				cosdtheta = 1
-
 	return cosdtheta
 
 #=================================================
@@ -35,17 +34,17 @@ def cos_dtheta(theta1, phi1, theta2, phi2, safe=False):
 #
 #=================================================
 def rankmap(posterior, npix=None, normed=True):
-        """
-        converts a posterior into a rank map. Small ranks correspond to large posterior weight
-        WARNING: rankmaps do not sum to unity!
-        """
+	"""
+	converts a posterior into a rank map. Small ranks correspond to large posterior weight
+	WARNING: rankmaps do not sum to unity!
+	"""
 	if not npix:
-	        npix = len(posterior)
-        rankmap = np.empty(npix,int)
-        rankmap[posterior.argsort()] = np.arange(npix)[::-1]
-        if normed:
-            rankmap /= 1.0*npix
-        return rankmap
+		npix = len(posterior)
+	rankmap = np.empty(npix,int)
+	rankmap[posterior.argsort()] = np.arange(npix)[::-1]
+	if normed:
+		rankmap /= 1.0*npix
+	return rankmap
 
 ###
 def resample(posterior, new_nside, nest=False):
@@ -62,12 +61,12 @@ def __to_cumulative(posterior):
 	returns a map corresponding to cumulative probabilities at each pixel
 	assumes ``greedy binning'' algorithm
 	"""
-        ranking = posterior.argsort()[::-1] ### find out ordering
-        cum = np.empty_like(posterior)
-        cum[ranking] = np.cumsum( posterior[ranking] ) ### and assign it to the correct indecies within cum
-        return cum
- 
-        ### this looks really slow...
+	ranking = posterior.argsort()[::-1] ### find out ordering
+	cum = np.empty_like(posterior)
+	cum[ranking] = np.cumsum( posterior[ranking] ) ### and assign it to the correct indecies within cum
+	return cum
+ 	
+	### this looks really slow...
 #	cum = np.zeros_like( posterior )
 #	c = 0.0
 #	for i in posterior.argsort()[::-1]:
@@ -111,6 +110,21 @@ def estang(posterior, nside=None):
 	return hp.pix2ang(nside, posterior.argmax())
 
 ###
+def center_of_mass(posterior, nside = None):
+        """
+        returns the position associated with the center of mass of the posterior
+        """
+        cm_theta = 0
+        cm_phi = 0
+        if not nside:
+                nside = hp.npix2nside(len(posterior))
+        idex = np.arange(0, len(posterior))
+        theta, phi = hp.pix2ang(nside, idex)
+        cm_theta = sum(theta * posterior[idex])
+        cm_phi = sum(phi * posterior[idex])
+        return cm_theta, cm_phi
+	
+###
 def searched_area(posterior, theta, phi, nside=None, nest=False, degrees=False):
 	"""
 	computes the searched area given a location
@@ -138,9 +152,7 @@ def min_cos_dtheta(posterior, theta, phi, nside=None, nest=False, safe=False):
 	ipix = hp.ang2pix(nside, theta, phi, nest=nest)
 	## get all ang included in this area
 	thetas, phis = hp.pix2ang(nside, np.arange(len(posterior))[posterior >= posterior[ipix]])
-
 	t, p = estang(posterior)
-
 	return np.min(cos_dtheta(thetas, phis, t, p, safe=safe))
 
 ###
@@ -151,7 +163,7 @@ def min_all_cos_dtheta(pix, nside, nest=False, safe=False):
 	"""
 	min_c = 1.0
 	thetas, phis = hp.pix2ang(nside, pix)
-	for i, (t1, p1) in enumerate(zip(thetas, phis)[:-1]):
+	for i, (t1, p1) in enumerate(list(zip(thetas, phis))[:-1]):
 		t2 = thetas[i+1:] 
 		p2 = phis[i+1:]
 		c = np.amin(cos_dtheta(t1,p1,t2,p2,safe=safe))
@@ -182,7 +194,6 @@ def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
 	                                                            ### reflection accomplished in cartesian coords
 	if np.sum( selected*antipodes ): ### point and it's antipode are in the set
 		return -1 ### could be in error by the pixel size...
-
 	### boarder-to-boarder search
 	boarder_pix = []
 	for bpix in __into_boarders( nside, pix, nest=nest ):
@@ -190,48 +201,42 @@ def min_all_cos_dtheta_fast(pix, nside, nest=False, safe=False):
 	return min_all_cos_dtheta( boarder_pix, nside, nest=nest, safe=False )
 
 def __into_boarders(nside, pix, nest=False):
-        """
-        extracts the boarder from the list of pixels (pix)
-        """
-        ### establish an array representing the included pixels
-        npix = hp.nside2npix(nside)
-
-        truth = np.zeros((npix,), bool)
-        truth[pix] = True
-
-        abstruth = np.zeros((npix,), bool) ### need completely separate object, not just a pointer
-        abstruth[pix] = True
-
-        pixnums = np.arange(npix) ### convenient array we establish once
-
-        boarders = []
-        while truth.any():
-                ipix = pixnums[truth][0] ### take the first pixel
-                truth[ipix] = False ### remove it from the global set
-                boarder = []
-                to_check = [ipix] ### add it to the list of things to check
-
-                while len(to_check): # there are pixels in this mode we have to check
-                        ipix = to_check.pop() # take one pixel from those to be checked.
+	"""
+	extracts the boarder from the list of pixels (pix)
+	"""
+	### establish an array representing the included pixels
+	npix = hp.nside2npix(nside)
+	truth = np.zeros((npix,), bool)
+	truth[pix] = True
+	abstruth = np.zeros((npix,), bool) ### need completely separate object, not just a pointer
+	abstruth[pix] = True
+	pixnums = np.arange(npix) ### convenient array we establish once
+	boarders = []
+	while truth.any():
+		ipix = pixnums[truth][0] ### take the first pixel
+		truth[ipix] = False ### remove it from the global set
+		boarder = []
+		to_check = [ipix] ### add it to the list of things to check
+		
+		while len(to_check): # there are pixels in this mode we have to check
+			ipix = to_check.pop() # take one pixel from those to be checked.
 			isinterior = True
-                        for neighbour in hp.get_all_neighbours(nside, ipix, nest=nest):# get neighbors as rtheta, rphi
-
-                                if neighbour == -1: ### when neighbour == -1, there is no corresponding pixel in this direction
-                                        pass
+			for neighbour in hp.get_all_neighbours(nside, ipix, nest=nest):# get neighbors as rtheta, rphi
+				if neighbour == -1: ### when neighbour == -1, there is no corresponding pixel in this direction
+					pass
 				else:
 					isinterior *= abstruth[neighbour] ### check to see if the neighbor is in the set
-					                                  ### we don't care if it has already been visited.
-	                                # try to find pixel in skymap
-        	                        if truth[neighbour]: ### pixel in the set and has not been visited before
-                	                        truth[neighbour] = False ### remove neighbour from global set
-                                	        to_check.append( neighbour ) ### add to list of things to check
-	                                else: ### pixel not in the set or has been visited before
-        	                                pass
+										### we don't care if it has already been visited.
+										# try to find pixel in skymap
+					if truth[neighbour]: ### pixel in the set and has not been visited before
+						truth[neighbour] = False ### remove neighbour from global set
+						to_check.append( neighbour ) ### add to list of things to check
+					else: ### pixel not in the set or has been visited before
+						pass
 			if not isinterior:
 				boarder.append( ipix )
-                boarders.append( boarder )
-
-        return boarders
+		boarders.append( boarder )
+	return boarders
 
 ###
 def num_modes(posterior, theta, phi, nside=None, nest=False):
@@ -261,36 +266,28 @@ def __into_modes(nside, pix, nest=False):
 	"""
 	### establish an array representing the included pixels
 	npix = hp.nside2npix(nside)
-
 	truth = np.zeros((npix,),bool)
 	truth[pix] = True
-
 	pixnums = np.arange(npix) ### convenient array we establish once
-
 	modes = []
 	while truth.any():
 		ipix = pixnums[truth][0] ### take the first pixel
 		truth[ipix] = False ### remove it from the global set
 		mode = [ipix]
 		to_check = [ipix] ### add it to the list of things to check
-
 		while len(to_check): # there are pixels in this mode we have to check
 			ipix = to_check.pop() # take one pixel from those to be checked.
-
 			for neighbour in hp.get_all_neighbours(nside, ipix, nest=nest):# get neighbors as rtheta, rphi
-
 				if neighbour == -1: ### when neighbour == -1, there is no corresponding pixel in this direction
 					pass
 				# try to find pixel in skymap
 				elif truth[neighbour]: ### pixel in the set and has not been visited before
 					truth[neighbour] = False ### remove neighbour from global set
-#					truth[neighbour] = 0 ### remove neighbour from global set
 					mode.append( neighbour ) ### add to this mode
 					to_check.append( neighbour ) ### add to list of things to check
 				else: ### pixel not in the set or has been visited before
 					pass 
 		modes.append( mode )
-
 	return modes
 
 ###
@@ -396,7 +393,6 @@ def symmetric_KLdivergence_walk( posterior1, posterior2, base=2.0, nside=False, 
 		posterior1 = resample(posterior1, nside, nest=nest)
 		posterior2 = resample(posterior2, nside, nest=nest)
 		symKL = symmetric_KLdivergence( posterior1, posterior2, base=base )
-
 	return symKL, nside
 
 ###
@@ -431,20 +427,17 @@ def dot(posterior1, posterior2):
 
 ###
 def geometric_overlap(pix1, pix2, nside, degrees=False):
-        """
-        computes the amount of area in the intersection and union of confidence regions from p1 and p2 defined by p_value
-        """
-        npix = hp.nside2npix(nside)
-        pixarea = hp.nside2pixarea(nside, degrees=degrees)
-
+	"""
+	computes the amount of area in the intersection and union of confidence regions from p1 and p2 defined by p_value
+	"""
+	npix = hp.nside2npix(nside)
+	pixarea = hp.nside2pixarea(nside, degrees=degrees)
 	posterior1 = np.zeros((npix,),int)
 	posterior2 = np.zeros((npix,),int)
-
 	posterior1[pix1] = 1
 	posterior2[pix2] = 1
-
-        intersection = np.sum( posterior1*posterior2 )
-        return intersection*pixarea, (np.sum(posterior1+posterior2) - intersection)*pixarea
+	intersection = np.sum( posterior1*posterior2 )
+	return intersection*pixarea, (np.sum(posterior1+posterior2) - intersection)*pixarea
 
 ###
 def spotcheck(posterior1, posterior2, conf):
@@ -465,10 +458,8 @@ def __fits_to_table(posterior):
 	"""
 	npix = len(posterior)
 	nside = hp.npix2nside(npix)
-
-        ind = np.arange(npix)[posterior>0] ### only take the pixels that will contribute to the correlation function
-        t, p = hp.pix2ang(nside, ind)
-
+	ind = np.arange(npix)[posterior>0] ### only take the pixels that will contribute to the correlation function
+	t, p = hp.pix2ang(nside, ind)
 	return np.transpose([t, p, posterior[ind]])
 
 ###
@@ -476,7 +467,6 @@ def twoPt_fitsfits(posterior1, posterior2, Nsamp=101):
 	"""
 	estimates the 2-pt correlation function between the 2 posteriors. 
 	This function assumes both posteriors are HEALPix all-sky maps
-
 	returns theta, 2ptCorr(theta) as np.arrays with theta in radians
 	"""
 	### extract parameters from the maps to set up iteration
@@ -487,33 +477,29 @@ def twoPt_fitsfits(posterior1, posterior2, Nsamp=101):
 
 	pixarea1 = hp.nside2pixarea(nside1)
 	pixarea2 = hp.nside2pixarea(nside2)
-
 	kde_bandwidth = (pixarea1+pixarea2) ### variance of KDE Gaussian
 
         ### delegate!
-        return twoPt_tabletable(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+	return twoPt_tabletable(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
 ###
 def twoPt_fitsfits_fast(posterior1, posterior2, Nsamp=101):
-        """
-        estimates the 2-pt correlation function between the 2 posteriors. 
-        This function assumes both posteriors are HEALPix all-sky maps
+	"""
+	estimates the 2-pt correlation function between the 2 posteriors.
+	This function assumes both posteriors are HEALPix all-sky maps
+	returns theta, 2ptCorr(theta) as np.arrays with theta in radians
+	WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
+	delegates to twoPt_tabletable_fast
+	"""
+	### extract parameters from the maps to set up iteration
+	npix1 = len(posterior1)
+	nside1 = hp.npix2nside(npix1)
+	npix2 = len(posterior2)
+	nside2 = hp.npix2nside(npix2)
 
-        returns theta, 2ptCorr(theta) as np.arrays with theta in radians
-
-        WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
-	    delegates to twoPt_tabletable_fast
-        """
-        ### extract parameters from the maps to set up iteration
-        npix1 = len(posterior1)
-        nside1 = hp.npix2nside(npix1)
-        npix2 = len(posterior2)
-        nside2 = hp.npix2nside(npix2)
-
-        pixarea1 = hp.nside2pixarea(nside1)
-        pixarea2 = hp.nside2pixarea(nside2)
-
-        kde_bandwidth = (pixarea1+pixarea2)
+	pixarea1 = hp.nside2pixarea(nside1)
+	pixarea2 = hp.nside2pixarea(nside2)
+	kde_bandwidth = (pixarea1+pixarea2)
 
 	### delegate!
 	return twoPt_tabletable_fast(__fits_to_table(posterior1), __fits_to_table(posterior2), Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
@@ -525,32 +511,31 @@ def twoPt_fitstable(posterior, table, Nsamp=101):
 	assumes "posterior" is a HEALPix all-sky map and "table" is a tabular data format
 	table must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
 	"""
-        ### extract parameters from the maps to set up iteration
-        npix = len(posterior)
-        nside = hp.npix2nside(npix)
+	### extract parameters from the maps to set up iteration
+	npix = len(posterior)
+	nside = hp.npix2nside(npix)
+	kde_bandwidth = hp.nside2pixarea(nside)
 
-        kde_bandwidth = hp.nside2pixarea(nside)
-
-        ### delegate!
-        return twoPt_tabletable(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+	### delegate!
+	return twoPt_tabletable(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
 ###
 def twoPt_fitstable_fast(posterior, table, Nsamp=101):
-        """
-        estimates the 2-pt correlation function between 2 posteriors
-        assumes "posterior" is a HEALPix all-sky map and "table" is a tabular data format
-        table must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
+	"""
+	estimates the 2-pt correlation function between 2 posteriors
+	assumes "posterior" is a HEALPix all-sky map and "table" is a tabular data format
+	table must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
 
-        WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
-        """
-        ### extract parameters from the maps to set up iteration
-        npix = len(posterior)
-        nside = hp.npix2nside(npix)
+	WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
+	"""
+	### extract parameters from the maps to set up iteration
+	npix = len(posterior)
+	nside = hp.npix2nside(npix)
 
-        kde_bandwidth = hp.nside2pixarea(nside)
+	kde_bandwidth = hp.nside2pixarea(nside)
 
-        ### delegate!
-        return twoPt_tabletable_fast(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
+	### delegate!
+	return twoPt_tabletable_fast(__fits_to_table(posterior), table, Nsamp=Nsamp, kde_bandwidth=kde_bandwidth)
 
 ###
 def twoPt_tabletable(table1, table2, kde_bandwidth=1.0, Nsamp=101):
@@ -561,31 +546,29 @@ def twoPt_tabletable(table1, table2, kde_bandwidth=1.0, Nsamp=101):
 
 	kde_bandwidth is the vairance used in the Gaussian KDE
 	"""
-        N = (2*np.pi*kde_bandwidth)**-0.5
-        n = 0.5/kde_bandwidth
+	N = (2*np.pi*kde_bandwidth)**-0.5
+	n = 0.5/kde_bandwidth
 
-        ### set up iteration
-        theta = np.linspace(0, np.pi, Nsamp)
-        count = np.zeros_like(theta, dtype=float)
+	### set up iteration
+	theta = np.linspace(0, np.pi, Nsamp)
+	count = np.zeros_like(theta, dtype=float)
 
-        for t1, p1, post1 in table1:
-                cosT1 = np.cos(t1)
-                sinT1 = np.sin(t1)
-                for t2, p2, post2 in table2:
-                        dTheta = np.arccos(cosT1*np.cos(t2) + sinT1*np.sin(t2)*np.cos(p1-p2))
-                        count += N*np.exp(-n*(dTheta-theta)**2) * post1*post2 ### normalize Gaussian by inner product
-
-        return theta, count
+	for t1, p1, post1 in table1:
+		cosT1 = np.cos(t1)
+		sinT1 = np.sin(t1)
+		for t2, p2, post2 in table2:
+			dTheta = np.arccos(cosT1*np.cos(t2) + sinT1*np.sin(t2)*np.cos(p1-p2))
+			count += N*np.exp(-n*(dTheta-theta)**2) * post1*post2 ### normalize Gaussian by inner product		
+	return theta, count
 
 ###
 def twoPt_tabletable_fast(table1, table2, kde_bandwidth=1.0, Nsamp=101):
-        """
+	"""
         estimate the 2-pt correlation function between 2 posteriors
         assumes both are tabular data formats
         tables must be a numpy array of the form: [(theta, phi, weight), (theta, phi, weight), ...]
 
-	kde_bandwidth is the variance used in the Gaussian KDE
-
+        kde_bandwidth is the variance used in the Gaussian KDE
         WARNING: this builds a BIG matrix to try to compute this quickly and may be very memory intensive...
 	"""
 	### set up array indexing
@@ -597,14 +580,13 @@ def twoPt_tabletable_fast(table1, table2, kde_bandwidth=1.0, Nsamp=101):
 	IND2 = IND2.flatten()
 
 	### compute angular separation between all pairs of points
-        dTheta = np.arccos( cos_dtheta(t1[IND1], p1[IND1], t2[IND2], p2[IND2]) )
+	dTheta = np.arccos( cos_dtheta(t1[IND1], p1[IND1], t2[IND2], p2[IND2]) )
 
 	### compute sampling via KDE
 	theta = np.linspace(0, np.pi, Nsamp)
 
-        kernal = (2*np.pi*kde_bandwidth)**-0.5 * np.exp(-0.5*(np.outer(dTheta, np.ones_like(theta)) - np.outer(np.ones_like(dTheta), theta))**2/kde_bandwidth)
-        weights = np.outer(posterior1[IND1]*posterior2[IND2], np.ones_like(theta))
-
-        count = np.sum(kernal * weights, axis=0) ### sum over all pixel pairs
-
-        return theta, count
+	kernal = (2*np.pi*kde_bandwidth)**-0.5 * np.exp(-0.5*(np.outer(dTheta, np.ones_like(theta)) - np.outer(np.ones_like(dTheta), theta))**2/kde_bandwidth)
+	weights = np.outer(posterior1[IND1]*posterior2[IND2], np.ones_like(theta))
+	count = np.sum(kernal * weights, axis=0) ### sum over all pixel pairs
+	
+	return theta, count

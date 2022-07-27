@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "multFITShtml.py [--options] fits fits fits ..."
 description = "generates plots and statistics summarizing and comparing several FITS files, and writes html documents to display the results. Note: assumes snglFITShtml.py was *already* called for all FITS files provided, and therefore predicts the URL for their snglFITS pages within links."
 author      = "reed.essick@ligo.org"

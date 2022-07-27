@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "compare_maps.py [--options] label1,fits1 label2,fits2 ..."
 description = "computes several comparison statistics for the FITs files provided. Computes comparison statistics for all possible pairings (downsampling the finner resolution map if needed)"
 author      = "reed.essick@ligo.org"
@@ -64,7 +62,7 @@ if opts.degrees:
     angle_conversion = 180/np.pi
 else:
     unit = "radians"
-    areaunit = "stradians"
+    areaunit = "steradians"
     angle_conversion = 1.0
 
 #==========================================================
@@ -129,7 +127,7 @@ for ind, label1 in enumerate(labels):
             print( "    pixarea : %.6f %s"%(pixarea, areaunit) )
 
         messages = []
-	
+
         ### compute statistics
         if opts.dMAP:
             if opts.Verbose:
@@ -171,7 +169,7 @@ for ind, label1 in enumerate(labels):
         if opts.structural_similarity:
             if opts.Verbose:
                 print( "        structural_similarity" )
-            messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.min(np.mean(post1),np.mean(post2)), c2=0.01*np.min(np.var(post1), np.var(post2)) ) )
+            messages.append( "structural similarity : %.5f"%stats.structural_similarity(post1, post2, c1=0.01*np.minimum(np.mean(post1),np.mean(post2)), c2=0.01*np.minimum(np.var(post1), np.var(post2)) ) )
 
         if opts.pearson:
             if opts.Verbose:

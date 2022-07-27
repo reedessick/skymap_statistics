@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "snglFITShtml.py [--options] fits"
 description = "generates plots and statistics summarizing a FITS file, and writes html documents to display the results"
 author      = "reed.essick@ligo.org"
@@ -18,7 +16,6 @@ from optparse import OptionParser
 from skymap_statistics import fits2html
 
 from ligo.gracedb.rest import GraceDb
-
 #-------------------------------------------------
 
 parser = OptionParser(usage=usage, description=description)

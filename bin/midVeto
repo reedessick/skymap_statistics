@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 usage       = "midVeto.py [--options] config.ini"
 description = "listens for uploads of mutual information distance and generates labels appropriately"
 author      = "reed.essick@ligo.org"

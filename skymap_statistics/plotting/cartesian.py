@@ -43,7 +43,7 @@ def gen_fig_ax( figind, figwidth=6, figheight=5 ):
     '''
     return genCR_fig_ax(figind, figwidth=figwidth, figheigh=figheight)
 
-def genCR_fig_ax( figind, figwidth=6, figheight=5, grid=True ):
+def genCR_fig_ax( figind, figwidth=6, figheight=5.5, grid=True ):
     '''
     generates figure and axis in the set-up we prefer
     '''
@@ -423,17 +423,9 @@ def post2marg( post, ifos, sampDt, coord='C', gps=None ):
 
     ### build up KDE
     sigma = maxDt * ( 1 - dt/maxDt )**0.5 * dAng
-
-    spacer = np.ones_like( sampDt )
-
-    big_post   = np.outer( spacer, post )
-    big_dt     = np.outer( spacer, dt )
-    big_sigma  = np.outer( spacer, sigma )
-    big_sampDt = np.outer( sampDt, np.ones_like(dt) )
-
-    kde = np.sum( big_post * np.exp( -( (big_dt - big_sampDt)/big_sigma )**2 ) / (twopi**0.5 * big_sigma), axis=-1 )
+    
+    kde = np.array([ np.sum(post * np.exp( -( (dt - k)/sigma )**2 ) / (twopi**0.5 * sigma)) for k in sampDt])
     kde /= np.sum(kde)
-
     return kde
 
 def post2cart( post, ra_lim, dec_lim, Npts=1001 ):
